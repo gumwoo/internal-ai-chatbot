@@ -35,6 +35,12 @@
 | D-27 | 임베딩은 Google `gemini-embedding-2`(무료 티어부터), judge는 Gemini Flash 계열 무료 티어 | 사용자 확인(예산). 조건: 청크마다 별도 입력으로 임베딩, 차원은 768/1536 중 선택(O-04), 평가 때 호출 한도에 걸리면 유료 전환, 무료 티어 입력은 Google 제품 개선에 쓰이므로 가상 문서에만 사용, judge 모델 ID·날짜는 holdout 전 고정 |
 | D-28 | 비동기 서버: FastAPI async 엔드포인트 + SQLAlchemy 2 async + psycopg 3 async, Python 3.13 | 사용자 확인. 모델 응답을 최대60초 기다리는 동안 다른 요청을 처리하고 NFR-03 동시성 테스트를 자연스럽게 하기 위함. 3.14는 라이브러리 지원을 확인하지 않아 보류 |
 | D-29 | M2 이후 진행 상황 스트리밍: 같은 메시지 POST에 `Accept: text/event-stream`, 서버가 기록한 단계만 progress로 보내고 답변 본문은 검사·commit 뒤 result로 한 번 | 사용자 확인([정책 선택](15-policy-options.md) P-09 A). 토큰 단위 스트리밍은 권한 재확인·인용 검증 원칙과 충돌해 쓰지 않음 |
+| D-30 | 데모 조직·역할·계정: 부서는 등록부 소관(인사팀·IT지원팀(IT운영 포함)·정보보안팀·경영지원팀·재무팀·총무팀)과 열람 부서(영업팀·개발팀). 역할은 employee·dept_head·hr_staff·approver·auditor·it_support·operator(CLI 전용). 시험 계정 emp-sales·emp-dev·head-sales·hr-staff·it-support·ops-admin(웹 로그인 없음). capability는 employee=training.read·knowledge.search·ticket.read_own(준비·제출은 M5), it_support는 +ticket.read_support_scope, operator=ops.* | 사용자 확인(2026-10-17, M3 진행 결정). O-01·O-10의 데모 값. 시험 비밀번호는 seed 파일에 둔다(가상 데모 계정). HR-014의 "평가권자"는 부서장으로 본다(가정) |
+| D-31 | 문서 ACL: 기본은 전 문서 audience=authenticated이며 manifest에 "사용자 명시 결정"으로 남긴다. 원문에 열람 제한이 적힌 HR-013·HR-014는 hr_staff·dept_head, CM-093은 dept_head·approver·auditor로 제한. 부서 단위 제한은 시험 전용 가짜 문서로만 시험 | 사용자 확인(2026-10-17). O-02의 ACL 부분 해소. 원문에 근거가 없는 제한을 지어내지 않기 위함 |
+| D-32 | 임베딩 차원 1536(`gemini-embedding-2`)으로 시작. 768과 작은 표본에서 비교해 선택 근거로만 기록(평가 결과로 쓰지 않음) | 사용자 확인(2026-10-17). O-04의 차원 부분 해소 |
+| D-33 | PDF 파서 pdfplumber(MIT). PyMuPDF(AGPL)는 쓰지 않음. 100개 전에 15~20개 파일럿으로 한국어 추출 확인 | 사용자 확인(2026-10-17). O-05의 파서 선택 해소. OCR·표 복원 한계는 파일럿 보고에 남김 |
+| D-34 | P-12는 B(명세대로 CP-07 포트를 MOD-02에 주입, MOD-01의 권한 선필터는 첫 겹으로 유지). P-13은 B(문서 passage는 tool_result로, 검증된 대화 자료는 system에서 빼 현재 사용자 턴 앞의 표시된 자료 블록으로, system에는 규칙만) | 사용자 확인(2026-10-17). O-16·O-17 해소. 근거는 [정책 선택](15-policy-options.md) P-12·P-13 |
+| D-35 | M3 진행 규칙: Anthropic 비용 상한은 이번 진행 전체 $1이며 그 안에서는 호출마다 묻지 않음. Gemini는 무료 티어만(유료 필요 시 중단). 단계마다 테스트·lint·검증 에이전트 지적 수정·포트폴리오 갱신 뒤 커밋, push는 마일스톤 끝(SSE 뒤, M3 뒤). 비용 초과·새 정책 결정 필요·보호 파일 접근 필요·명세 충돌 시 중단 | 사용자 확인(2026-10-17) |
 
 ## 초기 기본 정책 — 설정으로 명시
 
@@ -44,23 +50,23 @@
 
 | ID | 항목 | 정하는 시점·주체 |
 |---|---|---|
-| O-01 | 가상 조직·역할·부서·정책/예외·우선관계 | 사용자가 PDF 제작/인계할 때 |
-| O-02 | 실제 판본 번호·시행/종료일·ACL·문서 종류·available_from/document_role/application_basis·guidance 판본 구간·IT-038/055 개정/시행일 확인, transition_relations의 사건 조건 매핑(예: CM-092 "상신"을 어느 닫힌 값으로 볼지)과 검수 주체 | manifest 검수 전, 사용자와 확인 |
+| O-01 | 조직·역할·부서는 D-30으로 데모 값 확정. 남은 것: 정책/예외·우선관계 | 사용자가 PDF 제작/인계할 때 |
+| O-02 | (ACL은 D-31로 확정) 실제 판본 번호·시행/종료일·문서 종류·available_from/document_role/application_basis·guidance 판본 구간·IT-038/055 개정/시행일 확인, transition_relations의 사건 조건 매핑(예: CM-092 "상신"을 어느 닫힌 값으로 볼지)과 검수 주체 | manifest 검수 전, 사용자와 확인 |
 | O-03 | D-26으로 해소. 남은 것: 각 도구의 버전 고정(uv 잠금 파일에 기록) | M0 |
-| O-04 | 모델·공급자는 D-25/D-27로 확정. 남은 것: 임베딩 차원(768/1536), 한국어 품질 확인(dev 질문으로 비교 후보 하나와 대조, 예: 로컬 `voyage-4-nano`), judge의 정확한 Gemini 모델 ID, 공급자별 사용 한도 설정 | 차원·한국어 확인은 M3 색인 전. 차원이 pgvector 컬럼에 고정되므로 바꾸면 재색인. judge ID는 holdout 전 |
-| O-05 | PDF 파서·OCR 지원·한계·표 복원·파일 상한 | M3 파일럿 검증 |
+| O-04 | 모델·공급자는 D-25/D-27로 확정. 남은 것: 차원은 D-32로 1536 시작(768 비교 기록), 한국어 품질 확인(dev 질문으로 비교 후보 하나와 대조, 예: 로컬 `voyage-4-nano`), judge의 정확한 Gemini 모델 ID, 공급자별 사용 한도 설정 | 차원·한국어 확인은 M3 색인 전. 차원이 pgvector 컬럼에 고정되므로 바꾸면 재색인. judge ID는 holdout 전 |
+| O-05 | 파서는 D-33(pdfplumber)으로 확정. 남은 것: OCR 지원·한계·표 복원·파일 상한 | M3 파일럿 검증 |
 | O-06 | chunk/overlap·거리·후처리·Wiki 탐색 config | dev 실험 전 고정 |
 | O-07 | 예산 스윕 후보 값(초기4000+더 큰 값 2개 이상)·모델 한도 검증·최종 dev 동결값·packing_order·반복 횟수·seed | 비교 실행 전에 필수 설정 |
 | O-08 | Wiki 주제 분할·검수 항목·권한별 분할 필요 | M4 빌드 전 검토 |
 | O-09 | 정답 근거·150문항 실물·검수자 | PDF 검수 후 |
-| O-10 | 실제 fixture 계정/비밀 값·담당 부서 ID·역할별 capability 부여(이름은 CT-01 닫힌 목록) | 인증/티켓 구현 전; 범위 정책은 아래 확정 |
+| O-10 | 데모 계정·역할·capability는 D-30으로 확정. 남은 것: IT 담당 부서 support_department_ids 값(M5) | 인증/티켓 구현 전; 범위 정책은 아래 확정 |
 | O-11 | 정식 이름·공개 배포·데이터 보존기간 | 최종 데모/공개 전 |
 | O-12 | 방향은 D-22로 확정. 남은 것: actor별 허용 원문 token 실측 결과와 기준선 실행 가능 actor 범위, 재정렬 추가를 판단할 hard negative 오답 기준, 추가 시 후보 수·한국어 reranker 모델·지연 허용치 | 기준선은 M4 비교 설계 전, 재정렬은 dev 예산 스윕 결과 확인 후 사용자와 확인([정책 선택 P-04](15-policy-options.md)) |
 | O-13 | 방향은 D-24로 확정. 남은 것: P-05 시제 판별 표현 목록·표시 문구, P-07에서 C로 넘어갈 hard negative 오답 기준(O-12와 같은 판단) | M3 날짜 검색 구현 전, dev 예산 스윕 결과 확인 후 사용자와 확인([정책 선택](15-policy-options.md)) |
 | O-14 | live_clock 교육 상태를 seed 때 계산할지 조회 때 계산할지. 현재 구현은 seed 때 계산(임시) | 실제 시간 진행 데모 전 사용자와 확인([정책 선택 P-10](15-policy-options.md)) |
 | O-15 | 모델 호출 시간 초과의 외부 오류 코드. 닫힌 사전에 전용 코드가 없어 현재 MODEL_UPSTREAM_ERROR(내부 kind=timeout, retryable)로 내보냄(임시) | UI 오류 문구 연결(M6) 전 사용자와 확인([정책 선택 P-11](15-policy-options.md)) |
-| O-16 | CP-07(검증된 교육 사본) 읽기를 MOD-01 snapshot 단계에서 할지 명세대로 MOD-02에 주입할지. 현재는 MOD-01(임시) | M3 사건 날짜 대조 설계 전 사용자와 확인([정책 선택 P-12](15-policy-options.md)) |
-| O-17 | 대화 자료(검증된 사본)를 system에 둘지 별도 자료 블록으로 둘지. 현재는 system 끝(임시) | M3 원문 주입·T-34 설계 전 사용자와 확인([정책 선택 P-13](15-policy-options.md)) |
+| O-16 | D-34로 해소(P-12 B) | M3 사건 날짜 대조 설계 전 사용자와 확인([정책 선택 P-12](15-policy-options.md)) |
+| O-17 | D-34로 해소(P-13 B) | M3 원문 주입·T-34 설계 전 사용자와 확인([정책 선택 P-13](15-policy-options.md)) |
 | O-18 | 공백만 있는 제목·메시지 처리. 현재는 수락(임시), NUL은 422 | UI 연결(M6) 전 사용자와 확인([정책 선택 P-14](15-policy-options.md)) |
 
 ## 이번 변경에서 하지 않은 일
