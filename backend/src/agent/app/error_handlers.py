@@ -7,7 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from agent.shared.errors import AppError, ErrorCode
+from agent.shared.errors import AppError, ErrorCode, safe_field_names
 from agent.shared.request_id import request_id_of
 
 logger = logging.getLogger(__name__)
@@ -28,13 +28,21 @@ async def _app_error(request: Request, exc: AppError) -> JSONResponse:
 
 async def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
     # 필드 이름만 돌려준다. 입력값·검증 메시지는 넣지 않는다.
-    names = sorted({str(e["loc"][-1]) for e in exc.errors() if e.get("loc")})
+    names = safe_field_names(list(exc.errors()))
     return _response(AppError(ErrorCode.INVALID_REQUEST, details={"field_names": names}), request)
 
 
+# 프레임워크가 직접 내는 HTTPException 상태 → 닫힌 오류 코드. 404/405는 자원 미존재와 같게 정규화한다.
+_HTTP_STATUS_CODES = {
+    401: ErrorCode.AUTHENTICATION_REQUIRED,
+    403: ErrorCode.ACTION_NOT_ALLOWED,
+    404: ErrorCode.RESOURCE_NOT_FOUND,
+    405: ErrorCode.RESOURCE_NOT_FOUND,
+}
+
+
 async def _http_error(request: Request, exc: StarletteHTTPException) -> JSONResponse:
-    # 라우터 수준 404/405는 자원 미존재와 같은 모양으로 정규화한다.
-    code = ErrorCode.RESOURCE_NOT_FOUND if exc.status_code in (404, 405) else ErrorCode.INVALID_REQUEST
+    code = _HTTP_STATUS_CODES.get(exc.status_code, ErrorCode.INVALID_REQUEST)
     return _response(AppError(code), request)
 
 

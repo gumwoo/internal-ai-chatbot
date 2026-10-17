@@ -4,7 +4,7 @@ from collections.abc import Awaitable, Callable
 
 from fastapi import Request
 
-from agent.shared.actor import ActorContext, CurrentActor
+from agent.shared.actor import CAPABILITIES, ActorContext, CurrentActor
 from agent.shared.errors import AppError, ErrorCode
 
 
@@ -17,6 +17,9 @@ async def current_actor(request: Request) -> ActorContext:
 
 def require_capability(capability: str) -> Callable[[Request], Awaitable[ActorContext]]:
     """현재 actor가 capability를 가졌는지 확인한다. 없으면 403 ACTION_NOT_ALLOWED."""
+    if capability not in CAPABILITIES:
+        # 이름 오타는 라우터를 만들 때 바로 드러나게 한다(조용히 모두 거부하지 않게).
+        raise ValueError(f"닫힌 목록에 없는 capability: {capability}")
 
     async def dependency(request: Request) -> ActorContext:
         actor = await current_actor(request)

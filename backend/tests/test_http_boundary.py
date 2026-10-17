@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 
 import httpx
+import pytest
 from fastapi import Depends
 from pydantic import BaseModel, ConfigDict
 
@@ -140,3 +141,128 @@ async def test_ready_without_database_is_service_unavailable():
     body = _assert_envelope(response, 503, "SERVICE_UNAVAILABLE", "execution")
     assert body["error"]["retryable"] is True
     assert time.monotonic() - started < 10
+
+
+# --- M0 검증 보강(P3) ---
+
+
+async def test_field_names_use_field_not_position_or_raw_key():
+    app = _app()
+
+    class _Items(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+        items: list[int]
+
+    @app.post("/api/v1/_test/items")
+    async def items(body: _Items) -> dict[str, int]:
+        return {"n": len(body.items)}
+
+    async with _client(app) as client:
+        bad_json = await client.post(
+            "/api/v1/_test/echo",
+            content=b'{"title": ',
+            headers={"Origin": ORIGIN, "Content-Type": "application/json"},
+        )
+        bad_item = await client.post(
+            "/api/v1/_test/items", json={"items": [1, "x"]}, headers={"Origin": ORIGIN}
+        )
+        script_key = await client.post(
+            "/api/v1/_test/echo", json={"title": "x", "<script>": 1}, headers={"Origin": ORIGIN}
+        )
+    assert bad_json.json()["error"]["details"] == {"field_names": ["body"]}
+    assert bad_item.json()["error"]["details"] == {"field_names": ["items"]}
+    assert script_key.json()["error"]["details"] == {"field_names": ["unknown_field"]}
+    assert "<script>" not in script_key.text
+
+
+async def test_framework_401_403_are_mapped_to_auth_codes():
+    from fastapi import HTTPException
+
+    app = _app()
+
+    @app.get("/api/v1/_test/http/{status}")
+    async def raise_status(status: int) -> None:
+        raise HTTPException(status_code=status)
+
+    async with _client(app) as client:
+        r401 = await client.get("/api/v1/_test/http/401")
+        r403 = await client.get("/api/v1/_test/http/403")
+        r400 = await client.get("/api/v1/_test/http/400")
+    _assert_envelope(r401, 401, "AUTHENTICATION_REQUIRED", "auth")
+    _assert_envelope(r403, 403, "ACTION_NOT_ALLOWED", "auth")
+    _assert_envelope(r400, 422, "INVALID_REQUEST", "validation")
+
+
+@pytest.mark.parametrize("method", ["PUT", "PATCH", "DELETE"])
+async def test_all_state_changing_methods_need_origin(method):
+    async with _client(_app()) as client:
+        missing = await client.request(method, "/api/v1/_test/echo")
+        null_origin = await client.request(method, "/api/v1/_test/echo", headers={"Origin": "null"})
+    _assert_envelope(missing, 403, "CSRF_FAILED", "auth")
+    _assert_envelope(null_origin, 403, "CSRF_FAILED", "auth")
+
+
+async def test_wrong_method_is_normalized_to_not_found():
+    async with _client(_app()) as client:
+        response = await client.put("/api/v1/health/live", headers={"Origin": ORIGIN})
+    _assert_envelope(response, 404, "RESOURCE_NOT_FOUND", "auth")
+
+
+async def test_openapi_schema_is_not_exposed():
+    async with _client(_app()) as client:
+        response = await client.get("/openapi.json")
+    assert response.status_code == 404
+
+
+async def test_websocket_from_other_origin_is_closed():
+    from agent.shared.origin import OriginCheckMiddleware
+
+    reached = []
+
+    async def inner(scope, receive, send):
+        reached.append(scope["type"])
+
+    sent: list[dict] = []
+
+    async def send(message):
+        sent.append(message)
+
+    middleware = OriginCheckMiddleware(inner, frozenset({ORIGIN}))
+    await middleware({"type": "websocket", "headers": [(b"origin", b"http://evil.test")]}, None, send)
+    await middleware({"type": "websocket", "headers": []}, None, send)
+    await middleware({"type": "websocket", "headers": [(b"origin", ORIGIN.encode())]}, None, send)
+    assert [m["code"] for m in sent] == [1008, 1008]
+    assert reached == ["websocket"]
+
+
+def test_unknown_capability_name_fails_at_definition():
+    from agent.app.deps import require_capability
+
+    with pytest.raises(ValueError, match="capability"):
+        require_capability("training.reed")
+
+
+async def test_ready_without_vector_extension_is_unavailable():
+    class _Conn:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+        async def execute(self, statement):
+            return None
+
+        async def scalar(self, statement):
+            return None  # 마이그레이션 전: vector 확장 없음
+
+    class _Engine:
+        def connect(self):
+            return _Conn()
+
+    app = _app()
+    async with _client(app) as client:
+        app.state.engine = _Engine()
+        response = await client.get("/api/v1/health/ready")
+    body = _assert_envelope(response, 503, "SERVICE_UNAVAILABLE", "execution")
+    assert body["error"]["retryable"] is True

@@ -221,7 +221,9 @@ async def test_invalid_final_fails_without_context(seeded_engine, clock, bad_fin
     assert (result.answer, result.context_candidate) == (None, None)
     # 무효 이유는 내부 note로 남고 사용자용 오류 응답에는 들어가지 않는다.
     assert result.error.__notes__
-    assert "notes" not in str(result.error.to_envelope("req"))
+    envelope = str(result.error.to_envelope("req"))
+    for note in result.error.__notes__:
+        assert note not in envelope
 
 
 # --- 상한·재시도 ---
@@ -352,3 +354,118 @@ async def test_hanging_model_ends_at_run_deadline(seeded_engine, clock):
     )
     assert result.error.code is ErrorCode.RUN_TIMEOUT
     assert asyncio.get_running_loop().time() - started < 3
+
+
+# --- M1 검증 보강: 서버 쪽 강제(가짜 모델이 문제 값을 직접 낸다) ---
+
+
+async def test_clarification_never_stores_selection_even_if_model_sends_one(seeded_engine, clock):
+    snapshot = ConversationSnapshot(training_cache={SEC: {"id": SEC}, COLLAB: {"id": COLLAB}})
+    runtime, _ = _runtime(
+        [final("어느 교육인가요?", outcome="needs_clarification", ids=(SEC, COLLAB), selected=SEC)],
+        seeded_engine,
+        clock,
+    )
+    result = await _run(runtime, clock, "그 교육 어디야?", snapshot=snapshot)
+    assert result.status == "completed"
+    assert result.context_candidate["selected_training_id"] is None
+
+
+@pytest.mark.parametrize(
+    ("script", "reason"),
+    [
+        ([final("없습니다", outcome="no_results")], "without successful list lookup"),
+        (
+            [tool_turn(("list_trainings", {"limit": 99})), final("없습니다", outcome="no_results")],
+            "without successful list lookup",
+        ),
+        (
+            [
+                tool_turn(("list_trainings", {"date_preset": "next_week"})),
+                final("없음", outcome="no_results", ids=(SEC,)),
+            ],
+            "no_results with training ids",
+        ),
+    ],
+)
+async def test_no_results_requires_a_real_lookup(seeded_engine, clock, script, reason):
+    runtime, _ = _runtime(script, seeded_engine, clock)
+    result = await _run(runtime, clock)
+    assert result.status == "failed" and result.error.code is ErrorCode.MODEL_OUTPUT_INVALID
+    assert any(reason in note for note in result.error.__notes__)
+
+
+async def test_relooked_and_referenced_trainings_stay_in_cache(seeded_engine, clock):
+    """사본이 20건으로 꽉 찬 상태에서 첫 사본(SEC)을 다시 조회해 답하면 SEC가 사본에 남아야 한다."""
+    cache = {SEC: {"id": SEC}} | {f"old-{i}": {"id": f"old-{i}"} for i in range(19)}
+    snapshot = ConversationSnapshot(training_cache=cache)
+    runtime, _ = _runtime(
+        [
+            tool_turn(("list_trainings", {"date_preset": "next_week"})),
+            final("보안 교육", ids=(SEC,), selected=SEC),
+        ],
+        seeded_engine,
+        clock,
+    )
+    result = await _run(runtime, clock, snapshot=snapshot)
+    kept = result.context_candidate["training_cache"]
+    assert len(kept) == 20
+    assert SEC in kept and COLLAB in kept  # 다시 조회한 SEC, 새로 조회한 COLLAB 모두 유지
+    assert list(kept)[-1] == SEC  # 답이 가리킨 교육이 가장 최근
+    # 21건(옛 사본 20 + 새 COLLAB 1) 중 가장 오래된 1건만 빠진다.
+    assert "old-0" not in kept and "old-1" in kept
+
+
+async def test_deadline_exhausted_after_model_reply_is_run_timeout(seeded_engine, clock):
+    class SlowThinkingModel(FakeModelClient):
+        async def complete_once(self, request):
+            clock.advance(61)  # 모델 응답 사이에 실행 시간이 다 됐다
+            return await super().complete_once(request)
+
+    model = SlowThinkingModel([tool_turn(("list_trainings", {}))])
+    runtime = AgentRuntime(model, ToolExecutor(TrainingService(seeded_engine), clock), clock, MODEL)
+    result = await runtime.execute(_context(clock), ConversationSnapshot(), "질문", InMemoryObserver())
+    assert result.error.code is ErrorCode.RUN_TIMEOUT
+    assert result.tool_summary == ()
+
+
+def test_default_policy_matches_spec_table():
+    """05-agent-execution.md 실행 상한 표의 초기값."""
+    policy = ExecutionPolicy()
+    assert (policy.run_timeout_s, policy.max_model_attempts, policy.max_tool_proposals) == (60, 6, 4)
+    assert (policy.max_retries_per_call, policy.model_timeout_s, policy.tool_timeout_s) == (1, 20, 10)
+    assert (policy.history_messages, policy.training_cache_size) == (12, 20)
+
+
+async def test_model_timeout_is_min_of_limit_and_remaining(seeded_engine, clock):
+    runtime, model = _runtime([final()], seeded_engine, clock)
+    await _run(runtime, clock, "안녕")
+    assert model.requests[0].timeout_s == 20  # 남은 시간 60초 > 상한 20초
+    runtime, model = _runtime([final()], seeded_engine, clock)
+    await _run(runtime, clock, "안녕", seconds=5)
+    assert model.requests[0].timeout_s == 5  # 남은 시간이 더 짧으면 남은 시간
+
+
+async def test_model_limit_cuts_hanging_model_even_with_long_deadline(seeded_engine, clock):
+    class HangingModel:
+        calls = 0
+
+        async def complete_once(self, request):
+            HangingModel.calls += 1
+            await asyncio.sleep(30)
+
+    policy = ExecutionPolicy(model_timeout_s=0.2)
+    runtime = AgentRuntime(HangingModel(), ToolExecutor(TrainingService(seeded_engine), clock), clock, MODEL)
+    started = asyncio.get_running_loop().time()
+    result = await runtime.execute(
+        _context(clock, policy=policy), ConversationSnapshot(), "안녕", InMemoryObserver()
+    )
+    assert result.error.code is ErrorCode.MODEL_UPSTREAM_ERROR  # 모델 시간 초과(재시도 1회 후)
+    assert HangingModel.calls == 2
+    assert asyncio.get_running_loop().time() - started < 3
+
+
+def test_output_schema_does_not_offer_action_pending():
+    from agent.modules.agent_runtime.contracts import FINAL_OUTPUT_SCHEMA
+
+    assert "action_pending" not in FINAL_OUTPUT_SCHEMA["properties"]["outcome"]["enum"]

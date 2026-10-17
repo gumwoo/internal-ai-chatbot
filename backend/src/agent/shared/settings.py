@@ -2,17 +2,27 @@
 
 from pathlib import Path
 from typing import Literal
-from urllib.parse import urlsplit
 
 from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy import make_url
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 
+# URL 쿼리로 접속 대상을 바꾸는 키. psycopg dialect는 쿼리를 접속 인자에 덮어쓰므로
+# `.../agent_test?dbname=agent_dev`가 실제로는 개발 DB에 접속한다. 이런 URL은 거절한다.
+_TARGET_QUERY_KEYS = frozenset({"dbname", "database", "host", "hostaddr", "port", "service"})
+
 
 def database_name(url: str) -> str:
-    """SQLAlchemy URL에서 데이터베이스 이름만 꺼낸다."""
-    return urlsplit(url).path.lstrip("/")
+    """실제 접속할 데이터베이스 이름. 접속 대상을 바꾸는 쿼리 키가 있으면 ValueError."""
+    parsed = make_url(url)
+    overridden = sorted(_TARGET_QUERY_KEYS & {key.lower() for key in parsed.query})
+    if overridden:
+        raise ValueError(f"DB URL 쿼리로 접속 대상을 바꿀 수 없다: {overridden}")
+    if not parsed.database:
+        raise ValueError("DB URL에 데이터베이스 이름이 없다")
+    return parsed.database
 
 
 class Settings(BaseSettings):
@@ -24,9 +34,10 @@ class Settings(BaseSettings):
         env_ignore_empty=True,
     )
 
-    app_env: Literal["local", "test", "production"] = "local"
-    auth_mode: Literal["test_stub", "local_session"] = "test_stub"
-    test_actor_id: Literal["test-a", "test-b"] | None = "test-a"
+    # 실행 모드와 인증 방식은 기본값 없이 명시해야 한다. 설정이 빠지면 서버가 시작하지 않는다.
+    app_env: Literal["local", "test", "production"]
+    auth_mode: Literal["test_stub", "local_session"]
+    test_actor_id: Literal["test-a", "test-b"] | None = None
 
     database_url: str
     test_database_url: str | None = None
@@ -44,7 +55,8 @@ class Settings(BaseSettings):
     anthropic_api_key: SecretStr | None = None
     gemini_api_key: SecretStr | None = None
 
-    fixture_mode: Literal["fixed_status", "live_clock"] = "fixed_status"
+    # MOD-04: fixture_mode는 기본값 없이 명시한다. seed 명령은 이 값이나 --mode가 없으면 거절한다.
+    fixture_mode: Literal["fixed_status", "live_clock"] | None = None
 
     @property
     def allowed_origin_set(self) -> frozenset[str]:
@@ -66,11 +78,13 @@ class Settings(BaseSettings):
                 raise ValueError("AUTH_MODE=test_stub이면 TEST_ACTOR_ID가 필요하다")
         if self.auth_mode == "local_session":
             raise ValueError("AUTH_MODE=local_session은 M3에서 구현한다. 지금은 test_stub만 쓸 수 있다")
-        if self.app_env == "test" and not database_name(self.database_url).endswith("_test"):
+        dev_name = database_name(self.database_url)
+        if self.app_env == "test" and not dev_name.endswith("_test"):
             raise ValueError("APP_ENV=test에서는 DATABASE_URL이 이름이 _test로 끝나는 테스트 DB여야 한다")
         if self.test_database_url is not None:
-            if database_name(self.test_database_url) == database_name(self.database_url):
+            test_name = database_name(self.test_database_url)
+            if test_name == dev_name:
                 raise ValueError("TEST_DATABASE_URL은 DATABASE_URL과 다른 데이터베이스여야 한다")
-            if not database_name(self.test_database_url).endswith("_test"):
+            if not test_name.endswith("_test"):
                 raise ValueError("TEST_DATABASE_URL의 데이터베이스 이름은 _test로 끝나야 한다")
         return self

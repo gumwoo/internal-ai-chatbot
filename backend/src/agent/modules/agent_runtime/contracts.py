@@ -39,7 +39,8 @@ FINAL_OUTPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "answer": {"type": "string"},
-        "outcome": {"type": "string", "enum": [o.value for o in Outcome]},
+        # action_pending은 확인 대기 도구가 생기는 M5부터 연다(지금은 서버가 거절하는 값이다).
+        "outcome": {"type": "string", "enum": [o.value for o in Outcome if o is not Outcome.ACTION_PENDING]},
         "training_ids": {"type": "array", "items": {"type": "string"}},
         "selected_training_id": {"anyOf": [{"type": "string"}, {"type": "null"}]},
     },

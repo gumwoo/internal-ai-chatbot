@@ -3,7 +3,7 @@
 기준 시각은 고정 fixture의 2026-10-16(금) 10:00 KST다.
 """
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
 
 import pytest
@@ -227,7 +227,7 @@ async def test_http_list_and_detail(seeded_engine, migrated):
         "end_date_exclusive": "2026-10-26",
     }
     assert detail.json()["description"]
-    assert bad_uuid.status_code == 422
+    assert (bad_uuid.status_code, bad_uuid.json()["error"]["code"]) == (422, "INVALID_REQUEST")
     assert (missing.status_code, missing.json()["error"]["code"]) == (404, "TRAINING_NOT_FOUND")
     assert (unknown.status_code, unknown.json()["error"]["details"]) == (422, {"field_names": ["user_id"]})
     assert too_long.status_code == 422
@@ -244,3 +244,97 @@ async def test_http_requires_training_capability(seeded_engine, migrated):
     async with api_client(app) as client:
         response = await client.get("/api/v1/trainings")
     assert (response.status_code, response.json()["error"]["code"]) == (403, "ACTION_NOT_ALLOWED")
+
+
+# --- M1 검증 보강: 경계 정각·대소문자·정렬·live_clock 경계·manifest ---
+
+
+async def _insert(
+    engine, code: str, starts: str, ends: str, title: str = "경계 시험", training_id: str | None = None
+):
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(
+                "INSERT INTO trainings (id, code, title, description, starts_at, ends_at, location, status)"
+                " VALUES (COALESCE(CAST(:id AS uuid), gen_random_uuid()), :code, :title, '테스트용',"
+                " CAST(:starts AS timestamptz), CAST(:ends AS timestamptz), '온라인', 'scheduled')"
+            ),
+            {"id": training_id, "code": code, "title": title, "starts": starts, "ends": ends},
+        )
+
+
+async def test_kst_midnight_boundaries_start_inclusive_end_exclusive(seeded_engine):
+    """경계 정각 데이터로 KST 00시·시작 포함·종료 제외를 실제로 확인한다(UTC 00시로 바꾸면 실패해야 한다)."""
+    await _insert(seeded_engine, "B-WEEK-START", "2026-10-19 00:00+09", "2026-10-19 01:00+09")
+    await _insert(seeded_engine, "B-WEEK-END", "2026-10-26 00:00+09", "2026-10-26 01:00+09")
+    await _insert(seeded_engine, "B-TODAY-START", "2026-10-16 00:00+09", "2026-10-16 00:30+09")
+    await _insert(seeded_engine, "B-KST-ONLY", "2026-10-16 08:30+09", "2026-10-16 08:45+09")  # UTC로는 10/15
+    await _insert(seeded_engine, "B-TOMORROW", "2026-10-17 00:00+09", "2026-10-17 01:00+09")
+
+    next_week = await _codes(seeded_engine, date_preset="next_week")
+    assert next_week[0] == "B-WEEK-START"  # 시작 정각 포함
+    assert "B-WEEK-END" not in next_week  # 종료 정각 제외
+    assert "B-WEEK-END" in await _codes(
+        seeded_engine, date_preset="custom", start_date="2026-10-26", end_date_exclusive="2026-10-27"
+    )
+
+    today = await _codes(seeded_engine, date_preset="today")
+    assert today[:2] == ["B-TODAY-START", "B-KST-ONLY"]
+    assert "B-TOMORROW" not in today
+
+
+async def test_title_query_ignores_case_for_latin_titles(seeded_engine):
+    await _insert(
+        seeded_engine, "B-EXCEL", "2026-10-28 10:00+09", "2026-10-28 11:00+09", title="Excel Basics"
+    )
+    assert await _codes(seeded_engine, query="excel") == ["B-EXCEL"]
+    assert await _codes(seeded_engine, query="EXCEL BAS") == ["B-EXCEL"]
+
+
+async def test_same_start_time_is_ordered_by_id(seeded_engine):
+    # 일부러 큰 ID를 먼저 넣는다. ID 정렬이 없으면 삽입 순서대로 나올 수 있다.
+    later_id = "ffffffff-0000-4000-8000-000000000002"
+    earlier_id = "00000000-0000-4000-8000-000000000001"
+    for code, training_id in (("B-TIE-2", later_id), ("B-TIE-1", earlier_id)):
+        await _insert(
+            seeded_engine, code, "2026-11-05 10:00+09", "2026-11-05 11:00+09", training_id=training_id
+        )
+    codes = await _codes(seeded_engine, query="경계 시험")
+    assert codes == ["B-TIE-1", "B-TIE-2"]
+
+
+async def test_live_clock_end_time_equal_to_now_is_completed(seeded_engine):
+    ends_exactly = datetime(2026, 10, 20, 16, 0, tzinfo=KST)  # 보안 교육 종료 시각
+    await load_demo_trainings(
+        seeded_engine, anchor_date=date(2026, 10, 16), fixture_mode="live_clock", now=ends_exactly
+    )
+    service = TrainingService(seeded_engine)
+    assert (await service.get_training(SEC_ID)).status == "completed"
+    just_before = ends_exactly - timedelta(microseconds=1)
+    await load_demo_trainings(
+        seeded_engine, anchor_date=date(2026, 10, 16), fixture_mode="live_clock", now=just_before
+    )
+    assert (await service.get_training(SEC_ID)).status == "scheduled"
+
+
+async def test_seed_records_fixture_manifest(seeded_engine):
+    clock = datetime(2026, 10, 17, 9, 0, tzinfo=KST)
+    await load_demo_trainings(
+        seeded_engine, anchor_date=date(2026, 11, 4), fixture_mode="live_clock", now=clock
+    )
+    async with seeded_engine.connect() as conn:
+        row = (
+            await conn.execute(
+                text(
+                    "SELECT fixture_mode, anchor_date, clock, shift_days, loaded"
+                    " FROM training_fixture_loads ORDER BY id DESC LIMIT 1"
+                )
+            )
+        ).one()
+    assert (row.fixture_mode, row.anchor_date, row.shift_days, row.loaded) == (
+        "live_clock",
+        date(2026, 11, 4),
+        21,
+        10,
+    )
+    assert row.clock == clock

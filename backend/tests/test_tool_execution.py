@@ -11,6 +11,7 @@ from agent.shared.actor import ActorContext
 from agent.shared.clock import FixedClock
 from agent.shared.contracts import (
     ExecutionContext,
+    ExecutionPolicy,
     RequiredRecordError,
     ToolCallProposal,
     ToolCallRecord,
@@ -219,3 +220,59 @@ async def test_remaining_deadline_shorter_than_tool_limit_is_used(clock):
     )
     assert (result.error.code, result.error.retryable) == (ErrorCode.TOOL_TIMEOUT, True)
     assert time.monotonic() - started < 2
+
+
+async def test_slow_receipt_is_not_turned_into_tool_timeout(seeded_engine, clock):
+    """M1 검증 P2-8: 필수 기록은 도구 시간 제한 밖에서 한다. 느린 기록이 TOOL_TIMEOUT으로 바뀌면 안 된다."""
+
+    class SlowObserver(RecordingObserver):
+        async def record_training_result(self, receipt):
+            await asyncio.sleep(0.3)
+            await super().record_training_result(receipt)
+
+    observer = SlowObserver()
+    context = _context(clock)
+    context = ExecutionContext(
+        request_id=context.request_id,
+        conversation_id=context.conversation_id,
+        run_id=context.run_id,
+        actor=context.actor,
+        current_time=context.current_time,
+        deadline_monotonic=context.deadline_monotonic,
+        policy=ExecutionPolicy(tool_timeout_s=0.1),
+    )
+    result = await ToolExecutor(TrainingService(seeded_engine), clock).execute_once(
+        context, _call("list_trainings", {}, observer)
+    )
+    assert result.ok, result.error
+    assert len(observer.receipts) == 1
+
+
+async def test_tool_limit_cuts_slow_lookup_even_with_long_deadline(clock):
+    """도구 상한(policy)이 남은 실행 시간보다 짧으면 상한에서 끊는다(남은 시간 60초, 상한 0.2초)."""
+
+    class SlowTrainings:
+        async def list_trainings(self, search, now):
+            await asyncio.sleep(5)
+
+    context = _context(clock)
+    context = ExecutionContext(
+        request_id="r",
+        conversation_id="c",
+        run_id="run-1",
+        actor=ACTOR,
+        current_time=clock.now(),
+        deadline_monotonic=clock.monotonic() + 60,
+        policy=ExecutionPolicy(tool_timeout_s=0.2),
+    )
+    started = time.monotonic()
+    result = await ToolExecutor(SlowTrainings(), clock).execute_once(  # type: ignore[arg-type]
+        context, _call("list_trainings", {}, RecordingObserver())
+    )
+    assert result.error.code is ErrorCode.TOOL_TIMEOUT
+    assert time.monotonic() - started < 2
+
+
+def test_tool_description_states_limit_range(clock):
+    spec = _executor_without_db(clock).describe_allowed_tools(_context(clock))[0]
+    assert "1~20" in spec.description

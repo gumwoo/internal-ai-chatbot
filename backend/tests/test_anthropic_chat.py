@@ -210,6 +210,14 @@ F = ModelFailure
         (lambda: _status_error(anthropic.InternalServerError, 529), F.UPSTREAM_UNAVAILABLE, True),
         (lambda: _status_error(anthropic.AuthenticationError, 401), F.NOT_CONFIGURED, False),
         (lambda: _status_error(anthropic.BadRequestError, 400), F.INPUT_REJECTED, False),
+        (lambda: _status_error(anthropic.NotFoundError, 404), F.NOT_CONFIGURED, False),
+        (lambda: _status_error(anthropic.APIStatusError, 408), F.TIMEOUT, True),
+        (lambda: _status_error(anthropic.ConflictError, 409), F.UPSTREAM_UNAVAILABLE, True),
+        (
+            lambda: anthropic.APIResponseValidationError(httpx2.Response(200, request=_REQ), None),
+            F.OUTPUT_INVALID,
+            False,
+        ),
     ],
 )
 async def test_sdk_errors_are_classified(error, kind, retryable):
@@ -241,3 +249,36 @@ async def test_failure_carries_internal_note_and_client_closes():
     assert info.value.__notes__ == ["final json"]
     await model.aclose()
     assert closed == [True]
+
+
+def test_provider_schema_keeps_properties_named_like_keywords():
+    """M1 검증 P3-10: `title`·`default`라는 이름의 속성은 지우지 않는다(키워드 위치에서만 지움)."""
+    schema = {
+        "type": "object",
+        "title": "Args",
+        "properties": {
+            "title": {"type": "string", "maxLength": 10},
+            "default": {"type": "integer", "minimum": 0},
+        },
+        "required": ["title", "default"],
+        "$defs": {"minimum": {"type": "string", "title": "x"}},
+    }
+    cleaned = provider_schema(schema)
+    assert set(cleaned["properties"]) == {"title", "default"}
+    assert cleaned["properties"]["title"] == {"type": "string"}
+    assert cleaned["properties"]["default"] == {"type": "integer"}
+    assert cleaned["$defs"] == {"minimum": {"type": "string"}}
+    assert "title" not in cleaned and cleaned["required"] == ["title", "default"]
+
+
+def test_empty_messages_are_not_sent():
+    messages = (
+        ModelMessage(role="user", text="질문"),
+        ModelMessage(role="assistant", text=""),
+        ModelMessage(role="user", text=""),
+        ModelMessage(role="user", text="다음 질문"),
+    )
+    converted = to_provider_messages(messages)
+    assert converted == [
+        {"role": "user", "content": [{"type": "text", "text": "질문"}, {"type": "text", "text": "다음 질문"}]}
+    ]

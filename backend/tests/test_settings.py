@@ -5,7 +5,7 @@ import pytest
 from pydantic import ValidationError
 
 from agent.shared.settings import Settings, database_name
-from tests.conftest import make_settings
+from tests.conftest import check_test_database, make_settings
 
 ENV_EXAMPLE = Path(__file__).resolve().parents[2] / ".env.example"
 
@@ -69,6 +69,67 @@ def test_test_database_must_differ_from_dev():
             database_url="postgresql+psycopg://u:p@127.0.0.1:5440/agent_test",
             test_database_url="postgresql+psycopg://u:p@127.0.0.1:5440/agent_test",
         )
+
+
+DEV = "postgresql+psycopg://u:p@127.0.0.1:5440/agent_dev"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "postgresql+psycopg://u:p@127.0.0.1:5440/agent_test?dbname=agent_dev",
+        "postgresql+psycopg://u:p@127.0.0.1:5440/agent_test?host=10.0.0.9",
+        "postgresql+psycopg://u:p@127.0.0.1:5440/agent_test?port=5432",
+        "postgresql+psycopg://u:p@127.0.0.1:5440/agent_test?service=prod",
+        "postgresql+psycopg://u:p@127.0.0.1:5440/agent_test?DBNAME=agent_dev",
+    ],
+)
+def test_url_query_cannot_redirect_connection(url):
+    """M0 검증 P2-1: `_test` 이름으로 검사를 통과하고 쿼리로 다른 DB에 접속하는 우회를 막는다."""
+    with pytest.raises(ValueError, match="접속 대상"):
+        database_name(url)
+    with pytest.raises(ValidationError, match="접속 대상"):
+        make_settings(database_url=url)
+    assert check_test_database(url, DEV) is not None
+
+
+def test_check_test_database_rules():
+    assert check_test_database("postgresql+psycopg://u:p@h:1/agent_test", DEV) is None
+    assert "_test" in check_test_database(DEV, None)
+    assert "같다" in check_test_database(
+        "postgresql+psycopg://u:p@h:1/x_test", "postgresql+psycopg://u:p@h:2/x_test"
+    )
+
+
+def test_test_database_url_must_end_with_test():
+    with pytest.raises(ValidationError, match="_test로 끝나야"):
+        make_settings(
+            app_env="local",
+            database_url=DEV,
+            test_database_url="postgresql+psycopg://u:p@127.0.0.1:5440/other",
+        )
+
+
+@pytest.mark.parametrize("missing", ["app_env", "auth_mode"])
+def test_mode_settings_have_no_defaults(monkeypatch, missing):
+    """M0 검증 P2-2: 실행 모드·인증 방식이 빠지면 test_stub으로 조용히 켜지지 않고 시작을 거절한다."""
+    for name in Settings.model_fields:
+        monkeypatch.delenv(name.upper(), raising=False)
+    values = {"app_env": "local", "auth_mode": "test_stub", "test_actor_id": "test-a", "database_url": DEV}
+    del values[missing]
+    with pytest.raises(ValidationError, match=missing):
+        Settings(_env_file=None, **values)
+
+
+def test_empty_test_actor_id_is_refused(monkeypatch):
+    monkeypatch.setenv("TEST_ACTOR_ID", "")
+    with pytest.raises(ValidationError, match="TEST_ACTOR_ID"):
+        Settings(_env_file=None, app_env="local", auth_mode="test_stub", database_url=DEV)
+
+
+def test_fixture_mode_has_no_default(monkeypatch):
+    monkeypatch.delenv("FIXTURE_MODE", raising=False)
+    assert make_settings().fixture_mode is None
 
 
 def test_allowed_origins_parsed():

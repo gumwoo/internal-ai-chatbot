@@ -26,7 +26,7 @@ from agent.shared.contracts import (
     ToolSpec,
     TrainingResultReceipt,
 )
-from agent.shared.errors import AppError, ErrorCode
+from agent.shared.errors import AppError, ErrorCode, safe_field_names
 
 
 class GetTrainingArgs(BaseModel):
@@ -51,6 +51,7 @@ _TOOLS: dict[str, _Tool] = {
             "사내 교육 일정 목록을 조회한다. 기간은 date_preset(today, this_week, next_week, next_30_days, "
             "custom)으로 고르고, custom일 때만 start_date와 end_date_exclusive(YYYY-MM-DD, 종료일 미포함, "
             "최대 90일)를 함께 넣는다. 주는 월요일에 시작한다. query는 교육 제목의 일부(최대 100자)다. "
+            "limit은 1~20(기본 10), offset은 0 이상이다. has_more가 true면 offset을 늘려 더 볼 수 있다. "
             "기본 목록은 예정(scheduled) 교육만 돌려준다. 결과의 장소·시간을 그대로 쓴다."
         ),
         args_model=TrainingSearchInput,
@@ -69,7 +70,8 @@ _TOOLS: dict[str, _Tool] = {
 
 
 def _field_names(exc: ValidationError) -> list[str]:
-    return sorted({str(err["loc"][0]) for err in exc.errors() if err.get("loc")})
+    # 모델이 보낸 알 수 없는 키도 안전한 식별자 모양일 때만 돌려준다(HTTP와 같은 규칙).
+    return safe_field_names(list(exc.errors()))
 
 
 def _receipt(context: ExecutionContext, ordinal: int, items: list[Any]) -> TrainingResultReceipt:
@@ -123,8 +125,9 @@ class ToolExecutor:
             return ToolResult.failure(AppError(ErrorCode.TOOL_TIMEOUT))
         handler = self._list if tool.name == "list_trainings" else self._get
         try:
+            # 시간 제한은 MOD-04 조회에만 건다. 필수 기록(receipt)은 아래에서 따로 한다.
             async with asyncio.timeout(timeout):
-                return await handler(context, call, args)
+                result, items = await handler(context, args)
         except TimeoutError:
             return ToolResult.failure(AppError(ErrorCode.TOOL_TIMEOUT, retryable=True))
         except AppError as exc:
@@ -134,16 +137,18 @@ class ToolExecutor:
             return ToolResult.failure(exc)
         except (SQLAlchemyError, OSError):
             return ToolResult.failure(AppError(ErrorCode.TOOL_EXECUTION_FAILED, retryable=True))
+        # 필수 기록 실패는 도구 일시 오류(재시도)가 아니라 실행 중단이다(CT-11). 모델에 넘기기 전에 남긴다.
+        await self._record(context, call, items)
+        return result
 
-    async def _list(self, context: ExecutionContext, call: ToolExecutionInput, args: Any) -> ToolResult:
+    async def _list(self, context: ExecutionContext, args: Any) -> tuple[ToolResult, list[Any]]:
         page: TrainingPage = await self._trainings.list_trainings(args, context.current_time)
-        await self._record(context, call, page.items)
-        return ToolResult.success(page.model_dump(mode="json"), tuple(str(i.id) for i in page.items))
+        result = ToolResult.success(page.model_dump(mode="json"), tuple(str(i.id) for i in page.items))
+        return result, list(page.items)
 
-    async def _get(self, context: ExecutionContext, call: ToolExecutionInput, args: Any) -> ToolResult:
+    async def _get(self, context: ExecutionContext, args: Any) -> tuple[ToolResult, list[Any]]:
         detail = await self._trainings.get_training(args.training_id)
-        await self._record(context, call, [detail])
-        return ToolResult.success(detail.model_dump(mode="json"), (str(detail.id),))
+        return ToolResult.success(detail.model_dump(mode="json"), (str(detail.id),)), [detail]
 
     async def _record(self, context: ExecutionContext, call: ToolExecutionInput, items: list[Any]) -> None:
         try:

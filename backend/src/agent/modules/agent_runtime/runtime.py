@@ -70,6 +70,8 @@ class _Run:
     records: list[ToolCallRecord] = field(default_factory=list)
     # 이번 실행에서 실제로 조회한 교육(id → 요약). 대화 사본보다 우선한다.
     ledger: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # 성공한 교육 목록 조회 수. no_results는 실제 조회가 있었을 때만 인정한다.
+    successful_list_lookups: int = 0
 
     def add_usage(self, usage: Usage) -> None:
         self.input_tokens += usage.input_tokens or 0
@@ -114,6 +116,20 @@ def _model_view(result: ToolResult) -> str:
             },
         }
     return json.dumps(payload, ensure_ascii=False)
+
+
+def _next_cache(
+    run: _Run, allowed: dict[str, dict[str, Any]], referenced: list[str]
+) -> dict[str, dict[str, Any]]:
+    """다음 턴에 넘길 검증 사본(최대 N건). 옛 사본 → 이번 결과 → 답이 가리킨 교육 순으로 쌓아 뒤에서 자른다.
+
+    그래서 이번에 다시 조회했거나 답에서 가리킨 교육은 잘려 나가지 않는다.
+    """
+    order = [i for i in run.snapshot.training_cache if i not in run.ledger and i not in referenced]
+    order += [i for i in run.ledger if i not in referenced]
+    order += referenced
+    keep = order[-run.context.policy.training_cache_size :]
+    return {i: allowed[i] for i in keep}
 
 
 def _output_invalid(run: _Run, reason: str) -> AppError:
@@ -184,6 +200,9 @@ class AgentRuntime:
                 run.tool_proposals += 1
                 if run.tool_proposals > policy.max_tool_proposals:
                     raise AppError(ErrorCode.AGENT_LIMIT_EXCEEDED)
+                if self._remaining(run.context) <= 0:
+                    # 모델 응답 뒤 실행 시간이 다 됐다. 도구 시간 초과가 아니라 실행 시간 초과다.
+                    raise AppError(ErrorCode.RUN_TIMEOUT)
                 run.ordinal += 1
                 result = await self._call_tool(run, proposal, run.ordinal)
                 results.append(
@@ -263,7 +282,10 @@ class AgentRuntime:
 
             if result.ok:
                 for summary in _summaries(result):
+                    run.ledger.pop(summary["id"], None)  # 다시 조회한 교육은 가장 최근 위치로 옮긴다
                     run.ledger[summary["id"]] = summary
+                if proposal.name == "list_trainings":
+                    run.successful_list_lookups += 1
                 return result
             assert result.error is not None  # noqa: S101 - ToolResult 계약
             if result.error.retryable and attempt <= policy.max_retries_per_call:
@@ -285,14 +307,24 @@ class AgentRuntime:
             raise _output_invalid(run, "action_pending without action tool")
         allowed = run.allowed_trainings()
         training_ids = list(dict.fromkeys(final.training_ids))
-        referenced = [*training_ids, *([final.selected_training_id] if final.selected_training_id else [])]
+        selected = final.selected_training_id
+        if final.outcome is Outcome.NO_RESULTS:
+            # 0건 답은 이번 실행에서 실제로 목록을 조회했을 때만 인정한다(조회 실패·미조회는 0건이 아니다).
+            if run.successful_list_lookups == 0:
+                raise _output_invalid(run, "no_results without successful list lookup")
+            if training_ids:
+                raise _output_invalid(run, "no_results with training ids")
+        if final.outcome in (Outcome.NEEDS_CLARIFICATION, Outcome.NO_RESULTS) and selected is not None:
+            # 되묻는 중이거나 결과가 없으면 선택 상태를 저장하지 않는다(임의 선택 저장 금지).
+            logger.info("선택 후보 무시 run_id=%s outcome=%s", run.context.run_id, final.outcome.value)
+            selected = None
+        # 답의 목록과 선택이 같은 교육을 가리킬 수 있으니 중복을 없앤다(사본 크기 계산이 틀어지지 않게).
+        referenced = list(dict.fromkeys([*training_ids, *([selected] if selected else [])]))
         unknown = [training_id for training_id in referenced if training_id not in allowed]
         if unknown:
             # 원장에 없는 교육을 말하면 지어낸 것으로 보고 실패시킨다.
             raise _output_invalid(run, f"{len(unknown)} training id(s) not in ledger")
 
-        cache = {**run.snapshot.training_cache, **run.ledger}
-        cache = dict(list(cache.items())[-run.context.policy.training_cache_size :])
         return ExecutionResult(
             status="completed",
             outcome=final.outcome,
@@ -301,8 +333,8 @@ class AgentRuntime:
             context_candidate={
                 "schema_version": 2,
                 "last_training_ids": training_ids,
-                "selected_training_id": final.selected_training_id,
-                "training_cache": cache,
+                "selected_training_id": selected,
+                "training_cache": _next_cache(run, allowed, referenced),
                 "prompt_version": PROMPT_VERSION,
             },
             usage=run.usage(),

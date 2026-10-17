@@ -49,11 +49,13 @@ async def _seed(args: argparse.Namespace) -> None:
     settings = _settings()
     clock = SystemClock()
     anchor = date.fromisoformat(args.anchor) if args.anchor else clock.now().date()
+    mode = args.mode or settings.fixture_mode
+    if mode is None:
+        # MOD-04: fixture_mode는 기본값 없이 명시한다.
+        sys.exit("fixture_mode가 없다. --mode 또는 FIXTURE_MODE를 지정한다(fixed_status | live_clock)")
     engine = make_engine(settings.database_url, settings.db_connect_timeout_s)
     try:
-        report = await load_demo_trainings(
-            engine, anchor_date=anchor, fixture_mode=args.mode or settings.fixture_mode, now=clock.now()
-        )
+        report = await load_demo_trainings(engine, anchor_date=anchor, fixture_mode=mode, now=clock.now())
     finally:
         await engine.dispose()
     print(
@@ -136,7 +138,10 @@ async def _ask(args: argparse.Namespace) -> None:
             "input_tokens": usage.input_tokens,
             "output_tokens": usage.output_tokens,
             "complete": usage.complete,
-            "usd_by_list_price": _cost(model_id, usage.input_tokens, usage.output_tokens),
+            # 일부 시도의 사용량을 모르면 금액을 계산하지 않는다(모르는 비용을 0원처럼 보이지 않게, T-19).
+            "usd_by_list_price": (
+                _cost(model_id, usage.input_tokens, usage.output_tokens) if usage.complete else None
+            ),
         },
     }
     print(json.dumps(out, ensure_ascii=False, indent=2))

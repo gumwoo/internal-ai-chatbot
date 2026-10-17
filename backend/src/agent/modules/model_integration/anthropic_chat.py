@@ -43,16 +43,28 @@ _UNSUPPORTED_SCHEMA_KEYS = frozenset(
 )
 
 
+# 값이 "이름 → 스키마" 사전인 키워드. 이 안의 키는 속성·정의 이름이라 지우면 안 된다.
+_NAME_MAP_KEYS = frozenset({"properties", "$defs", "definitions", "patternProperties"})
+
+
 def provider_schema(schema: Any) -> Any:
-    """공급자에 보낼 스키마: 지원하지 않는 제약을 빼고 모든 object에 additionalProperties=false를 둔다."""
-    if isinstance(schema, dict):
-        cleaned = {k: provider_schema(v) for k, v in schema.items() if k not in _UNSUPPORTED_SCHEMA_KEYS}
-        if cleaned.get("type") == "object" or "properties" in cleaned:
-            cleaned["additionalProperties"] = False
-        return cleaned
+    """공급자에 보낼 스키마: 지원하지 않는 제약을 빼고 모든 object에 additionalProperties=false를 둔다.
+
+    `title`·`default` 같은 이름의 속성은 그대로 둔다(키워드 위치에서만 지운다).
+    """
     if isinstance(schema, list):
         return [provider_schema(item) for item in schema]
-    return schema
+    if not isinstance(schema, dict):
+        return schema
+    cleaned: dict[str, Any] = {}
+    for key, value in schema.items():
+        if key in _NAME_MAP_KEYS and isinstance(value, dict):
+            cleaned[key] = {name: provider_schema(sub) for name, sub in value.items()}
+        elif key not in _UNSUPPORTED_SCHEMA_KEYS:
+            cleaned[key] = provider_schema(value)
+    if cleaned.get("type") == "object" or "properties" in cleaned:
+        cleaned["additionalProperties"] = False
+    return cleaned
 
 
 def _content(message: ModelMessage) -> list[dict[str, Any]]:
@@ -79,11 +91,16 @@ def _content(message: ModelMessage) -> list[dict[str, Any]]:
 
 
 def to_provider_messages(messages: tuple[ModelMessage, ...]) -> list[dict[str, Any]]:
-    """tool_result는 user 역할로 보낸다. 같은 역할이 이어지면 한 메시지로 합친다."""
+    """tool_result는 user 역할로 보낸다. 같은 역할이 이어지면 한 메시지로 합친다.
+
+    내용이 없는 항목(빈 텍스트, 빈 assistant 턴)은 보내지 않는다. API가 빈 블록을 거절할 수 있다.
+    """
     out: list[dict[str, Any]] = []
     for message in messages:
         role = "assistant" if message.role == "assistant" else "user"
-        blocks = _content(message)
+        blocks = [b for b in _content(message) if not (b["type"] == "text" and not b["text"])]
+        if not blocks:
+            continue
         if out and out[-1]["role"] == role:
             out[-1]["content"].extend(blocks)
         else:
@@ -119,12 +136,22 @@ def _classify(exc: anthropic.APIError) -> ModelFailure:
         return ModelFailure.TIMEOUT
     if isinstance(exc, anthropic.APIConnectionError):
         return ModelFailure.UPSTREAM_UNAVAILABLE
+    # 응답은 왔지만 SDK가 형식을 해석하지 못함: 공급자 출력 무효.
+    if isinstance(exc, anthropic.APIResponseValidationError):
+        return ModelFailure.OUTPUT_INVALID
     if isinstance(exc, anthropic.RateLimitError):
         return ModelFailure.RATE_LIMITED
-    if isinstance(exc, (anthropic.AuthenticationError, anthropic.PermissionDeniedError)):
+    # 키 오류·권한 부족·모델 ID 오류(404)는 재시도로 낫지 않는 설정 문제다.
+    if isinstance(
+        exc, (anthropic.AuthenticationError, anthropic.PermissionDeniedError, anthropic.NotFoundError)
+    ):
         return ModelFailure.NOT_CONFIGURED
-    if isinstance(exc, anthropic.APIStatusError) and exc.status_code >= 500:
-        return ModelFailure.UPSTREAM_UNAVAILABLE
+    if isinstance(exc, anthropic.APIStatusError):
+        # SDK 기본 정책이 재시도하는 408·409는 일시 오류로 본다.
+        if exc.status_code == 408:
+            return ModelFailure.TIMEOUT
+        if exc.status_code == 409 or exc.status_code >= 500:
+            return ModelFailure.UPSTREAM_UNAVAILABLE
     return ModelFailure.INPUT_REJECTED
 
 

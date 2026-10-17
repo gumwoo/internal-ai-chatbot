@@ -124,6 +124,7 @@ class ModelFailure(StrEnum):
 
 
 # 사전에 모델 시간 초과 전용 코드가 없어 TIMEOUT은 MODEL_UPSTREAM_ERROR로 내보내고 kind로 구분한다.
+# 전용 코드를 둘지는 미정이다(O-15, 15번 문서 P-11).
 _FAILURE_CODE = {
     ModelFailure.NOT_CONFIGURED: (ErrorCode.MODEL_NOT_CONFIGURED, False),
     ModelFailure.RATE_LIMITED: (ErrorCode.UPSTREAM_RATE_LIMITED, True),

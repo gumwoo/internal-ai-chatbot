@@ -6,9 +6,12 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
+    BigInteger,
     CheckConstraint,
     Column,
+    Date,
     DateTime,
+    Integer,
     MetaData,
     Table,
     Text,
@@ -35,6 +38,20 @@ trainings = Table(
     Column("status", Text, nullable=False),
     CheckConstraint("status IN ('scheduled', 'completed', 'cancelled')", name="ck_trainings_status"),
     CheckConstraint("ends_at > starts_at", name="ck_trainings_period"),
+)
+
+
+# fixture 적재 기록(manifest). 어떤 모드·anchor·clock으로 넣었는지 남긴다.
+fixture_loads = Table(
+    "training_fixture_loads",
+    metadata,
+    Column("id", BigInteger, primary_key=True),
+    Column("fixture_mode", Text, nullable=False),
+    Column("anchor_date", Date, nullable=False),
+    Column("clock", DateTime(timezone=True), nullable=False),
+    Column("shift_days", Integer, nullable=False),
+    Column("loaded", Integer, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
 )
 
 
@@ -81,3 +98,7 @@ async def upsert_many(conn: AsyncConnection, values: list[dict[str, Any]]) -> No
     stmt = insert(trainings).values(values)
     update_cols = {c.name: stmt.excluded[c.name] for c in trainings.c if c.name != "id"}
     await conn.execute(stmt.on_conflict_do_update(index_elements=[trainings.c.id], set_=update_cols))
+
+
+async def record_fixture_load(conn: AsyncConnection, values: dict[str, Any]) -> None:
+    await conn.execute(fixture_loads.insert().values(**values))

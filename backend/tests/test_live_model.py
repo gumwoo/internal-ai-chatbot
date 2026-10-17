@@ -91,8 +91,9 @@ async def _run(engine, settings, scenario: str, message: str, snapshot: Conversa
         "input_tokens": usage.input_tokens,
         "output_tokens": usage.output_tokens,
         "usage_complete": usage.complete,
+        # 사용량을 일부라도 모르면 계산하지 않는다(모르는 비용을 0원처럼 보이지 않게).
         "usd_by_list_price": (usage.input_tokens * price[0] + usage.output_tokens * price[1]) / 1e6
-        if price
+        if price and usage.complete
         else None,
         "elapsed_s": round(elapsed, 2),
     }

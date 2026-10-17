@@ -1,6 +1,6 @@
 """MOD-04 공개 작업: ListTrainings, GetTraining, LoadDemoTrainings. HTTP와 도구가 같은 함수를 쓴다."""
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta
 from typing import Any, Literal
 from uuid import UUID
@@ -78,6 +78,7 @@ class LoadReport:
 
 
 def _status(fixture: TrainingFixture, ends_at: datetime, mode: FixtureMode, now: datetime) -> TrainingStatus:
+    # live_clock 상태를 seed 때 계산한다. 조회 때 계산할지는 미정이다(O-14, 15번 문서 P-10).
     if mode == "fixed_status" or fixture.status_override == "cancelled":
         return fixture.status_override
     return "completed" if ends_at <= now else "scheduled"
@@ -105,12 +106,15 @@ async def load_demo_trainings(
                 "status": _status(fixture, ends_at, fixture_mode, now),
             }
         )
-    async with engine.begin() as conn:
-        await repository.upsert_many(conn, values)
-    return LoadReport(
+    report = LoadReport(
         anchor_date=anchor_date,
         fixture_mode=fixture_mode,
         clock=now,
         shift_days=shift.days,
         loaded=len(values),
     )
+    # 교육 덮어쓰기와 manifest 기록을 한 트랜잭션으로 남긴다.
+    async with engine.begin() as conn:
+        await repository.upsert_many(conn, values)
+        await repository.record_fixture_load(conn, asdict(report))
+    return report

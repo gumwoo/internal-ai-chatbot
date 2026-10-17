@@ -45,7 +45,9 @@ def create_app(
         finally:
             await engine.dispose()
 
-    app = FastAPI(title="사내 업무 도우미 API", lifespan=lifespan, docs_url=None, redoc_url=None)
+    app = FastAPI(
+        title="사내 업무 도우미 API", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None
+    )
     app.state.settings = settings
     app.state.current_actor = current_actor or _default_actor(settings)
     app.state.clock = clock or SystemClock()

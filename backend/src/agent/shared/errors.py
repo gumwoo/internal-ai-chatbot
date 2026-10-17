@@ -3,6 +3,7 @@
 사전에 없는 code·stage는 만들 수 없다. retryable의 코드별 기본값은 명세에 없으므로 호출하는 쪽이 정한다.
 """
 
+import re
 from enum import StrEnum
 from typing import Any
 
@@ -129,6 +130,44 @@ _SAFE_BY_STATUS = {
 }
 
 
+_FIELD_NAME_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_-]{0,63}")
+_REQUEST_SOURCES = frozenset({"body", "query", "header", "path", "cookie"})
+
+
+def _check_details(code: ErrorCode, details: dict[str, Any]) -> None:
+    """details는 코드별 허용 키와 정확히 일치해야 한다. 빈 dict·일부 키·다른 형식은 거절한다(03-errors.md)."""
+    allowed = ALLOWED_DETAILS.get(code)
+    if allowed is None or set(details) != allowed:
+        raise ValueError(f"{code}에 허용되지 않은 details 키: {sorted(details)}")
+    if "field_names" in details:
+        names = details["field_names"]
+        if not isinstance(names, list) or not names or not all(isinstance(n, str) for n in names):
+            raise ValueError("field_names는 비어 있지 않은 문자열 목록이어야 한다")
+    if "head_revision" in details and not isinstance(details["head_revision"], int):
+        raise ValueError("head_revision은 정수여야 한다")
+
+
+def safe_field_names(errors: list[dict[str, Any]]) -> list[str]:
+    """Pydantic 검증 오류에서 클라이언트에 돌려줄 필드 이름만 뽑는다.
+
+    - HTTP 위치 접두어(body/query/…)를 떼고 첫 문자열 세그먼트를 쓴다. 목록 원소 오류는 목록 필드 이름이 된다.
+    - 문법 오류처럼 필드가 없으면 위치 이름(body 등)을 쓴다.
+    - 클라이언트가 보낸 알 수 없는 키는 안전한 식별자 모양일 때만 돌려주고, 아니면 unknown_field로 바꾼다.
+    """
+    names: set[str] = set()
+    for error in errors:
+        loc = list(error.get("loc") or ())
+        source = loc.pop(0) if loc and loc[0] in _REQUEST_SOURCES else None
+        name = next((part for part in loc if isinstance(part, str)), None)
+        if name is None:
+            names.add(str(source or "body"))
+        elif error.get("type") == "extra_forbidden" and not _FIELD_NAME_RE.fullmatch(name):
+            names.add("unknown_field")
+        else:
+            names.add(name)
+    return sorted(names) or ["body"]
+
+
 class AppError(Exception):
     """모듈이 던지는 공급자 중립 오류. HTTP로 나갈 때는 envelope로 변환한다."""
 
@@ -143,10 +182,7 @@ class AppError(Exception):
         if code not in ERROR_TABLE:
             raise ValueError(f"닫힌 오류 사전에 없는 코드: {code}")
         if details is not None:
-            allowed = ALLOWED_DETAILS.get(code, frozenset())
-            extra = set(details) - allowed
-            if extra:
-                raise ValueError(f"{code}에 허용되지 않은 details 키: {sorted(extra)}")
+            _check_details(code, details)
         self.code = code
         self.stage, self.http_status = ERROR_TABLE[code]
         self.retryable = retryable

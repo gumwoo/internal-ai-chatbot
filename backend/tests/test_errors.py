@@ -58,3 +58,25 @@ def test_not_found_messages_are_identical():
     """미존재와 불허가 같은 404 문구를 쓴다."""
     messages = {AppError(code).safe_message for code, (_, status) in ERROR_TABLE.items() if status == 404}
     assert len(messages) == 1
+
+
+@pytest.mark.parametrize(
+    ("code", "details"),
+    [
+        (ErrorCode.RESOURCE_NOT_FOUND, {}),
+        (ErrorCode.INVALID_REQUEST, {}),
+        (ErrorCode.INVALID_REQUEST, {"field_names": "title"}),
+        (ErrorCode.INVALID_REQUEST, {"field_names": []}),
+        (ErrorCode.ACTION_SUPERSEDED, {"current_action_id": "a"}),
+        (ErrorCode.ACTION_SUPERSEDED, {"current_action_id": "a", "head_revision": "2"}),
+    ],
+)
+def test_details_must_match_allowed_keys_and_types(code, details):
+    """M0 검증 P3-7: 빈 details·일부 키·잘못된 형식을 거절한다(미존재/불허는 details=null)."""
+    with pytest.raises(ValueError):
+        AppError(code, details=details)
+
+
+def test_full_head_details_are_accepted():
+    error = AppError(ErrorCode.ACTION_SUPERSEDED, details={"current_action_id": "a", "head_revision": 2})
+    assert error.details == {"current_action_id": "a", "head_revision": 2}
