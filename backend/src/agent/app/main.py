@@ -1,4 +1,4 @@
-"""APP-02 조립. 테스트는 create_app에 설정·CurrentActor를 직접 넘긴다."""
+"""APP-02 조립. 테스트는 create_app에 설정·CurrentActor·Clock을 직접 넘긴다."""
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -7,8 +7,11 @@ from fastapi import FastAPI
 
 from agent.app import error_handlers
 from agent.app.health import router as health_router
+from agent.app.trainings import router as trainings_router
 from agent.modules.identity_access.test_stub import TestStubCurrentActor
+from agent.modules.training.service import TrainingService
 from agent.shared.actor import CurrentActor
+from agent.shared.clock import Clock, SystemClock
 from agent.shared.db import make_engine, make_session_factory
 from agent.shared.origin import OriginCheckMiddleware
 from agent.shared.request_id import RequestIdMiddleware
@@ -24,7 +27,11 @@ def _default_actor(settings: Settings) -> CurrentActor:
     return TestStubCurrentActor(settings.test_actor_id)
 
 
-def create_app(settings: Settings | None = None, current_actor: CurrentActor | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    current_actor: CurrentActor | None = None,
+    clock: Clock | None = None,
+) -> FastAPI:
     settings = settings or Settings()
 
     @asynccontextmanager
@@ -32,6 +39,7 @@ def create_app(settings: Settings | None = None, current_actor: CurrentActor | N
         engine = make_engine(settings.database_url, settings.db_connect_timeout_s)
         app.state.engine = engine
         app.state.session_factory = make_session_factory(engine)
+        app.state.training_service = TrainingService(engine)
         try:
             yield
         finally:
@@ -40,9 +48,11 @@ def create_app(settings: Settings | None = None, current_actor: CurrentActor | N
     app = FastAPI(title="사내 업무 도우미 API", lifespan=lifespan, docs_url=None, redoc_url=None)
     app.state.settings = settings
     app.state.current_actor = current_actor or _default_actor(settings)
+    app.state.clock = clock or SystemClock()
 
     error_handlers.install(app)
     app.include_router(health_router, prefix=API_PREFIX)
+    app.include_router(trainings_router, prefix=API_PREFIX)
 
     # 바깥부터 RequestId → Origin 순서로 실행된다.
     app.add_middleware(OriginCheckMiddleware, allowed_origins=settings.allowed_origin_set)

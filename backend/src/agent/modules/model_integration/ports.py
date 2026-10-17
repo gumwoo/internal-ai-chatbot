@@ -1,4 +1,4 @@
-"""CT-07 ModelRequest / ModelResponse / EmbeddingBatch와 ModelClient 포트.
+"""CT-07 ModelRequest / ModelResponse / EmbeddingBatch와 ChatModel·EmbeddingModel 포트.
 
 호출 한 번이 한 시도다. 재시도는 호출하는 모듈(MOD-02/06/10)이 소유한다.
 """
@@ -8,25 +8,29 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Literal, Protocol
 
-from agent.shared.contracts import ToolCallProposal
+from agent.shared.contracts import ToolCallProposal, ToolSpec
 from agent.shared.errors import AppError, ErrorCode
 
 Purpose = Literal["agent_answer", "wiki_build", "eval_judge"]
 
 
 @dataclass(frozen=True)
-class ModelMessage:
-    role: Literal["user", "assistant", "tool_result"]
-    content: Any
+class ToolResultContent:
+    """도구 결과 한 건. content는 모델에 보여 줄 JSON 문자열이다."""
+
+    provider_call_id: str
+    content: str
+    is_error: bool = False
 
 
 @dataclass(frozen=True)
-class ToolSpec:
-    """모델에 보여 줄 도구 이름·설명·인자 스키마. 서버 전용 값(field_origins 등)은 넣지 않는다."""
+class ModelMessage:
+    """공급자 중립 대화 항목. user는 text, assistant는 text/tool_calls, tool_result는 tool_results를 쓴다."""
 
-    name: str
-    description: str
-    input_schema: dict[str, Any]
+    role: Literal["user", "assistant", "tool_result"]
+    text: str | None = None
+    tool_calls: tuple[ToolCallProposal, ...] = ()
+    tool_results: tuple[ToolResultContent, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -34,6 +38,8 @@ class ModelConfig:
     model: str
     max_output_tokens: int
     config_version: str
+    # M1은 thinking을 끄고 시작한다(비용, 도구 왕복 시 thinking 블록 재전송 부담). 품질 문제가 확인되면 켠다.
+    thinking: Literal["disabled", "adaptive"] = "disabled"
 
 
 @dataclass(frozen=True)
@@ -66,10 +72,15 @@ class ModelResponse:
     purpose: Purpose
     config_version: str
     usage: Usage
+    # 도구 제안과 함께 온 텍스트. 다음 호출의 assistant 항목을 그대로 재구성할 때만 쓴다.
+    text: str | None = None
 
     @property
     def wants_tools(self) -> bool:
         return bool(self.tool_proposals)
+
+    def as_assistant_message(self) -> ModelMessage:
+        return ModelMessage(role="assistant", text=self.text, tool_calls=self.tool_proposals)
 
 
 @dataclass(frozen=True)
@@ -139,8 +150,14 @@ def _invalid(reason: str) -> ModelCallError:
     return error
 
 
-class ModelClient(Protocol):
+class ChatModel(Protocol):
+    """채팅·구조화 생성(D-25 Anthropic)."""
+
     async def complete_once(self, request: ModelRequest) -> ModelResponse: ...
+
+
+class EmbeddingModel(Protocol):
+    """임베딩(D-27 Gemini). 채팅과 공급자가 달라 포트를 나눈다."""
 
     async def embed_once(
         self, texts: tuple[str, ...], config: EmbeddingConfig, timeout_s: float

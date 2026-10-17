@@ -1,4 +1,4 @@
-"""테스트용 결정적 ModelClient. 실제 SDK와 같은 포트로 교체한다(MOD-07 공개 작업)."""
+"""테스트용 결정적 모델(ChatModel·EmbeddingModel). 실제 SDK 어댑터와 같은 포트로 교체한다."""
 
 import hashlib
 import struct

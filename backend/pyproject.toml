@@ -8,6 +8,7 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.20.0",
+    "anthropic>=1.15.0",
     "fastapi>=0.143.3",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.16.0",
@@ -32,7 +33,9 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 asyncio_default_test_loop_scope = "function"
-addopts = ["-p", "no:cacheprovider"]
+# 실제 모델 호출(과금) 테스트는 기본에서 뺀다. `-m live_model`로 명시할 때만 돈다.
+addopts = ["-p", "no:cacheprovider", "-m", "not live_model"]
+markers = ["live_model: 실제 Anthropic API를 호출한다(과금). 명시적으로 -m live_model을 줄 때만 실행"]
 
 [tool.ruff]
 line-length = 110
@@ -44,6 +47,8 @@ select = ["E", "F", "W", "I", "B", "UP", "ASYNC", "S"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106"]
+# 프롬프트 문장은 모델에 그대로 가므로 줄을 끊지 않는다.
+"src/agent/modules/agent_runtime/prompt.py" = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["agent", "tests"]

@@ -1,26 +1,13 @@
 """테스트 DB가 필요한 검사. TEST_DATABASE_URL이 없으면 건너뛴다."""
 
 import asyncio
-from pathlib import Path
 
-import httpx
-import pytest
 from alembic import command
-from alembic.config import Config
 from sqlalchemy import text
 
 from agent.app.main import create_app
 from agent.shared.db import make_engine
-from tests.conftest import make_settings
-
-ALEMBIC_INI = Path(__file__).resolve().parents[1] / "alembic.ini"
-
-
-def _alembic(url: str) -> Config:
-    config = Config(str(ALEMBIC_INI))
-    config.attributes["database_url"] = url
-    config.attributes["configure_logger"] = False
-    return config
+from tests.conftest import alembic_config, api_client, make_settings
 
 
 async def _vector_version(url: str) -> str | None:
@@ -32,27 +19,30 @@ async def _vector_version(url: str) -> str | None:
         await engine.dispose()
 
 
-@pytest.fixture
-def migrated(test_database_url: str) -> str:
-    command.upgrade(_alembic(test_database_url), "head")
-    return test_database_url
+async def _table_exists(url: str, name: str) -> bool:
+    engine = make_engine(url)
+    try:
+        async with engine.connect() as conn:
+            return bool(await conn.scalar(text("SELECT to_regclass(:name) IS NOT NULL"), {"name": name}))
+    finally:
+        await engine.dispose()
 
 
 async def test_migration_down_and_up(migrated: str):
     # alembic env.py는 자체 이벤트 루프를 돌리므로 테스트 루프 밖 스레드에서 실행한다.
-    config = _alembic(migrated)
+    config = alembic_config(migrated)
     await asyncio.to_thread(command.downgrade, config, "base")
     assert await _vector_version(migrated) is None
+    assert await _table_exists(migrated, "trainings") is False
     await asyncio.to_thread(command.upgrade, config, "head")
     assert await _vector_version(migrated) is not None
+    assert await _table_exists(migrated, "trainings") is True
 
 
 async def test_ready_reports_database_and_disabled_capabilities(migrated: str):
     app = create_app(make_settings(database_url=migrated))
-    async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
-            response = await client.get("/api/v1/health/ready")
+    async with api_client(app) as client:
+        response = await client.get("/api/v1/health/ready")
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ready"

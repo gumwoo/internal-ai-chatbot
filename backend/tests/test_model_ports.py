@@ -34,7 +34,7 @@ def _batch(vectors, input_count=None):
 def _request() -> ModelRequest:
     return ModelRequest(
         purpose="agent_answer",
-        messages=(ModelMessage(role="user", content="다음 주 교육 알려줘"),),
+        messages=(ModelMessage(role="user", text="다음 주 교육 알려줘"),),
         tools=(),
         output_contract=None,
         timeout_s=20,

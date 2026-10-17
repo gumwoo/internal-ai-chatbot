@@ -4,7 +4,8 @@
 
 ## 현재 상태
 
-- M0 골격까지 있다(`backend/`: 설정·시계·test_stub actor·오류 사전·Origin 검사·health·Alembic·모델 포트). 업무 기능·RAG·Wiki·프런트는 아직 없다. 다음은 M1(`docs/08-development-plan.md`).
+- M1 코드까지 있다(`backend/`): MOD-04 교육 조회·HTTP, MOD-07 Anthropic 어댑터(thinking 끔), MOD-03 도구 2개, MOD-02 실행 반복·상한·근거 원장(메모리 observer). 대화 저장·receipt·복구(MOD-01)는 M2, RAG·Wiki·프런트는 아직 없다(`docs/08-development-plan.md`).
+- 실제 모델 호출은 과금된다. `ask --live`와 `pytest -m live_model`은 사용자 승인 후에만 실행한다.
 - 도구는 uv · SQLAlchemy 2 + Alembic · psycopg 3 · pytest · ruff, 프런트는 Vite + React + TS다(D-26). 서버는 비동기(D-28), Python 3.13.
 - 코드 위치: 공통 계약은 `backend/src/agent/shared/`, 업무 모듈은 `backend/src/agent/modules/<패키지>/`, 앱 조립은 `backend/src/agent/app/`. 모듈 import 방향은 `tests/test_module_boundaries.py`가 검사한다.
 - 모델은 대화 Claude Haiku 5.5, 임베딩 `gemini-embedding-2`, judge Gemini 무료 티어다(D-25·D-27). 키는 사용자가 `.env`에 넣으며 키 이름은 `.env.example`을 따른다.
@@ -58,7 +59,11 @@ uv run alembic -x target=test upgrade head   # 테스트 DB(agent_test)
 uv run ruff check . && uv run ruff format --check .
 uv run pytest -q                             # TEST_DATABASE_URL 없으면 DB 테스트는 건너뜀
 uv run uvicorn agent.app.main:create_app --factory --host 127.0.0.1 --port 8010 --loop asyncio:SelectorEventLoop
+uv run python -m agent.cli seed-trainings --anchor 2026-10-16 --mode fixed_status   # 개발 DB 교육 fixture(재실행해도 중복 없음)
+uv run python -m agent.cli ask "다음 주 교육 알려줘" --fixed-clock               # dry-run: 보낼 요청만 출력, 호출 없음
 ```
+
+💰 과금되는 명령(승인 후에만): `ask ... --live`(실제 Haiku 호출), `uv run pytest -m live_model -v`(smoke 6개, 결과는 `LIVE_RESULTS_DIR` 또는 임시 폴더의 `live-smoke/live-smoke.jsonl`).
 
 API 컨테이너 확인: `docker compose --profile api up -d --build api`(마이그레이션은 자동 실행하지 않는다). 포트: API 8010, 웹 5190(8000·5173·5180은 다른 프로그램이 사용 중).
 
