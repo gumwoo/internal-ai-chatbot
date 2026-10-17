@@ -93,3 +93,5 @@ class ExecutionResult:
     ticket_refs: tuple[dict[str, Any], ...] = ()
     citations: tuple[dict[str, Any], ...] = ()
     action_preview: dict[str, Any] | None = None
+    # answer를 누가 썼는가. server_fallback이면 모델이 되묻기 질문을 비워 서버의 일반 문구로 채웠다.
+    answer_source: Literal["model", "server_fallback"] = "model"

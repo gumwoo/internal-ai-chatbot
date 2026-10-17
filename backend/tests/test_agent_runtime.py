@@ -469,3 +469,42 @@ def test_output_schema_does_not_offer_action_pending():
     from agent.modules.agent_runtime.contracts import FINAL_OUTPUT_SCHEMA
 
     assert "action_pending" not in FINAL_OUTPUT_SCHEMA["properties"]["outcome"]["enum"]
+
+
+# --- TS-19: 되묻기에서 질문을 비운 모델 출력 ---
+
+
+@pytest.mark.parametrize("empty", ["", "   "])
+async def test_empty_clarification_is_filled_by_server(seeded_engine, clock, empty):
+    from agent.modules.agent_runtime.runtime import CLARIFICATION_FALLBACK
+
+    runtime, _ = _runtime([final(empty, outcome="needs_clarification")], seeded_engine, clock)
+    result = await _run(runtime, clock, "그 교육 장소가 어디였지?")
+    assert result.status == "completed" and result.outcome is Outcome.NEEDS_CLARIFICATION
+    assert result.answer == CLARIFICATION_FALLBACK
+    assert result.answer_source == "server_fallback"
+    assert result.training_refs == ()
+
+
+@pytest.mark.parametrize("outcome", ["answered", "no_results", "insufficient_evidence"])
+async def test_empty_answer_for_other_outcomes_still_fails(seeded_engine, clock, outcome):
+    tools = [tool_turn(("list_trainings", {}))] if outcome == "no_results" else []
+    runtime, _ = _runtime([*tools, final("", outcome=outcome)], seeded_engine, clock)
+    result = await _run(runtime, clock)
+    assert result.status == "failed" and result.error.code is ErrorCode.MODEL_OUTPUT_INVALID
+
+
+async def test_model_written_clarification_is_kept(seeded_engine, clock):
+    runtime, _ = _runtime([final("어느 교육인가요?", outcome="needs_clarification")], seeded_engine, clock)
+    result = await _run(runtime, clock, "그 교육?")
+    assert (result.answer, result.answer_source) == ("어느 교육인가요?", "model")
+
+
+def test_prompt_requires_question_text_for_clarification():
+    from agent.modules.agent_runtime.prompt import PROMPT_VERSION, system_prompt
+    from agent.shared.clock import FIXTURE_NOW
+
+    prompt = system_prompt(FIXTURE_NOW)
+    assert PROMPT_VERSION == "m2-training-2"
+    assert "되묻는 경우에도 answer에는 사용자에게 할 질문을 한국어 문장으로 쓴다" in prompt
+    assert "어떤 outcome이든 비워 두지 않는다" in prompt

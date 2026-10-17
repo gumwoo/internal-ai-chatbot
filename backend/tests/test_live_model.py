@@ -36,6 +36,39 @@ ACTOR = ActorContext("test-a", ("d",), ("employee",), frozenset({"training.read"
 PRICE = {"claude-haiku-5-5": (0.10, 0.50)}  # USD / 100만 토큰(공시 가격, 프롬프트 100K 이하)
 
 
+class RawRecordingClient:
+    """SDK 클라이언트를 감싸 호출마다 stop_reason·내용 블록·usage를 남긴다(TS-19: 원래 응답 확인용)."""
+
+    def __init__(self, api_key: str) -> None:
+        import anthropic
+
+        self._inner = anthropic.AsyncAnthropic(api_key=api_key, max_retries=0)
+        self.calls: list[dict] = []
+        self.messages = self
+
+    async def create(self, **params):
+        response = await self._inner.messages.create(**params)
+        blocks = []
+        for block in response.content:
+            if block.type == "text":
+                blocks.append({"type": "text", "text": block.text})
+            elif block.type == "tool_use":
+                blocks.append({"type": "tool_use", "name": block.name, "input": block.input})
+            else:
+                blocks.append({"type": block.type})
+        self.calls.append(
+            {
+                "stop_reason": response.stop_reason,
+                "content": blocks,
+                "usage": {"in": response.usage.input_tokens, "out": response.usage.output_tokens},
+            }
+        )
+        return response
+
+    async def close(self) -> None:
+        await self._inner.close()
+
+
 @pytest.fixture(scope="module")
 def live_settings() -> Settings:
     settings = Settings()
@@ -53,7 +86,8 @@ def _results_file() -> Path:
 async def _run(engine, settings, scenario: str, message: str, snapshot: ConversationSnapshot | None = None):
     clock = FixedClock()
     model = ModelConfig(model=settings.chat_model, max_output_tokens=1024, config_version=PROMPT_VERSION)
-    chat = AnthropicChatModel(api_key=settings.anthropic_api_key.get_secret_value())
+    raw = RawRecordingClient(settings.anthropic_api_key.get_secret_value())
+    chat = AnthropicChatModel(api_key=None, client=raw)
     runtime = AgentRuntime(chat, ToolExecutor(TrainingService(engine), clock), clock, model)
     context = ExecutionContext(
         request_id="live",
@@ -96,6 +130,9 @@ async def _run(engine, settings, scenario: str, message: str, snapshot: Conversa
         if price and usage.complete
         else None,
         "elapsed_s": round(elapsed, 2),
+        "answer_source": result.answer_source,
+        # 모델이 실제로 낸 응답(호출별). 실패 원인을 다시 돌리지 않고 확인하기 위해 남긴다.
+        "raw_calls": raw.calls,
     }
     with _results_file().open("a", encoding="utf-8") as f:
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -192,7 +229,9 @@ async def _conversation_app(migrated, settings):
     from agent.modules.identity_access.test_stub import TestStubCurrentActor
     from tests.conftest import make_settings
 
-    inner = AnthropicChatModel(api_key=settings.anthropic_api_key.get_secret_value())
+    inner = AnthropicChatModel(
+        api_key=None, client=RawRecordingClient(settings.anthropic_api_key.get_secret_value())
+    )
     chat = _CountingChat(inner)
     app = create_app(
         make_settings(
@@ -218,6 +257,7 @@ def _record_http(scenario: str, chat: "_CountingChat", outcome: str | None, mode
         if price
         else None,
         "outcome": outcome,
+        "raw_calls": chat.inner._client.calls,
     }
     with _results_file().open("a", encoding="utf-8") as f:
         f.write(json.dumps(record, ensure_ascii=False) + "\n")

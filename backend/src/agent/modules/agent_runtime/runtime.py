@@ -132,6 +132,25 @@ def _next_cache(
     return {i: allowed[i] for i in keep}
 
 
+# 모델이 되묻기 판단만 하고 질문 문장을 비운 경우 쓰는 일반 문구(TS-19). 특정 교육을 지어내지 않는다.
+CLARIFICATION_FALLBACK = (
+    "어떤 교육을 말씀하시는지 알려 주시겠어요? 교육 이름이나 기간을 알려 주시면 찾아보겠습니다."
+)
+
+
+def _fill_empty_clarification(run: _Run, candidate: dict[str, Any]) -> tuple[dict[str, Any], str]:
+    """outcome=needs_clarification인데 answer가 비었으면 서버 일반 문구로 채운다.
+
+    다른 outcome의 빈 답은 그대로 둔다(무효 출력으로 실패). 되묻기는 질문 내용이 정해져 있지 않아도
+    "어느 교육인지"를 묻는 것으로 충분하지만, 답·0건·근거 부족은 서버가 대신 쓸 수 없다.
+    """
+    answer = candidate.get("answer")
+    if candidate.get("outcome") == "needs_clarification" and isinstance(answer, str) and not answer.strip():
+        logger.info("빈 되묻기 답을 서버 문구로 채움 run_id=%s", run.context.run_id)
+        return {**candidate, "answer": CLARIFICATION_FALLBACK}, "server_fallback"
+    return candidate, "model"
+
+
 def _output_invalid(run: _Run, reason: str) -> AppError:
     """무효 출력의 이유는 내부 기록(로그·예외 note)에만 남긴다. 사용자 응답에는 안전 문구만 나간다."""
     logger.warning("최종 출력 무효 run_id=%s reason=%s", run.context.run_id, reason)
@@ -303,8 +322,9 @@ class AgentRuntime:
     def _finish(self, run: _Run, response: ModelResponse) -> ExecutionResult:
         if response.final_candidate is None:
             raise _output_invalid(run, "final candidate missing")
+        candidate, answer_source = _fill_empty_clarification(run, response.final_candidate)
         try:
-            final = FinalCandidate.model_validate(response.final_candidate)
+            final = FinalCandidate.model_validate(candidate)
         except ValidationError as exc:
             problems = sorted({f"{'.'.join(map(str, e['loc']))}:{e['type']}" for e in exc.errors()})
             raise _output_invalid(run, f"schema {problems}") from exc
@@ -347,4 +367,5 @@ class AgentRuntime:
             tool_summary=tuple(run.records),
             error=None,
             model_ids=tuple(run.model_ids),
+            answer_source=answer_source,
         )
