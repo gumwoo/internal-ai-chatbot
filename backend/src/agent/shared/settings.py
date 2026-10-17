@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     app_env: Literal["local", "test", "production"]
     auth_mode: Literal["test_stub", "local_session"]
     test_actor_id: Literal["test-a", "test-b"] | None = None
+    # local_session: 세션 수명(초)과 운영 CLI가 쓸 서버 설정의 운영 계정(ResolveOperatorActor).
+    session_ttl_s: int = 8 * 3600
+    operator_user_id: str | None = None
 
     database_url: str
     test_database_url: str | None = None
@@ -76,8 +79,8 @@ class Settings(BaseSettings):
                 raise ValueError("AUTH_MODE=test_stub은 APP_ENV=local/test에서만 허용한다")
             if self.test_actor_id is None:
                 raise ValueError("AUTH_MODE=test_stub이면 TEST_ACTOR_ID가 필요하다")
-        if self.auth_mode == "local_session":
-            raise ValueError("AUTH_MODE=local_session은 M3에서 구현한다. 지금은 test_stub만 쓸 수 있다")
+        if self.session_ttl_s <= 0:
+            raise ValueError("SESSION_TTL_S는 양수여야 한다")
         dev_name = database_name(self.database_url)
         if self.app_env == "test" and not dev_name.endswith("_test"):
             raise ValueError("APP_ENV=test에서는 DATABASE_URL이 이름이 _test로 끝나는 테스트 DB여야 한다")

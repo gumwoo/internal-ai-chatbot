@@ -1,6 +1,7 @@
 """개발용 명령(APP-03/04 성격). 운영 환경(APP_ENV=production)에서는 실행하지 않는다.
 
     uv run python -m agent.cli seed-trainings [--anchor YYYY-MM-DD] [--mode fixed_status|live_clock]
+    uv run python -m agent.cli seed-identity
     uv run python -m agent.cli ask "다음 주 교육 알려줘" [--fixed-clock] [--live]
 
 ask는 기본이 dry-run이다. 모델에 보낼 요청만 보여 주고 호출하지 않는다.
@@ -19,6 +20,7 @@ from agent.modules.agent_runtime.contracts import FINAL_OUTPUT_SCHEMA, Conversat
 from agent.modules.agent_runtime.observer import InMemoryObserver
 from agent.modules.agent_runtime.prompt import PROMPT_VERSION, system_prompt
 from agent.modules.agent_runtime.runtime import AgentRuntime
+from agent.modules.identity_access.service import load_demo_org
 from agent.modules.identity_access.test_stub import TestStubCurrentActor
 from agent.modules.model_integration.anthropic_chat import AnthropicChatModel
 from agent.modules.model_integration.ports import ModelConfig, ModelMessage, ModelRequest
@@ -70,6 +72,17 @@ async def _seed(args: argparse.Namespace) -> None:
             ensure_ascii=False,
         )
     )
+
+
+async def _seed_identity(args: argparse.Namespace) -> None:
+    """데모 조직(D-30) 적재. 비밀번호는 해시만 저장하고 출력하지 않는다."""
+    settings = _settings()
+    engine = make_engine(settings.database_url, settings.db_connect_timeout_s)
+    try:
+        report = await load_demo_org(engine, SystemClock().now())
+    finally:
+        await engine.dispose()
+    print(json.dumps(report, ensure_ascii=False))
 
 
 def _cost(model_id: str, input_tokens: int, output_tokens: int) -> float | None:
@@ -155,13 +168,15 @@ def main(argv: list[str] | None = None) -> None:
     seed.add_argument("--anchor", help="기준 날짜 YYYY-MM-DD. 기본은 오늘(KST)")
     seed.add_argument("--mode", choices=["fixed_status", "live_clock"], help="기본은 FIXTURE_MODE 설정")
 
+    sub.add_parser("seed-identity", help="개발 DB에 데모 조직·계정을 넣는다(재실행해도 중복 없음)")
+
     ask = sub.add_parser("ask", help="질문 하나로 Agent를 실행한다. 기본은 dry-run")
     ask.add_argument("question")
     ask.add_argument("--fixed-clock", action="store_true", help="서버 시각을 2026-10-16 10:00 KST로 고정")
     ask.add_argument("--live", action="store_true", help="실제 Anthropic API를 호출한다(과금)")
 
     args = parser.parse_args(argv)
-    handler = _seed if args.command == "seed-trainings" else _ask
+    handler = {"seed-trainings": _seed, "seed-identity": _seed_identity, "ask": _ask}[args.command]
     # psycopg async는 Windows Proactor 루프를 지원하지 않는다.
     asyncio.run(handler(args), loop_factory=asyncio.SelectorEventLoop)
 

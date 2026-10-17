@@ -10,10 +10,13 @@ from fastapi import FastAPI
 from agent.app import error_handlers
 from agent.app.conversations import router as conversations_router
 from agent.app.health import router as health_router
+from agent.app.session import router as session_router
 from agent.app.trainings import router as trainings_router
 from agent.modules.agent_runtime.prompt import PROMPT_VERSION
 from agent.modules.agent_runtime.runtime import AgentRuntime
 from agent.modules.conversation.service import ConversationService
+from agent.modules.identity_access.service import IdentityService
+from agent.modules.identity_access.session_actor import SessionCurrentActor
 from agent.modules.identity_access.test_stub import TestStubCurrentActor
 from agent.modules.model_integration.anthropic_chat import AnthropicChatModel
 from agent.modules.model_integration.ports import ChatModel, ModelConfig
@@ -31,9 +34,11 @@ logger = logging.getLogger(__name__)
 
 
 def _default_actor(settings: Settings) -> CurrentActor:
+    if settings.auth_mode == "local_session":
+        return SessionCurrentActor()
     # Settings 검증이 test_stub을 local/test로 제한하고 actor id를 강제한다. 여기서 한 번 더 막는다.
     if settings.auth_mode != "test_stub" or settings.test_actor_id is None:
-        raise RuntimeError("지금 구현된 CurrentActor는 test_stub뿐이다")
+        raise RuntimeError("test_stub actor에는 TEST_ACTOR_ID가 필요하다")
     return TestStubCurrentActor(settings.test_actor_id)
 
 
@@ -61,6 +66,7 @@ def create_app(
         engine = make_engine(settings.database_url, settings.db_connect_timeout_s)
         app.state.engine = engine
         app.state.session_factory = make_session_factory(engine)
+        app.state.identity = IdentityService(engine, clock, settings.session_ttl_s)
         trainings = TrainingService(engine)
         app.state.training_service = trainings
         # 키가 없으면 모델 호출 시 MODEL_NOT_CONFIGURED로 실패한다(서버 시작은 막지 않는다).
@@ -96,6 +102,9 @@ def create_app(
 
     error_handlers.install(app)
     app.include_router(health_router, prefix=API_PREFIX)
+    if settings.auth_mode == "local_session":
+        # 세션 API는 실제 세션 모드에서만 연다. test_stub에서는 클라이언트가 사용자를 고르지 못한다.
+        app.include_router(session_router, prefix=API_PREFIX)
     app.include_router(trainings_router, prefix=API_PREFIX)
     app.include_router(conversations_router, prefix=API_PREFIX)
 

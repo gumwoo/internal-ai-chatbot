@@ -33,6 +33,11 @@ T-22 로그인/세션/CSRF, T-23 default deny·역할 변경·서버 actor, T-04
 
 이 문서는 모듈 수준의 책임·공개 계약·협력까지 정의한다. 클래스·SQL·파일 배치·세부 알고리즘은 별도 구현 결정이다. 공통 타입은 [계약](../contracts/00-shared-contracts.md), 의존 방향은 [모듈 지도](../architecture/04-module-map.md), 검증 ID는 [테스트](../07-test-and-evaluation.md)를 따른다.
 
+## 2026-10-17 M3 구현 메모
+
+- 데모 조직·계정은 D-30 fixture(`backend/src/agent/modules/identity_access/demo_org.json`, `seed-identity`)로만 적재한다. 비밀번호는 scrypt 해시만 저장하고, 비밀번호·웹 로그인 여부가 바뀌면 그 계정의 세션을 회수한다. 재적재는 비활성 계정을 되살리지 않는다. 부서·역할 변경은 auth_revision을 올리고 감사 행을 남긴다.
+- Authorize는 local_session actor의 세션 회수·만료와 현재 부서·역할·revision을 다시 읽어 판정한다. 비밀번호 검증은 이벤트 루프 밖(스레드, 동시 4개)에서 한다.
+
 ## 2026-10-17 계약 보정
 
 CLI actor source는 operator_cli이며 서버 운영 계정/capability로만 만든다. 직원 요청이나 모델 입력은 이 source를 만들 수 없다. 데모 지원 역할도 명시된 department 범위만 허용한다.

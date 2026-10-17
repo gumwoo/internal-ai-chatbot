@@ -44,7 +44,7 @@
 
 ## 초기 기본 정책 — 설정으로 명시
 
-전체60초·모델6시도·도구4제안·추가읽기retry1, 최종 원문 개수 고정 상한 없음/초기4000token, draft/action 만료5분. 주 실험 A/B는 동일 임베딩/거리의 exact vector이며 A 원문20/B Wiki5→원문20에서 공통 최종 선택한다. 온라인 추가 LLM·B만의hybrid·reranker는 주 실험에서 제외한다. 4000token은 dev 예산 스윕의 시작점이다. 이 값의 변경은 테스트·실험 config 버전에 남긴다.
+전체60초·모델6시도·도구4제안·추가읽기retry1, 로컬 세션 수명 8시간(SESSION_TTL_S), 최종 원문 개수 고정 상한 없음/초기4000token, draft/action 만료5분. 주 실험 A/B는 동일 임베딩/거리의 exact vector이며 A 원문20/B Wiki5→원문20에서 공통 최종 선택한다. 온라인 추가 LLM·B만의hybrid·reranker는 주 실험에서 제외한다. 4000token은 dev 예산 스윕의 시작점이다. 이 값의 변경은 테스트·실험 config 버전에 남긴다.
 
 ## 아직 정할 것
 

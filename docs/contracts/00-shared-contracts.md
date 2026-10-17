@@ -4,7 +4,7 @@
 
 ## CT-01 ActorContext / AccessDecision
 
-MOD-09가 서버 세션에서 만든 `user_id, department_ids, role_ids, capabilities, auth_revision, source`다. 최종 MVP의 source는 local_session, 첫 구간 테스트 대체 객체는 test_stub으로 구분한다. 운영 CLI는 source=operator_cli이며 서버 설정의 전용 운영 계정·허용 capability로만 구성한다. 직원 세션/모델 입력에서 운영자로 승격하지 않는다. test_stub은 서버 시작 설정/테스트 DI로만 선택하고 HTTP의 사용자 헤더/본문으로 바꾸지 않는다. 상세 제한은 [첫 구간](../12-first-milestone-spec.md)이다. 브라우저·모델이 actor를 만들지 않는다. 문서 ACL에 대한 판정은 허용/거부와 정책 revision을 반환한다. 거부 사유에 제한 문서 제목·내용을 넣지 않는다. 판정 시 MOD-09는 현재 세션·역할 revision을 확인하며 요청 시작 때 받은 capability 사본만으로 계속 허용하지 않는다.
+MOD-09가 서버 세션에서 만든 `user_id, department_ids, role_ids, capabilities, auth_revision, source`다. source=local_session이면 서버 내부 값 `session_ref`(세션 토큰 hash)를 함께 두어 Authorize가 세션 회수·만료를 다시 확인한다. session_ref는 응답·로그·모델 입력에 넣지 않는다. local_session actor에는 ops.*·eval.* capability를 주지 않는다. 최종 MVP의 source는 local_session, 첫 구간 테스트 대체 객체는 test_stub으로 구분한다. 운영 CLI는 source=operator_cli이며 서버 설정의 전용 운영 계정·허용 capability로만 구성한다. 직원 세션/모델 입력에서 운영자로 승격하지 않는다. test_stub은 서버 시작 설정/테스트 DI로만 선택하고 HTTP의 사용자 헤더/본문으로 바꾸지 않는다. 상세 제한은 [첫 구간](../12-first-milestone-spec.md)이다. 브라우저·모델이 actor를 만들지 않는다. 문서 ACL에 대한 판정은 허용/거부와 정책 revision을 반환한다. 거부 사유에 제한 문서 제목·내용을 넣지 않는다. 판정 시 MOD-09는 현재 세션·역할 revision을 확인하며 요청 시작 때 받은 capability 사본만으로 계속 허용하지 않는다.
 
 APP-04 평가 실행은 source=eval_fixture이며 평가 설정의 고정 actor profile로만 만들고 직원 세션으로 승격하지 않는다. capability는 아래 닫힌 이름만 쓴다. 어느 역할에 어떤 capability를 줄지는 O-01/O-10의 fixture에서 정하며 이 목록이 권한 부여를 뜻하지 않는다. 새 이름은 계약 개정 없이 추가하지 않는다.
 

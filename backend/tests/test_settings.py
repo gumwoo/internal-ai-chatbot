@@ -42,9 +42,11 @@ def test_test_stub_refused_in_production():
         make_settings(app_env="production")
 
 
-def test_local_session_not_implemented_yet():
-    with pytest.raises(ValidationError, match="M3"):
-        make_settings(auth_mode="local_session")
+def test_local_session_mode_and_session_ttl():
+    # M3: local_session은 production에서도 쓸 수 있다(test_stub만 local/test로 제한).
+    assert make_settings(auth_mode="local_session", app_env="production").auth_mode == "local_session"
+    with pytest.raises(ValidationError, match="SESSION_TTL_S"):
+        make_settings(auth_mode="local_session", session_ttl_s=0)
 
 
 def test_unknown_actor_id_refused():

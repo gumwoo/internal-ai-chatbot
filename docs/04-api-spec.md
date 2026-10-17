@@ -1,6 +1,6 @@
 # HTTP API 계약
 
-기본 경로 `/api/v1`. JSON UTF-8, 시각 ISO8601+offset, 업무 날짜 ISO date. UUID 자원 식별자와 PDF-번호 source_file_id를 구분한다. 아래는 구현 목표다. 현재 실행되는 것은 health, 교육 조회(`/trainings`), 대화·메시지·run(`/conversations`, `/runs`)과 메시지 POST의 진행 상황 스트리밍(SSE)이다. 세션·근거/PDF·티켓은 아직 없다.
+기본 경로 `/api/v1`. JSON UTF-8, 시각 ISO8601+offset, 업무 날짜 ISO date. UUID 자원 식별자와 PDF-번호 source_file_id를 구분한다. 아래는 구현 목표다. 현재 실행되는 것은 health, 교육 조회(`/trainings`), 대화·메시지·run(`/conversations`, `/runs`)과 메시지 POST의 진행 상황 스트리밍(SSE), 로컬 세션(`/session`, AUTH_MODE=local_session)이다. 근거/PDF·티켓은 아직 없다.
 
 ## 공통
 
@@ -31,7 +31,7 @@
 | GET `/session` | cookie | 200 user_id/display_name/허용 UI capabilities/CSRF 정보 |
 | DELETE `/session` | cookie+CSRF | 204 세션 회수 |
 
-로그인은 별도 Origin 검사/로그인 CSRF 방어를 적용한다. 클라이언트에 세션 저장소 값·해시·모델 키를 반환하지 않는다. 첫 조회 구간의 test_stub은 서버 설정/테스트 DI로 고정하고 클라이언트에서 사용자를 선택하지 않는다. [첫 구간의 제한](12-first-milestone-spec.md)을 따르며 최종 ACL/사용자 분리 검증에는 세션이 필요하다.
+구현 세부(M3): 세션 cookie `agent_session`(HttpOnly·SameSite=Strict·Path=/api/v1·Max-Age=세션 수명, production에서 Secure), 서버에는 토큰의 SHA-256만 저장한다. 세션 수명은 설정 `SESSION_TTL_S`(초기 8시간). CSRF 토큰은 세션 토큰의 HMAC이며 로그인 응답과 GET `/session`의 `csrf_token`으로만 받는다. 상태 변경 요청은 `X-CSRF-Token` 헤더가 맞아야 하며(403 CSRF_FAILED) Origin 검사와 별개다. 로그인은 `Content-Type: application/json`만 받는다. 로그인 실패 사유(계정 없음·비밀번호 틀림·웹 로그인 없음·비활성)는 모두 같은 401이다. 웹 세션 actor에는 운영(ops.*)·평가(eval.*) capability를 주지 않는다. 로그인은 별도 Origin 검사/로그인 CSRF 방어를 적용한다. 클라이언트에 세션 저장소 값·해시·모델 키를 반환하지 않는다. 첫 조회 구간의 test_stub은 서버 설정/테스트 DI로 고정하고 클라이언트에서 사용자를 선택하지 않는다. [첫 구간의 제한](12-first-milestone-spec.md)을 따르며 최종 ACL/사용자 분리 검증에는 세션이 필요하다.
 
 ## 대화·실행 — MOD-01
 

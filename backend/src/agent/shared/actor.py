@@ -38,6 +38,9 @@ class ActorContext:
     capabilities: frozenset[str]
     auth_revision: int
     source: ActorSource
+    # local_session actor가 어느 서버 세션에서 나왔는가(세션 토큰 hash). Authorize가 세션 회수·만료를
+    # 다시 확인할 때 쓴다. 응답·로그·모델 입력에 넣지 않는다.
+    session_ref: str | None = None
 
     def __post_init__(self) -> None:
         unknown = self.capabilities - CAPABILITIES
