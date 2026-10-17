@@ -4,7 +4,7 @@
 
 ## 현재 상태
 
-- M2 코드까지 있다(`backend/`): MOD-04 교육 조회, MOD-07 Anthropic 어댑터(thinking 끔), MOD-03 도구 2개, MOD-02 실행 반복·상한·근거 원장, MOD-01 대화 저장·멱등 재전송·만료 회수·영속 observer·검증된 사본(CP-07 최소형)·진행 상황 스트리밍(SSE, D-29). RAG·Wiki·티켓·프런트는 아직 없다(`docs/08-development-plan.md`).
+- M3 코드까지 있다(`backend/`). M3: 로컬 세션·인가(MOD-09), PDF 파싱·청크·임베딩(MOD-06), 게시·권한 검색·근거(MOD-05), raw 검색(MOD-11), 문서 인용. 개발 DB 문서 게시는 P-15, 빈 답 보정은 P-16 결정 대기. 이전 단계: MOD-04 교육 조회, MOD-07 Anthropic 어댑터(thinking 끔), MOD-03 도구 2개, MOD-02 실행 반복·상한·근거 원장, MOD-01 대화 저장·멱등 재전송·만료 회수·영속 observer·검증된 사본(CP-07 최소형)·진행 상황 스트리밍(SSE, D-29). RAG·Wiki·티켓·프런트는 아직 없다(`docs/08-development-plan.md`).
 - 실제 모델 호출은 과금된다. `ask --live`와 `pytest -m live_model`은 사용자 승인 후에만 실행한다.
 - 도구는 uv · SQLAlchemy 2 + Alembic · psycopg 3 · pytest · ruff, 프런트는 Vite + React + TS다(D-26). 서버는 비동기(D-28), Python 3.13.
 - 코드 위치: 공통 계약은 `backend/src/agent/shared/`, 업무 모듈은 `backend/src/agent/modules/<패키지>/`, 앱 조립은 `backend/src/agent/app/`. 모듈 import 방향은 `tests/test_module_boundaries.py`가 검사한다.
@@ -61,9 +61,12 @@ uv run pytest -q                             # TEST_DATABASE_URL 없으면 DB �
 uv run uvicorn agent.app.main:create_app --factory --host 127.0.0.1 --port 8010 --loop asyncio:SelectorEventLoop
 uv run python -m agent.cli seed-trainings --anchor 2026-10-16 --mode fixed_status   # 개발 DB 교육 fixture(재실행해도 중복 없음)
 uv run python -m agent.cli ask "다음 주 교육 알려줘" --fixed-clock               # dry-run: 보낼 요청만 출력, 호출 없음
+uv run python -m agent.cli seed-identity                                       # 데모 조직·계정(D-30), 해시만 저장
+uv run python -m agent.cli draft-manifest [--force]                            # manifest 초안(needs_review), 기존 파일은 --force 없이 덮어쓰지 않음
+uv run python -m agent.cli validate-manifest --release                         # T-18 구성·경로·hash 검사
 ```
 
-💰 과금되는 명령(승인 후에만): `ask ... --live`(실제 Haiku 호출), `uv run pytest -m live_model -v`(smoke 6개, 결과는 `LIVE_RESULTS_DIR` 또는 임시 폴더의 `live-smoke/live-smoke.jsonl`).
+💰 과금되는 명령(승인 후에만): `ask ... --live`(실제 Haiku 호출), `uv run pytest -m live_model -v`(교육 8개 + 문서 6개, 결과는 `LIVE_RESULTS_DIR` 또는 임시 폴더의 `live-smoke/`). 문서 smoke는 Gemini 무료 티어 임베딩도 쓴다(분당 100건, `data/staging/embeddings/` 캐시 재사용).
 
 API 컨테이너 확인: `docker compose --profile api up -d --build api`(마이그레이션은 자동 실행하지 않는다). 포트: API 8010, 웹 5190(8000·5173·5180은 다른 프로그램이 사용 중).
 

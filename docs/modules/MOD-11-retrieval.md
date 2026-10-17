@@ -43,6 +43,6 @@ guidance의 유효 안내 판본 선택→기본 규범→검수 경과조항 �
 ## 2026-10-17 M3 구현 메모
 
 - raw만 구현했다(config `raw-exact-cosine-v1`, 후보 20). 임베딩은 질의도 MOD-05가 MOD-07로 만든다(MOD-11은 MOD-07을 직접 부르지 않는다).
-- LookupApplicableBasis는 날짜 필터 없이 상위 3개 판본의 검수 메타데이터만 본다. 그중 규범이 사건 기준(교육 시작일 등)을 요구하는데 date_basis가 current/explicit_date면 needs_clarification(missing_date)을 돌려준다. 상위 몇 개를 볼지는 구현 설정이며 dev 실험에서 조정할 수 있다.
+- LookupApplicableBasis는 날짜 필터 없이 가장 가까운 판본 1개의 검수 메타데이터만 본다(처음 3개로 두었다가 실제 모델 smoke에서 관련 없는 규정 때문에 되묻기가 과해 줄였다). 그 판본이 규범이고 사건 기준(교육 시작일 등)을 요구하는데 date_basis가 current/explicit_date면 needs_clarification(missing_date)을 돌려준다. 상위 몇 개를 볼지는 구현 설정이며 dev 실험에서 조정할 수 있다.
 - 사건 기준 규범은 질문의 date_basis가 대응표와 맞을 때만 남긴다. general_reference·per_claim 규범과 안내는 날짜 기준과 무관하게 남긴다.
 - 그룹(support_group)은 대표 후보의 코사인 거리 순, 같은 거리는 passage ID 순이다. 경과조항 확장(ExpandTransitionEvidence)은 검수된 transition_relations가 아직 없어(P-15) 구현하지 않았다.

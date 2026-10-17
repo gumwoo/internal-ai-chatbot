@@ -35,8 +35,9 @@ EVENT_BASES = DATE_BASES - {"current", "explicit_date"}
 HORIZON_DAYS = 90
 RETRIEVER_CONFIG_ID = "raw-exact-cosine-v1"
 RAW_CANDIDATE_LIMIT = 20
-# LookupApplicableBasis에서 볼 상위 판본 수. 이 안의 규범이 사건 기준을 요구하면 날짜를 묻는다.
-_BASIS_LOOKUP_TOP = 3
+# LookupApplicableBasis에서 볼 상위 판본 수. 가장 가까운 판본이 사건 기준 규범일 때만 날짜를 묻는다.
+# 2026-10-18 실제 모델 smoke에서 3개로 두자 관련 없는 사건 기준 규정이 섞여 되묻기가 과했다(TS-24).
+_BASIS_LOOKUP_TOP = 1
 
 
 @dataclass(frozen=True)

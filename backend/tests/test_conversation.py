@@ -143,7 +143,7 @@ async def test_copy_without_receipt_is_not_trusted(seeded_engine, migrated):
             )
         response = await _post(client, conv, "그 교육 장소?")
     assert (response.status_code, response.json()["error"]["code"]) == (502, "MODEL_OUTPUT_INVALID")
-    assert "[대화 자료]" not in _turn(model.requests[0])
+    assert _turn(model.requests[0]).startswith("[대화 자료] 없음")
 
 
 # --- T-05 멱등 재전송 ---
@@ -236,7 +236,9 @@ async def test_other_user_sees_same_404_and_new_conversation_is_empty(seeded_eng
         own = await _new_conversation(client_b)
         response = await _post(client_b, own, "그 교육 장소 어디야?")
     assert response.json()["outcome"] == "needs_clarification"
-    assert "[대화 자료]" not in _turn(model_b.requests[0])  # 다른 사용자·대화의 후보를 가져오지 않는다
+    assert _turn(model_b.requests[0]).startswith(
+        "[대화 자료] 없음"
+    )  # 다른 사용자·대화의 후보를 가져오지 않는다
     assert [m.role for m in model_b.requests[0].messages] == ["user"]
 
 

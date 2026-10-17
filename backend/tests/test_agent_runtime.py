@@ -172,7 +172,8 @@ async def test_history_is_trimmed_to_policy(seeded_engine, clock):
     runtime, model = _runtime([final()], seeded_engine, clock)
     await _run(runtime, clock, "안녕", snapshot=snapshot)
     texts = [m.text for m in model.requests[0].messages]
-    assert len(texts) == 13 and texts[0] == "m18" and texts[-1] == "안녕"
+    # 현재 사용자 턴은 자료 블록 뒤에 질문이 온다(P-13 B).
+    assert len(texts) == 13 and texts[0] == "m18" and texts[-1].endswith("[사용자 질문]\n안녕")
 
 
 async def test_prompt_carries_server_time_and_only_allowed_tools(seeded_engine, clock):
@@ -506,6 +507,6 @@ def test_prompt_requires_question_text_for_clarification():
     from agent.shared.clock import FIXTURE_NOW
 
     prompt = system_prompt(FIXTURE_NOW)
-    assert PROMPT_VERSION == "m3-docs-1"
+    assert PROMPT_VERSION == "m3-docs-4"
     assert "되묻는 경우에도 answer에는 사용자에게 할 질문을 한국어 문장으로 쓴다" in prompt
     assert "어떤 outcome이든 비워 두지 않는다" in prompt

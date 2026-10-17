@@ -220,7 +220,7 @@ async def test_no_capability_reader_gets_no_cached_trainings_in_context(seeded_e
         response = await _post(client, conv, "그 교육 장소?")
     request = model.requests[0]
     assert "TR-SEC-001" not in _turn(request) and "3층 교육장" not in _turn(request)
-    assert "[대화 자료]" not in _turn(request)
+    assert _turn(request).startswith("[대화 자료] 없음")
     # 가린 답만 빠지고 사용자 본인의 이전 질문은 남는다(같은 역할은 어댑터가 한 메시지로 합친다).
     assert [m.role for m in request.messages] == ["user", "user"]
     assert response.status_code == 200
@@ -271,7 +271,7 @@ async def test_receipt_from_other_conversation_is_not_trusted(seeded_engine, mig
         await _set_state(seeded_engine, conv, {"training_cache": {SEC: {"id": SEC, "starts_at": SEC_STARTS}}})
         response = await _post(client, conv, "그 교육 장소?")
     assert response.json()["error"]["code"] == "MODEL_OUTPUT_INVALID"
-    assert "[대화 자료]" not in _turn(model.requests[-1])
+    assert _turn(model.requests[-1]).startswith("[대화 자료] 없음")
 
 
 async def test_receipt_from_failed_run_is_not_trusted(seeded_engine, migrated):
@@ -288,7 +288,7 @@ async def test_receipt_from_failed_run_is_not_trusted(seeded_engine, migrated):
     assert failed.status_code == 502
     assert await _scalar(seeded_engine, "SELECT count(*) FROM tool_result_receipts") == 1
     assert response.json()["error"]["code"] == "MODEL_OUTPUT_INVALID"
-    assert "[대화 자료]" not in _turn(model.requests[-1])
+    assert _turn(model.requests[-1]).startswith("[대화 자료] 없음")
 
 
 async def test_copy_with_wrong_start_time_is_not_trusted_and_selection_is_filtered(seeded_engine, migrated):
@@ -325,6 +325,8 @@ async def test_history_window_is_latest_twelve_in_order(seeded_engine, migrated)
             await _post(client, conv, f"질문{i}")
     last = model.requests[-1].messages
     texts = [m.text for m in last]
+    # 현재 사용자 턴은 자료 블록 뒤에 질문이 온다(P-13 B). 질문 부분만 비교한다.
+    texts[-1] = texts[-1].split("[사용자 질문]\n", 1)[1]
     # 이전 메시지 14개(질문0~6, 답0~6) 중 최근 12개 + 현재 질문7. 시간순이고 user로 시작한다.
     assert texts == [
         "질문1",
