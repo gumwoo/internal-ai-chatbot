@@ -12,7 +12,7 @@
 | D-04 | 문서별 권한·과거 시점 지원 | 현재 ACL, PDF·Wiki·이력·캐시까지 적용 |
 | D-05 | 업무는 교육 조회·IT 조회/확인 등록 | 문서 범위와 변경 기능 범위를 구분 |
 | D-06 | 모듈형 모놀리스·12모듈 | 기존8개 유지+권한/Wiki/검색전략/IT |
-| D-07 | FastAPI·PostgreSQL/pgvector·React/TS·Compose | 기존 방향 유지, SDK 공급자 하나부터 |
+| D-07 | FastAPI·PostgreSQL/pgvector·React/TS·Compose | 기존 방향 유지. 공급자는 D-27에 따라 대화 Anthropic, 임베딩·judge Google 두 곳 |
 | D-08 | SDK 반복 먼저, LangGraph/MCP는 후속 | 도구/상태 원리부터 검증 |
 | D-09 | 평가150, dev50/holdout100 | 유형별 원문 gold 검수·누수 방지 |
 | D-10 | PC 우선·기본 모바일 | 기존 화면 구성/시각 원칙 유지 |
@@ -30,6 +30,9 @@
 | D-22 | 전체 문맥 기준선만 먼저 계획, 공통 재정렬은 hard negative 오답 확인 시 추가 | 사용자 확인(P-04 B). 기준선은 actor별 token 실측 뒤 한도 안에서만 실행, 재정렬은 별도 비교 ID |
 | D-23 | 4차 재검증 기술 보정 | 사용자 요청. 기준선은 평가 전용 strategy·MOD-05.ReadAllowedCorpus·passage 단위 인용, lazy 만료는 head_revision 미증가, 여러 검색의 최종 예산 조립은 MOD-02, CT-06 ToolExecutionInput으로 field_origins/observer 전달, capability 닫힌 목록과 eval_fixture source, support_scopes는 MOD-12 소유 |
 | D-24 | 연도 생략 날짜는 시제로 추론해 표시(P-05 B), 티켓 수정 사슬 상한 없음(P-06 A), 표/문장 단위 적용 조건은 모델 판단+측정 후 조건부 열·행 분리(P-07 A) | 사용자 확인. 근거는 [정책 선택](15-policy-options.md) |
+| D-25 | 대화(답변) 모델은 A/B·평가 실행을 포함해 Claude Haiku 5.5(`claude-haiku-5-5`), SDK는 Anthropic 공식 Python SDK | 사용자 확인(예산). judge는 D-27로 변경([정책 선택](15-policy-options.md) P-08) |
+| D-26 | 백엔드 도구: uv(패키지·잠금), SQLAlchemy 2 + Alembic, psycopg 3, pytest, ruff. 프런트엔드: Vite + React + TypeScript | 사용자 확인. O-03 해소 |
+| D-27 | 임베딩은 Google `gemini-embedding-2`(무료 티어부터), judge는 Gemini Flash 계열 무료 티어 | 사용자 확인(예산). 조건: 청크마다 별도 입력으로 임베딩, 차원은 768/1536 중 선택(O-04), 평가 때 호출 한도에 걸리면 유료 전환, 무료 티어 입력은 Google 제품 개선에 쓰이므로 가상 문서에만 사용, judge 모델 ID·날짜는 holdout 전 고정 |
 
 ## 초기 기본 정책 — 설정으로 명시
 
@@ -41,8 +44,8 @@
 |---|---|---|
 | O-01 | 가상 조직·역할·부서·정책/예외·우선관계 | 사용자가 PDF 제작/인계할 때 |
 | O-02 | 실제 판본 번호·시행/종료일·ACL·문서 종류·available_from/document_role/application_basis·guidance 판본 구간·IT-038/055 개정/시행일 확인, transition_relations의 사건 조건 매핑(예: CM-092 "상신"을 어느 닫힌 값으로 볼지)과 검수 주체 | manifest 검수 전, 사용자와 확인 |
-| O-03 | Python/ORM/driver/migration/패키지 관리 | M0 구현 선택 |
-| O-04 | 모델·SDK·임베딩 차원·공급자 요금 설정 | M0/M1, 실제 사용 가능 환경 기준 |
+| O-03 | D-26으로 해소. 남은 것: 각 도구의 버전 고정(uv 잠금 파일에 기록) | M0 |
+| O-04 | 모델·공급자는 D-25/D-27로 확정. 남은 것: 임베딩 차원(768/1536), 한국어 품질 확인(dev 질문으로 비교 후보 하나와 대조, 예: 로컬 `voyage-4-nano`), judge의 정확한 Gemini 모델 ID, 공급자별 사용 한도 설정 | 차원·한국어 확인은 M3 색인 전. 차원이 pgvector 컬럼에 고정되므로 바꾸면 재색인. judge ID는 holdout 전 |
 | O-05 | PDF 파서·OCR 지원·한계·표 복원·파일 상한 | M3 파일럿 검증 |
 | O-06 | chunk/overlap·거리·후처리·Wiki 탐색 config | dev 실험 전 고정 |
 | O-07 | 예산 스윕 후보 값(초기4000+더 큰 값 2개 이상)·모델 한도 검증·최종 dev 동결값·packing_order·반복 횟수·seed | 비교 실행 전에 필수 설정 |

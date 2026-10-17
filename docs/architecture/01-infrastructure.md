@@ -2,7 +2,7 @@
 
 ## 로컬 실행 기반
 
-Docker Compose로 웹 정적 파일/프론트엔드, FastAPI 백엔드, PostgreSQL+pgvector를 재현한다. 수집·Wiki·평가는 동일 백엔드 패키지를 사용하는 별도 CLI 프로세스다. 외부 의존은 선택한 LLM·임베딩 API 한 공급자부터 시작한다.
+Docker Compose로 웹 정적 파일/프론트엔드, FastAPI 백엔드, PostgreSQL+pgvector를 재현한다. 수집·Wiki·평가는 동일 백엔드 패키지를 사용하는 별도 CLI 프로세스다. 외부 모델 API는 두 곳이다. 대화는 Anthropic(Claude Haiku 5.5), 임베딩과 평가 judge는 Google Gemini 무료 티어부터 쓴다(D-25·D-27). 두 공급자 모두 MOD-07 어댑터 뒤에 두며 다른 모듈은 SDK를 직접 쓰지 않는다.
 
 | 자원 | 용도 | 경계 |
 |---|---|---|

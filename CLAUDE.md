@@ -5,7 +5,8 @@
 ## 현재 상태
 
 - 설계 문서와 정적 시안만 있다. 백엔드·DB·RAG·Wiki 코드는 없다. 다음 단계는 M0(`docs/08-development-plan.md`).
-- Python 패키지 관리·ORM·마이그레이션·모델 SDK는 미정이다(O-03, O-04). 정해지면 "명령" 절을 채운다.
+- 도구는 uv · SQLAlchemy 2 + Alembic · psycopg 3 · pytest · ruff, 프런트는 Vite + React + TS다(D-26). M0을 구현하면 "명령" 절을 채운다.
+- 모델은 대화 Claude Haiku 5.5, 임베딩 `gemini-embedding-2`, judge Gemini 무료 티어다(D-25·D-27). 키는 사용자가 `.env`에 넣으며 키 이름은 `.env.example`을 따른다.
 
 ## 명세 위치
 
@@ -47,4 +48,4 @@ SPEC_RESULTS_DIR="$TEMP/spec-results" python -B scripts/check_specs.py
 
 정적 시안 테스트: `prototypes/education-agent/tests/README.md` 참조(`PROTOTYPE_RESULTS_DIR`는 저장소 밖).
 
-백엔드·프런트 실행/테스트: O-03 결정 후 추가.
+백엔드·프런트 실행/테스트: M0 구현 후 추가.
