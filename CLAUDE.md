@@ -4,8 +4,9 @@
 
 ## 현재 상태
 
-- 설계 문서와 정적 시안만 있다. 백엔드·DB·RAG·Wiki 코드는 없다. 다음 단계는 M0(`docs/08-development-plan.md`).
-- 도구는 uv · SQLAlchemy 2 + Alembic · psycopg 3 · pytest · ruff, 프런트는 Vite + React + TS다(D-26). M0을 구현하면 "명령" 절을 채운다.
+- M0 골격까지 있다(`backend/`: 설정·시계·test_stub actor·오류 사전·Origin 검사·health·Alembic·모델 포트). 업무 기능·RAG·Wiki·프런트는 아직 없다. 다음은 M1(`docs/08-development-plan.md`).
+- 도구는 uv · SQLAlchemy 2 + Alembic · psycopg 3 · pytest · ruff, 프런트는 Vite + React + TS다(D-26). 서버는 비동기(D-28), Python 3.13.
+- 코드 위치: 공통 계약은 `backend/src/agent/shared/`, 업무 모듈은 `backend/src/agent/modules/<패키지>/`, 앱 조립은 `backend/src/agent/app/`. 모듈 import 방향은 `tests/test_module_boundaries.py`가 검사한다.
 - 모델은 대화 Claude Haiku 5.5, 임베딩 `gemini-embedding-2`, judge Gemini 무료 티어다(D-25·D-27). 키는 사용자가 `.env`에 넣으며 키 이름은 `.env.example`을 따른다.
 
 ## 명세 위치
@@ -48,4 +49,17 @@ SPEC_RESULTS_DIR="$TEMP/spec-results" python -B scripts/check_specs.py
 
 정적 시안 테스트: `prototypes/work-assistant/tests/README.md` 참조(`PROTOTYPE_RESULTS_DIR`는 저장소 밖).
 
-백엔드·프런트 실행/테스트: M0 구현 후 추가.
+백엔드(`backend/`에서 실행). DB 호스트는 `localhost`가 아니라 `127.0.0.1`로 쓴다(이 PC에서 `localhost`는 IPv6 접속이 멈춘다). Windows에서는 psycopg async 때문에 Selector 루프가 필요하다.
+
+```bash
+docker compose up -d db                      # 저장소 루트에서. PostgreSQL 18 + pgvector, 127.0.0.1:5440
+uv run alembic upgrade head                  # 개발 DB(agent_dev)
+uv run alembic -x target=test upgrade head   # 테스트 DB(agent_test)
+uv run ruff check . && uv run ruff format --check .
+uv run pytest -q                             # TEST_DATABASE_URL 없으면 DB 테스트는 건너뜀
+uv run uvicorn agent.app.main:create_app --factory --host 127.0.0.1 --port 8010 --loop asyncio:SelectorEventLoop
+```
+
+API 컨테이너 확인: `docker compose --profile api up -d --build api`(마이그레이션은 자동 실행하지 않는다). 포트: API 8010, 웹 5190(8000·5173·5180은 다른 프로그램이 사용 중).
+
+프런트 실행/테스트: M1 이후 추가.

@@ -1,0 +1,45 @@
+name: internal-ai-chatbot
+
+services:
+  db:
+    # 정확한 태그로 고정한다(pgvector 0.8.7, PostgreSQL 18). latest는 쓰지 않는다.
+    image: pgvector/pgvector:0.8.7-pg18-trixie
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-only}
+      POSTGRES_DB: agent_dev
+    ports:
+      # 5432~5434는 이 PC의 다른 DB가 쓰고 있다. 외부 노출 없이 loopback에만 연다.
+      - "127.0.0.1:${POSTGRES_PORT:-5440}:5432"
+    volumes:
+      # PostgreSQL 18 이미지는 /var/lib/postgresql 아래에 버전별 데이터 폴더를 만든다.
+      - db-data:/var/lib/postgresql
+      # 첫 기동 때 테스트 DB(agent_test)를 만든다. 확장과 테이블은 Alembic이 만든다.
+      - ./infra/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d agent_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    # 평소 개발은 로컬 uvicorn으로 한다. 컨테이너 실행 확인이 필요할 때만 --profile api로 띄운다.
+    profiles: ["api"]
+    build: ./backend
+    environment:
+      APP_ENV: local
+      AUTH_MODE: test_stub
+      TEST_ACTOR_ID: ${TEST_ACTOR_ID:-test-a}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-change-me-local-only}@db:5432/agent_dev
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5190,http://127.0.0.1:5190}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    ports:
+      # test_stub은 loopback에만 노출한다(docs/12-first-milestone-spec.md).
+      - "127.0.0.1:8010:8010"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:
