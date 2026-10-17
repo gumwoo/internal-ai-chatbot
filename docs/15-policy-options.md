@@ -220,7 +220,7 @@ API 명세는 길이(제목 1~100자, 메시지 1~4000자)만 정했다. 공백�
 <a id="p-17"></a>
 ## P-17 사건 날짜의 근원 검증(사용자 메시지 구간 대조)
 
-상태: 미정(O-20). 2026-10-18 M3 Agent 연결 독립 검증에서 나온 질문이다. 지금은 모델이 search_documents에 넣은 `as_of_date`를 그대로 쓴다(`date_evidence.source=model_argument`).
+상태: **B로 구현(명세 이행)**. 2026-10-18 M3 Agent 연결 독립 검증에서 나온 질문이다. 처음에는 결정 사항으로 올렸지만, B는 [사건 날짜 계약](contracts/02-business-dates.md)이 이미 요구하는 동작이라 새 정책이 아니다. 계약대로 구현하고 모델 입력에 date_quote를 더한 것만 계약에 적었다. 구현 전에는 모델이 넣은 `as_of_date`를 그대로 썼다(`date_evidence.source=model_argument`).
 
 [사건 날짜 계약](contracts/02-business-dates.md)은 사건 날짜를 사용자 메시지 구간(CP-07 ReadUserEvidence) 또는 검증된 교육 receipt로 확인하라고 한다. 사용자가 날짜를 말하지 않았는데 모델이 오늘 날짜를 넣으면 지금은 그대로 검색·인용된다(검증 에이전트 실행으로 재현). 프롬프트에 "오늘로 짐작하지 않는다"는 규칙만 있다.
 

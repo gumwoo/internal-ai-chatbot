@@ -13,11 +13,12 @@ from agent.shared.clock import KST
 #   표시된 자료 블록으로 옮겼다(P-13 B). system에는 규칙만 둔다.
 # m3-docs-2: 실제 모델 smoke 6개 중 5개가 search_documents를 부르지 않고 빈 답·"조회하지 못했다"로
 #   끝낸 문제(TS-24) 대응. 규정 질문은 최종 답 전에 반드시 먼저 검색하게 했다.
+# m3-docs-6: 사건 날짜는 date_quote(사용자 문장 인용)로 서버가 확인한다(P-17, 명세대로).
 # m3-docs-5: evidence_budget_exceeded 해석 규칙, 사용자 입력의 서버 표시 문자열 무력화(검증 반영).
 # m3-docs-4: 대화 자료가 없을 때도 "없음" 블록을 넣는다(교육 smoke 회귀 대응, TS-24).
 # m3-docs-3: m3-docs-2로도 문서 smoke가 대부분 도구 없이 빈 답을 냈다. 진단(문구 3개, 변형 4개, 25회)에서
 #   질문 분류 규칙을 교육 규칙 앞에 둔 변형이 가장 나아(15회 중 7회 검색) 그 변형 C를 넣었다(TS-24).
-PROMPT_VERSION = "m3-docs-5"
+PROMPT_VERSION = "m3-docs-6"
 
 _CACHE_FIELDS = ("id", "code", "title", "starts_at", "ends_at", "location", "status")
 
@@ -62,10 +63,10 @@ _ROUTING = """질문 종류부터 정한다:
 _DOCUMENT_RULES = """
 규정·안내 문서 규칙(search_documents):
 7. 회사 규정·기준·절차·안내·한도·기한을 물으면 최종 답을 내기 전에 반드시 search_documents를 먼저 호출한다. 검색하지 않은 채 "조회하지 못했다"고 하거나 빈 답을 내지 않는다. 날짜를 몰라도 먼저 검색한다(날짜가 필요하면 서버가 되묻기를 돌려준다). 원문 근거 없이 규정 내용을 답하지 않는다.
-8. 규정은 사건 날짜의 판본이 적용된다. 교육비·교육 수료는 교육 시작일(training_start), 출장비는 출장 시작일(trip_start), 결재는 최종 결재일(approval_date)처럼 date_basis를 고르고, 사용자가 말한 날짜를 as_of_date에 넣는다. 사건이 없는 현재 기준 질문만 current다. 날짜가 없으면 오늘로 짐작하지 말고 as_of_date를 비워 검색한다.
+8. 규정은 사건 날짜의 판본이 적용된다. 교육비·교육 수료는 교육 시작일(training_start), 출장비는 출장 시작일(trip_start), 결재는 최종 결재일(approval_date)처럼 date_basis를 고르고, 사용자가 말한 날짜를 as_of_date에 넣고, 그 날짜를 말한 사용자 문장 부분을 고치지 말고 그대로 date_quote에 넣는다(예: "9월 29일에 시작한"). 서버가 그 문장으로 날짜를 확인한다. 사건이 없는 현재 기준 질문만 current다. 날짜가 없으면 오늘로 짐작하지 말고 as_of_date·date_quote를 비워 검색한다.
 9. 검색 결과 resolution이 needs_clarification이면 clarification.prompt의 내용으로 사용자에게 날짜를 되묻는다(outcome=needs_clarification). unsupported면 안내할 수 없는 이유를 짧게 말한다(outcome=insufficient_evidence).
 10. 검색 결과에 evidence_budget_exceeded가 있으면 필요한 원문을 다 받지 못한 것이다. 받은 원문으로 결론이 서지 않으면 근거가 부족하다고 답한다. 답에는 검색 결과 원문에 있는 금액·기한·조건만 쓰고, 쓴 원문의 citation_id를 citation_ids에 넣는다. 결과가 없거나 원문으로 결론을 낼 수 없으면 근거가 부족하다고 답한다(outcome=insufficient_evidence). 안내(FAQ)가 규정과 다르면 규정을 따르고 차이를 밝힌다.
-11. 서로 다른 사건(예: 교육과 출장)은 event_key를 달리해 따로 검색한다. 결과의 as_of_date·판본(version)을 답에 밝힌다. prospective가 true면 "현재 공개된 규정 기준이며 이후 개정 시 달라질 수 있음"을 덧붙인다.
+11. 서로 다른 사건(예: 교육과 출장)은 event_key를 달리해 따로 검색한다. 결과의 as_of_date·판본(version)을 답에 밝힌다. prospective가 true면 "현재 공개된 규정 기준이며 이후 개정 시 달라질 수 있음"을 덧붙인다. year_inferred가 true면 "2026년으로 보고 답합니다"처럼 서버가 정한 연도를 밝힌다.
 """
 
 

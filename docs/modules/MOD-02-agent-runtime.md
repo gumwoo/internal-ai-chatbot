@@ -52,3 +52,4 @@ origin_candidates의 quote/message ID를 CP-07 user 원문과 대조해 code poi
 - 예산: 실행 전체에서 원문 합계 `final_context_token_limit`(초기 4000, token은 `utf8-bytes-div3-v1` 추정값)을 넘기지 않는다. support_group 단위로 MOD-11 순서대로 통째로만 넣고, 못 넣은 그룹은 `evidence_budget_exceeded`로 도구 결과와 내부 로그에 남긴다.
 - P-12 B: 실행 시작 때 CP-07(ConversationEvidenceReader)로 대화 사본을 실제 receipt와 다시 대조한다. 대조 실패는 필수 기록 실패와 같게 실행 실패다.
 - P-13 B: system에는 규칙만 둔다. 검증된 대화 자료는 현재 사용자 턴 앞의 `[대화 자료]` 블록으로, 문서 passage는 tool_result로만 넣는다(프롬프트 `m3-docs-1`, 이후 실제 모델 smoke에 따라 `m3-docs-4`까지 조정, TS-24).
+- 사건 날짜(2026-10-18): search_documents의 date_quote를 현재 질문·이력의 사용자 메시지와 대조하고(정확히 한 번, code point 구간), 인용 안의 날짜를 정규화해 field_origins로 MOD-03에 넘긴다. 연도 생략은 D-24 시제 규칙(완료 → 지난 날, 예정 → 다가올 날, 모호 → ambiguous_date). 없는 달력 날짜는 보정하지 않는다. 모델 as_of_date는 쓰지 않고 다르면 date_evidence에 남긴다. 인용에는 year_inferred를 둔다.

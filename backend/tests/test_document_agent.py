@@ -118,7 +118,12 @@ async def _ask(client, content, conversation=None):
 
 SEARCH_OLD = (
     "search_documents",
-    {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "training_start", "as_of_date": "2026-09-29"},
+    {
+        "query": "외부교육비 1회 과정 지원 한도",
+        "date_basis": "training_start",
+        "as_of_date": "2026-09-29",
+        "date_quote": "9월 29일에 시작한",
+    },
 )
 
 
@@ -172,14 +177,14 @@ async def _scalar(engine, sql, **params):
 async def test_forged_citation_is_rejected(published, migrated):
     model = FakeModelClient([tool_turn(SEARCH_OLD), final("한도는 100만 원", citations=["c1-1", "c9-9"])])
     async with api_client(_app(migrated, model)) as client:
-        _, response = await _ask(client, "외부교육 한도")
+        _, response = await _ask(client, "9월 29일에 시작한 외부교육 한도")
     assert (response.status_code, response.json()["error"]["code"]) == (502, "MODEL_OUTPUT_INVALID")
 
 
 async def test_citation_without_any_search_is_rejected(published, migrated):
     model = FakeModelClient([final("한도는 100만 원", citations=["c1-1"])])
     async with api_client(_app(migrated, model)) as client:
-        _, response = await _ask(client, "외부교육 한도")
+        _, response = await _ask(client, "9월 29일에 시작한 외부교육 한도")
     assert response.status_code == 502
 
 
@@ -190,12 +195,13 @@ async def test_two_searches_get_distinct_citation_ids_and_dates(published, migra
             "query": "출장 숙박비 상한",
             "date_basis": "trip_start",
             "as_of_date": "2026-10-02",
+            "date_quote": "10월 2일에 출발한",
             "event_key": "trip",
         },
     )
     model = Capturing([tool_turn(SEARCH_OLD, trip), final("교육·출장 답", citations=["c1-1", "c2-1"])])
     async with api_client(_app(migrated, model)) as client:
-        _, response = await _ask(client, "9/29 시작 교육과 10/2 출장")
+        _, response = await _ask(client, "9월 29일에 시작한 교육과 10월 2일에 출발한 출장")
     payloads = model.tool_payloads()
     assert len(payloads) == 2
     per_call = [[p["citation_id"] for g in pl["data"]["groups"] for p in g["passages"]] for pl in payloads]
@@ -220,10 +226,18 @@ async def test_missing_event_date_returns_clarification_not_today(published, mig
 
 
 async def test_far_future_event_is_unsupported(published, migrated):
-    search = ("search_documents", {"query": "출장비", "date_basis": "trip_start", "as_of_date": "2027-03-01"})
+    search = (
+        "search_documents",
+        {
+            "query": "출장비",
+            "date_basis": "trip_start",
+            "as_of_date": "2027-03-01",
+            "date_quote": "2027년 3월 1일",
+        },
+    )
     model = Capturing([tool_turn(search), final("안내할 수 없습니다", outcome="insufficient_evidence")])
     async with api_client(_app(migrated, model)) as client:
-        await _ask(client, "내년 3월 출장비")
+        await _ask(client, "2027년 3월 1일 출장비")
     data = model.tool_payloads()[0]["data"]
     assert data["resolution"] == "unsupported" and data["unsupported"]["reason"] == "event_out_of_horizon"
 
@@ -238,7 +252,7 @@ async def test_embedding_outage_is_tool_failure_not_zero_results(published, migr
         ]
     )
     async with api_client(_app(migrated, model, embedder=broken)) as client:
-        _, response = await _ask(client, "외부교육 한도")
+        _, response = await _ask(client, "9월 29일에 시작한 외부교육 한도")
     payloads = model.tool_payloads()
     # 재시도 후에도 장애면 실행 실패다(0건으로 바꾸지 않는다, T-08).
     assert response.status_code in (502, 503)
@@ -252,7 +266,7 @@ async def test_budget_keeps_whole_support_groups_only(published, migrated, monke
     monkeypatch.setattr(contracts.ExecutionPolicy, "__init__", _policy_init(final_context_token_limit=200))
     model = Capturing([tool_turn(SEARCH_OLD), final("답", citations=[])])
     async with api_client(_app(migrated, model)) as client:
-        await _ask(client, "외부교육 한도")
+        await _ask(client, "9월 29일에 시작한 외부교육 한도")
     data = model.tool_payloads()[0]["data"]
     assert data.get("evidence_budget_exceeded") is True
     kept = [g for g in data["groups"]]
@@ -343,7 +357,7 @@ async def test_injected_instructions_in_passages_stay_data(published, migrated):
         [tool_turn(SEARCH_OLD), tool_turn(("delete_all", {"admin": True})), final("답", citations=[])]
     )
     async with api_client(_app(migrated, model)) as client:
-        _, response = await _ask(client, "외부교육 한도")
+        _, response = await _ask(client, "9월 29일에 시작한 외부교육 한도")
     assert response.status_code == 200
     second = model.requests[1]
     # 원문은 system이 아니라 도구 결과로만 들어간다(구조상 system에는 원문이 들어갈 자리가 없다).
@@ -381,7 +395,7 @@ async def test_event_basis_without_date_asks_instead_of_using_today(published, m
     search = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "training_start"})
     model = Capturing([tool_turn(search), final("언제 시작하나요?", outcome="needs_clarification")])
     async with api_client(_app(migrated, model)) as client:
-        await _ask(client, "외부교육 한도")
+        await _ask(client, "9월 29일에 시작한 외부교육 한도")
     data = model.tool_payloads()[0]["data"]
     assert data["resolution"] == "needs_clarification" and data["groups"] == []
     assert data["clarification"]["reason"] == "missing_date"
@@ -395,11 +409,12 @@ async def test_event_basis_mismatch_filters_other_event_regulations(published, m
             "query": "외부교육비 1회 과정 지원 한도 출장비",
             "date_basis": "trip_start",
             "as_of_date": "2026-10-05",
+            "date_quote": "10월 5일에 출발한",
         },
     )
     model = Capturing([tool_turn(search), final("답")])
     async with api_client(_app(migrated, model)) as client:
-        await _ask(client, "출장비")
+        await _ask(client, "10월 5일에 출발한 출장비")
     data = model.tool_payloads()[0]["data"]
     titles = {p["title"] for g in data["groups"] for p in g["passages"]}
     assert "외부교육비 지원 규정" not in titles
@@ -442,16 +457,24 @@ async def test_reused_history_answer_inherits_document_dependency(published, mig
 
 async def test_server_maps_answers_after_unsupported_or_clarification(published, migrated):
     """P2-2: 검색이 미지원·되묻기만 돌려줬는데 근거 없이 answered로 끝내면 서버가 결론을 바로잡는다."""
-    far = ("search_documents", {"query": "출장비", "date_basis": "trip_start", "as_of_date": "2027-03-01"})
+    far = (
+        "search_documents",
+        {
+            "query": "출장비",
+            "date_basis": "trip_start",
+            "as_of_date": "2027-03-01",
+            "date_quote": "2027년 3월 1일",
+        },
+    )
     model = FakeModelClient([tool_turn(far), final("출장비 상한은 10만 원입니다")])
     async with api_client(_app(migrated, model)) as client:
-        _, unsupported = await _ask(client, "내년 3월 출장비")
+        _, unsupported = await _ask(client, "2027년 3월 1일 출장비")
     body = unsupported.json()
     assert body["outcome"] == "insufficient_evidence" and "10만 원" not in body["answer"]
     undated = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "training_start"})
     model = FakeModelClient([tool_turn(undated), final("한도는 150만 원입니다")])
     async with api_client(_app(migrated, model)) as client:
-        _, clarify = await _ask(client, "외부교육 한도")
+        _, clarify = await _ask(client, "9월 29일에 시작한 외부교육 한도")
     body = clarify.json()
     assert body["outcome"] == "needs_clarification" and "교육 시작일" in body["answer"]
     assert "150만" not in body["answer"]
@@ -486,7 +509,7 @@ async def test_multi_chunk_group_enters_whole_and_budget_accumulates_across_call
     monkeypatch.setattr(contracts.ExecutionPolicy, "__init__", _policy_init(final_context_token_limit=300))
     model = Capturing([tool_turn(IT_TABLE, SEARCH_OLD), final("답")])
     async with api_client(_app(migrated, model)) as client:
-        await _ask(client, "티켓 상태와 외부교육 한도")
+        await _ask(client, "티켓 상태와 9월 29일에 시작한 외부교육 한도")
     payloads = model.tool_payloads()
     used = [
         sum(estimate_tokens(p["text"]) for g in pl["data"]["groups"] for p in g["passages"])
@@ -501,7 +524,7 @@ async def test_multi_chunk_group_enters_whole_and_budget_accumulates_across_call
 async def test_repeated_search_does_not_double_count_budget(published, migrated):
     model = Capturing([tool_turn(SEARCH_OLD), tool_turn(SEARCH_OLD), final("답")])
     async with api_client(_app(migrated, model)) as client:
-        await _ask(client, "외부교육 한도")
+        await _ask(client, "9월 29일에 시작한 외부교육 한도")
     a, b = (pl["data"]["groups"] for pl in model.tool_payloads())
     ids_a = [p["citation_id"] for g in a for p in g["passages"]]
     ids_b = [p["citation_id"] for g in b for p in g["passages"]]
@@ -514,7 +537,7 @@ async def test_embedding_configuration_failures_are_tool_failures(published, mig
     broken = BigramEmbedder(fail_with=ModelCallError(failure))
     model = Capturing([tool_turn(SEARCH_OLD), final("근거 부족", outcome="insufficient_evidence")])
     async with api_client(_app(migrated, model, embedder=broken)) as client:
-        _, response = await _ask(client, "외부교육 한도")
+        _, response = await _ask(client, "9월 29일에 시작한 외부교육 한도")
     assert response.status_code == 502 and response.json()["error"]["code"] == "TOOL_EXECUTION_FAILED"
 
 
@@ -531,7 +554,7 @@ async def test_outage_is_retried_once(published, migrated):
     async with api_client(
         _app(migrated, FakeModelClient([tool_turn(SEARCH_OLD)]), embedder=broken)
     ) as client:
-        _, response = await _ask(client, "외부교육 한도")
+        _, response = await _ask(client, "9월 29일에 시작한 외부교육 한도")
     assert response.status_code == 502 and calls["n"] == 2
 
 
@@ -546,7 +569,7 @@ async def test_final_response_uses_actor_reloaded_at_return_time(published, migr
     app = _app(migrated, model)
     async with api_client(app) as client:
         app.state.conversations._identity = GoneIdentity()
-        _, response = await _ask(client, "외부교육 한도")
+        _, response = await _ask(client, "9월 29일에 시작한 외부교육 한도")
     body = response.json()
     assert body["citations"] == [] and body["outcome"] == "insufficient_evidence"
     assert "종전 기준" not in body["answer"]
@@ -559,11 +582,12 @@ async def test_prospective_quote_and_clarification_citations(published, migrated
             "query": "외부교육비 1회 과정 지원 한도",
             "date_basis": "training_start",
             "as_of_date": "2026-11-02",
+            "date_quote": "11월 2일에 시작하는",
         },
     )
     model = FakeModelClient([tool_turn(soon), final("현행 기준", citations=["c1-1"])])
     async with api_client(_app(migrated, model)) as client:
-        _, response = await _ask(client, "11월 2일 시작 교육 한도")
+        _, response = await _ask(client, "11월 2일에 시작하는 교육 한도")
     citation = response.json()["citations"][0]
     assert citation["prospective"] is True and citation["as_of_date"] == "2026-11-02"
     assert len(citation["quote"]) <= 301
@@ -571,7 +595,7 @@ async def test_prospective_quote_and_clarification_citations(published, migrated
         [tool_turn(SEARCH_OLD), final("언제 시작하나요?", outcome="needs_clarification", citations=["c1-1"])]
     )
     async with api_client(_app(migrated, model)) as client:
-        _, clarify = await _ask(client, "한도")
+        _, clarify = await _ask(client, "9월 29일에 시작한 외부교육 한도")
     assert clarify.json()["citations"] == []
 
 

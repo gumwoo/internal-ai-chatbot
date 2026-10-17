@@ -59,6 +59,8 @@ class SearchDocumentsArgs(BaseModel):
     top_k: int | None = Field(default=None, ge=1, le=20)
     date_basis: DateBasis = "current"
     as_of_date: date | None = None
+    # 사건 날짜를 말한 사용자 문장 인용(출처 후보). MOD-02가 본인 메시지와 대조해 날짜를 정규화한다.
+    date_quote: str | None = Field(default=None, max_length=200)
     # 서버가 인용 DTO에 그대로 싣는 값이라 안전한 식별자 모양만 받는다.
     event_key: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,40}$")
 
@@ -230,10 +232,15 @@ class ToolExecutor:
         self, context: ExecutionContext, call: ToolExecutionInput, args: SearchDocumentsArgs, limit_s: float
     ) -> ToolResult:
         assert self._retrieval is not None  # noqa: S101 - _available이 확인
+        # 사건 날짜는 MOD-02가 검증한 정규 값(field_origins)만 쓴다. 모델 인자 as_of_date는 쓰지 않는다.
+        origin = (call.field_origins or {}).get("as_of_date") or {}
+        verified = args.date_basis == "current" or bool(origin.get("verified"))
         request = SearchRequest(
             query=args.query,
             date_basis=args.date_basis,
-            as_of_date=args.as_of_date,
+            as_of_date=date.fromisoformat(origin["date"]) if verified and origin.get("date") else None,
+            date_problem=None if verified else origin.get("reason") or "missing_date",
+            date_evidence=origin.get("evidence") or {},
             event_key=args.event_key,
             **({"top_k": args.top_k} if args.top_k else {}),
         )
@@ -278,6 +285,7 @@ def search_view(result: RetrievalResult, ordinal: int) -> dict[str, Any]:
         "as_of_date": result.as_of_date.isoformat() if result.as_of_date else None,
         "event_key": result.event_key,
         "prospective": result.prospective,
+        "date_evidence": result.date_evidence,
         "corpus_snapshot_id": result.corpus_snapshot_id,
         "clarification": result.clarification,
         "unsupported": result.unsupported,

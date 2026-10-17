@@ -47,6 +47,9 @@ class SearchRequest:
     as_of_date: date | None = None
     event_key: str | None = None
     top_k: int = RAW_CANDIDATE_LIMIT
+    # 사건 날짜 근원 검증 결과(MOD-02). 실패 사유가 있으면 되묻는다.
+    date_problem: str | None = None
+    date_evidence: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -113,15 +116,16 @@ class RetrievalService:
             as_of = today
             evidence = {"source": "run_accepted_at"}
         elif request.as_of_date is None:
+            reason = request.date_problem or "missing_date"
             return RetrievalResult(
                 "needs_clarification",
                 as_of_date=None,
-                clarification=_clarify("missing_date", request.date_basis, request.event_key),
+                clarification=_clarify(reason, request.date_basis, request.event_key),
                 **base,
             )
         else:
             as_of = request.as_of_date
-            evidence = {"source": "model_argument"}
+            evidence = dict(request.date_evidence) or {"source": "server_argument"}
         if as_of > today + timedelta(days=HORIZON_DAYS):
             return RetrievalResult(
                 "unsupported",
@@ -214,9 +218,9 @@ _EVENT_NAMES = {
 
 def _clarify(reason: str, event_type: str, event_key: str | None) -> dict[str, Any]:
     name = _EVENT_NAMES.get(event_type, "기준 날짜")
-    return {
-        "reason": reason,
-        "required_event_type": event_type,
-        "event_key": event_key,
-        "prompt": f"적용할 규정 판본을 정하려면 {name}이 필요합니다. 날짜를 알려 주시겠어요?",
-    }
+    prompt = (
+        f"{name}이 올해인지 다른 해인지 알 수 없습니다. 연도를 포함한 날짜를 알려 주시겠어요?"
+        if reason == "ambiguous_date"
+        else f"적용할 규정 판본을 정하려면 {name}이 필요합니다. 날짜를 알려 주시겠어요?"
+    )
+    return {"reason": reason, "required_event_type": event_type, "event_key": event_key, "prompt": prompt}

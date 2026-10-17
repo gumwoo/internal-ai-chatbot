@@ -11,6 +11,7 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass, field, replace
+from datetime import date
 from typing import Any
 
 from pydantic import ValidationError
@@ -23,6 +24,7 @@ from agent.modules.agent_runtime.contracts import (
     Outcome,
     RunUsage,
 )
+from agent.modules.agent_runtime.dates import verify_event_date
 from agent.modules.agent_runtime.prompt import PROMPT_VERSION, conversation_data, system_prompt, user_turn
 from agent.modules.model_integration.ports import (
     ChatModel,
@@ -36,7 +38,7 @@ from agent.modules.model_integration.ports import (
     Usage,
 )
 from agent.modules.tool_execution.executor import ToolExecutor
-from agent.shared.clock import Clock
+from agent.shared.clock import KST, Clock
 from agent.shared.contracts import (
     ConversationEvidenceReader,
     ExecutionContext,
@@ -102,6 +104,8 @@ class _Run:
     required_group_missing: bool = False
     # 이미 문맥에 넣은 그룹 → 그때 붙인 citation_id(같은 검색 반복 시 재사용).
     seen_groups: dict[str, list[str]] = field(default_factory=dict)
+    # 현재 사용자 질문(사건 날짜 인용 대조용).
+    message: str = ""
     # 검색 호출별 resolution·되묻기·미지원(서버 결론 매핑에 쓴다).
     search_results: list[dict[str, Any]] = field(default_factory=list)
 
@@ -284,6 +288,7 @@ class AgentRuntime:
 
     async def _loop(self, run: _Run, message: str) -> ExecutionResult:
         policy = run.context.policy
+        run.message = message
         history = run.snapshot.messages[-policy.history_messages :] if policy.history_messages else ()
         messages = [ModelMessage(role=m.role, text=m.text) for m in history]
         snapshot = run.snapshot
@@ -371,7 +376,12 @@ class AgentRuntime:
             started = self._clock.monotonic()
             result = await self._tools.execute_once(
                 run.context,
-                ToolExecutionInput(proposal=proposal, call_ordinal=ordinal, observer=run.observer),
+                ToolExecutionInput(
+                    proposal=proposal,
+                    call_ordinal=ordinal,
+                    observer=run.observer,
+                    field_origins=_field_origins(run, proposal),
+                ),
             )
             record = ToolCallRecord(
                 run_id=run.context.run_id,
@@ -474,6 +484,38 @@ class AgentRuntime:
         )
 
 
+def _field_origins(run: _Run, proposal: ToolCallProposal) -> dict[str, Any] | None:
+    """search_documents의 사건 날짜를 사용자 메시지 인용으로 검증한 정규 값(CT-06 field_origins).
+
+    모델 인자의 as_of_date·date_quote는 후보일 뿐이다. 서버가 인용을 본인 메시지와 대조하고 날짜를 정규화한다.
+    """
+    if proposal.name != "search_documents":
+        return None
+    arguments = proposal.arguments if isinstance(proposal.arguments, dict) else {}
+    if arguments.get("date_basis", "current") == "current":
+        return None
+    raw_date = arguments.get("as_of_date")
+    try:
+        model_date = date.fromisoformat(raw_date) if isinstance(raw_date, str) else None
+    except ValueError:
+        model_date = None
+    quote = arguments.get("date_quote")
+    origin = verify_event_date(
+        quote if isinstance(quote, str) else None,
+        model_date,
+        run.message,
+        tuple(m.text for m in run.snapshot.messages if m.role == "user"),
+        run.context.current_time.astimezone(KST).date(),
+    )
+    if not origin.verified:
+        logger.info(
+            "사건 날짜 근원 확인 실패 run_id=%s problem=%s",
+            run.context.run_id,
+            origin.evidence.get("problem"),
+        )
+    return {"as_of_date": origin.as_field_origin()}
+
+
 def _search_view(run: _Run, result: ToolResult) -> ToolResult:
     """검색 결과를 근거 예산에 맞춰 support_group 단위로 채택하고, 채택한 passage만 원장에 올린다.
 
@@ -528,6 +570,7 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
                 "date_basis": data.get("date_basis"),
                 "event_key": data.get("event_key"),
                 "prospective": data.get("prospective"),
+                "date_evidence": data.get("date_evidence") or {},
                 "knowledge_as_of": run.context.current_time.isoformat(),
             }
         run.seen_groups[group_id] = [p["citation_id"] for p in passages]
@@ -546,6 +589,7 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
         )
     view = {
         **{k: data.get(k) for k in ("resolution", "date_basis", "as_of_date", "event_key", "prospective")},
+        "year_inferred": bool((data.get("date_evidence") or {}).get("year_inferred")),
         "clarification": data.get("clarification"),
         "unsupported": data.get("unsupported"),
         "groups": kept_groups,
@@ -603,6 +647,7 @@ def _citation_dto(passage: dict[str, Any]) -> dict[str, Any]:
         "as_of_date": passage.get("as_of_date"),
         "date_basis": passage.get("date_basis"),
         "event_key": passage.get("event_key"),
+        "year_inferred": bool((passage.get("date_evidence") or {}).get("year_inferred")),
         "page_spans": spans,
         "quote": text if len(text) <= 300 else text[:300] + "…",
         "evidence_url": f"/api/v1/evidence/{passage['passage_id']}",

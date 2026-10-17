@@ -14,7 +14,7 @@ source_kind=user_message는 MOD-01이 본인 user 메시지 구간과 run 고정
 
 ## SearchRequest와 날짜 미확정의 첫 단계
 
-모델 입력은 `query,top_k,as_of_date?,date_basis,event_key?,knowledge_date?`다. 서버가 `knowledge_as_of,business_dates,question_context,execution_context`를 추가한다. actor/snapshot/business_dates/knowledge_as_of는 모델 인자가 아니다.
+모델 입력은 `query,top_k,as_of_date?,date_quote?,date_basis,event_key?,knowledge_date?`다. date_quote는 사건 날짜를 말한 사용자 문장 부분 그대로이며 출처 후보(user_quote)다. MOD-02가 본인 사용자 메시지(현재 질문, 그다음 이력)에 정확히 한 번 있는지 확인해 code point 구간을 계산하고, 인용 안의 날짜를 run 고정 시각으로 정규화한다(연도 생략은 아래 시제 규칙). 정규화한 값만 쓰고 모델의 as_of_date는 쓰지 않는다. 인용이 없거나 확인되지 않으면 날짜 미확정(missing_date), 시제로 연도를 정할 수 없으면 ambiguous_date로 되묻는다. 서버가 `knowledge_as_of,business_dates,question_context,execution_context`를 추가한다. actor/snapshot/business_dates/knowledge_as_of는 모델 인자가 아니다.
 
 명시적인 과거 지식 조회는 knowledge_date 경로로만 한다. 모델은 사용자가 "그때 안내", "당시 알 수 있었던 기준"처럼 과거 지식 시점을 직접 말한 경우에만 knowledge_date와 해당 user_quote origin 후보를 제안한다. MOD-02가 CP-07로 그 구간을 검증하면 서버가 knowledge_as_of를 그 날짜의 KST 다음날00시(종료 제외)로 줄인다. 검증되지 않으면 무시하고 수락 시각을 쓴다. 미래 knowledge_date는 unsupported(future_knowledge)다. 사건 날짜(as_of_date)와 섞지 않는다.
 

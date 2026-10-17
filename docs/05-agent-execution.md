@@ -10,7 +10,7 @@ MOD-02가 실행을 조정하고 MOD-03이 스키마/분배, MOD-01이 필수 �
 |---|---|---|
 | list_trainings | date_preset, start_date?, end_date_exclusive?, query?, limit=10, offset=0 | TrainingPage |
 | get_training | training_id(UUID) | TrainingDetail |
-| search_documents | query(1~500자), top_k?(서버 retriever config 범위), as_of_date?(ISO date), date_basis=current, event_key? | CT-14 원문 또는 날짜 추가 확인 |
+| search_documents | query(1~500자), top_k?(1~20, 서버 retriever config 범위), as_of_date?(ISO date, 후보), date_quote?(날짜를 말한 사용자 문장, 서버가 대조·정규화), date_basis=current, event_key?(영문·숫자·_·- 1~40자) | CT-14 원문 또는 날짜 추가 확인 |
 | list_it_tickets | status?(open), limit=10(1~20), offset=0 | 현재 허용 TicketPage |
 | get_it_ticket | ticket_id(UUID) | 현재 허용 TicketDetail |
 | prepare_it_ticket | subject?, description?, request_type?, category?, target_service?, occurred_at?, impact_scope?, urgent_work?, urgency_reason?, asset_identifier?, origin_candidates? | ActionPreview |
