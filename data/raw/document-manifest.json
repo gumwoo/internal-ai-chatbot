@@ -1,0 +1,4328 @@
+{
+ "manifest_version": 1,
+ "status": "draft",
+ "generated_at": "2026-10-18T00:22:40.726557+09:00",
+ "note": "MOD-06 초안. 원문·수령 목록에 근거가 있는 값만 채웠고 근거는 basis_evidence에 있다. available_from 등 원문으로 정할 수 없는 값은 비어 있으며 모든 항목이 needs_review다(O-02, P-15). ACL은 D-31 사용자 결정이다. 검수 전에는 게시하지 않는다.",
+ "input_root": "data/raw/pdfs",
+ "files": [
+  {
+   "source_file_id": "PDF-001",
+   "document_key": "DOC-001",
+   "version": "제3차 개정 (2026.10.01)",
+   "filename": "HR-001_인사관리_기본_규정.pdf",
+   "title": "인사관리 기본 규정",
+   "domain": "인사·근태",
+   "document_type": "규정",
+   "source_document_number": "GW-HR-001",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 4,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "5786143fa99b0edaa95bd0f45b5208699320ce373bf0cd15def41ba32e60e81d"
+  },
+  {
+   "source_file_id": "PDF-002",
+   "document_key": "DOC-002",
+   "version": "제2차 개정 (2026.10.01)",
+   "filename": "HR-002_근무시간_운영지침.pdf",
+   "title": "근무시간 운영지침",
+   "domain": "인사·근태",
+   "document_type": "운영지침",
+   "source_document_number": "GW-HR-002",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": "PDF-003",
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "6bbd1e9b356b26d7005a2233e3355037ffa2b36c8e75ccdec1414f6f5d420844"
+  },
+  {
+   "source_file_id": "PDF-003",
+   "document_key": "DOC-002",
+   "version": "제1차 개정 (2025.01.01)",
+   "filename": "HR-003_근무시간_운영지침_종전.pdf",
+   "title": "근무시간 운영지침 [종전]",
+   "domain": "인사·근태",
+   "document_type": "운영지침",
+   "source_document_number": "GW-HR-003",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2025년 01월 01일부터 시행한다"
+    },
+    {
+     "field": "effective_to",
+     "rule": "종료일 포함 표기 → 다음날(종료 제외)",
+     "page": 1,
+     "quote": "적용종료 2026.09.30."
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2025-01-01",
+   "effective_to": "2026-10-01",
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "superseded",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "application_basis: 보정 문서에 '신청·처리일 또는 근무일, 질문 사건에 따라 확인'으로 적혀 있어 닫힌 값 하나로 정할 수 없음(검수 필요)"
+   ],
+   "sha256": "61e75897b1033740a65ce352e06f1ff8d7483e140e13144d8d0196b35b1050ae"
+  },
+  {
+   "source_file_id": "PDF-004",
+   "document_key": "DOC-004",
+   "version": "제2차 개정 (2026.10.01)",
+   "filename": "HR-004_휴가_및_휴직_규정.pdf",
+   "title": "휴가 및 휴직 규정",
+   "domain": "인사·근태",
+   "document_type": "규정",
+   "source_document_number": "GW-HR-004",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 3,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": "PDF-005",
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "f86430ae2a2e1cb2128387e9c07ad6b395c31a22c19513c3bdcaf6f635a730d9"
+  },
+  {
+   "source_file_id": "PDF-005",
+   "document_key": "DOC-004",
+   "version": "제1차 개정 (2025.01.01)",
+   "filename": "HR-005_휴가_및_휴직_규정_종전.pdf",
+   "title": "휴가 및 휴직 규정 [종전]",
+   "domain": "인사·근태",
+   "document_type": "규정",
+   "source_document_number": "GW-HR-005",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2025년 01월 01일부터 시행한다"
+    },
+    {
+     "field": "effective_to",
+     "rule": "종료일 포함 표기 → 다음날(종료 제외)",
+     "page": 1,
+     "quote": "적용종료 2026.09.30."
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2025-01-01",
+   "effective_to": "2026-10-01",
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "superseded",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "application_basis: 보정 문서에 '신청·처리일 또는 근무일, 질문 사건에 따라 확인'으로 적혀 있어 닫힌 값 하나로 정할 수 없음(검수 필요)"
+   ],
+   "sha256": "7077389b4d58281a9582b3bf63c2bc2390cfebf41f6545d50a8b9031719414bc"
+  },
+  {
+   "source_file_id": "PDF-006",
+   "document_key": "DOC-006",
+   "version": "2.0",
+   "filename": "HR-006_연차_신청_및_승인_업무매뉴얼.pdf",
+   "title": "연차 신청 및 승인 업무매뉴얼",
+   "domain": "인사·근태",
+   "document_type": "업무매뉴얼",
+   "source_document_number": "GW-HR-006",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "fc32689d02f4af41b63679cd1c7b6cfc230661f0226abd3e5839339915d68746"
+  },
+  {
+   "source_file_id": "PDF-007",
+   "document_key": "DOC-007",
+   "version": "1.2",
+   "filename": "HR-007_병가_및_경조휴가_이용_안내.pdf",
+   "title": "병가 및 경조휴가 이용 안내",
+   "domain": "인사·근태",
+   "document_type": "안내",
+   "source_document_number": "GW-HR-007",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.04.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-04-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "98ffe661467b8014ed4dbc11c9594d1b2a55f679c18a6c829d87f43fb905e6b6"
+  },
+  {
+   "source_file_id": "PDF-008",
+   "document_key": "DOC-008",
+   "version": "제1차 개정 (2026.07.01)",
+   "filename": "HR-008_재택근무_운영지침.pdf",
+   "title": "재택근무 운영지침",
+   "domain": "인사·근태",
+   "document_type": "운영지침",
+   "source_document_number": "GW-HR-008",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2026년 07월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-07-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "1496d43baa7f55adcd12f73fbde73fba2854f6109ebb888eb70b8fa29b9088b3"
+  },
+  {
+   "source_file_id": "PDF-009",
+   "document_key": "DOC-009",
+   "version": "1.1",
+   "filename": "HR-009_유연근무_신청_FAQ.pdf",
+   "title": "유연근무 신청 FAQ",
+   "domain": "인사·근태",
+   "document_type": "FAQ",
+   "source_document_number": "GW-HR-009",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.05"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-05",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "ee9d43abaa9780185082b88214bc4528ffb28544f2612890c7d17779c95ab5e6"
+  },
+  {
+   "source_file_id": "PDF-010",
+   "document_key": "DOC-010",
+   "version": "1.0",
+   "filename": "HR-010_출장_시_근태_처리_절차.pdf",
+   "title": "출장 시 근태 처리 절차",
+   "domain": "인사·근태",
+   "document_type": "절차",
+   "source_document_number": "GW-HR-010",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.07.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-07-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "41a4ca19534dc2516bf1d8b0409624d4cf70f4314caea84c4104f34fd6e18fbe"
+  },
+  {
+   "source_file_id": "PDF-011",
+   "document_key": "DOC-011",
+   "version": "1.1",
+   "filename": "HR-011_연장_야간_휴일근로_신청_절차.pdf",
+   "title": "연장·야간·휴일근로 신청 절차",
+   "domain": "인사·근태",
+   "document_type": "절차",
+   "source_document_number": "GW-HR-011",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.04.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-04-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "f40b68e5ae0abe9d8aed790d4928209eb50de9427891b563d3c13bd5ef367083"
+  },
+  {
+   "source_file_id": "PDF-012",
+   "document_key": "DOC-012",
+   "version": "제1차 개정 (2026.07.01)",
+   "filename": "HR-012_신입_수습직원_인사_운영지침.pdf",
+   "title": "신입·수습직원 인사 운영지침",
+   "domain": "인사·근태",
+   "document_type": "운영지침",
+   "source_document_number": "GW-HR-012",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2026년 07월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-07-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "66287fb77f3da3750a4185c7d7aac408ce904307dd607f4e35afba96bdde0e9a"
+  },
+  {
+   "source_file_id": "PDF-013",
+   "document_key": "DOC-013",
+   "version": "1.1",
+   "filename": "HR-013_부서_이동_및_직무_변경_업무절차.pdf",
+   "title": "부서 이동 및 직무 변경 업무절차",
+   "domain": "인사·근태",
+   "document_type": "업무절차",
+   "source_document_number": "GW-HR-013",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.06.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-06-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "restricted",
+    "allowed_role_ids": [
+     "hr_staff",
+     "dept_head"
+    ]
+   },
+   "access_policy_source": "user_decision:D-31 (원문 열람 제한 표기)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "1c740f850a4df3c9e5f9bd85e2bc55c061d00e310d892e2a10e932197e9672f3"
+  },
+  {
+   "source_file_id": "PDF-014",
+   "document_key": "DOC-014",
+   "version": "1.1",
+   "filename": "HR-014_인사평가_운영_안내_관리자용.pdf",
+   "title": "인사평가 운영 안내(관리자용)",
+   "domain": "인사·근태",
+   "document_type": "안내",
+   "source_document_number": "GW-HR-014",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.03.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-03-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "restricted",
+    "allowed_role_ids": [
+     "hr_staff",
+     "dept_head"
+    ]
+   },
+   "access_policy_source": "user_decision:D-31 (원문 열람 제한 표기)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "96645ffa5ac3c70dfea745a4e0feadf1aef51d20b89e2f1646e9edd7d09e0969"
+  },
+  {
+   "source_file_id": "PDF-015",
+   "document_key": "DOC-015",
+   "version": "1.0",
+   "filename": "HR-015_인사정보_변경_신고_매뉴얼.pdf",
+   "title": "인사정보 변경 신고 매뉴얼",
+   "domain": "인사·근태",
+   "document_type": "매뉴얼",
+   "source_document_number": "GW-HR-015",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.02.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-02-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "e75ea47105dfe702375b2e4b565f17976a9f62dbab8e6452b3b19e45cf60c3dc"
+  },
+  {
+   "source_file_id": "PDF-016",
+   "document_key": "DOC-016",
+   "version": "1.0",
+   "filename": "HR-016_재직_경력증명서_발급_절차.pdf",
+   "title": "재직·경력증명서 발급 절차",
+   "domain": "인사·근태",
+   "document_type": "절차",
+   "source_document_number": "GW-HR-016",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.05.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-05-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "048d127512d89afa54aae047ea3f7492239ca52267360a0f39566fc24c05fcb0"
+  },
+  {
+   "source_file_id": "PDF-017",
+   "document_key": "DOC-017",
+   "version": "1.0",
+   "filename": "HR-017_직장_내_괴롭힘_상담_및_신고_처리_안내.pdf",
+   "title": "직장 내 괴롭힘 상담 및 신고 처리 안내",
+   "domain": "인사·근태",
+   "document_type": "안내",
+   "source_document_number": "GW-HR-017",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.01.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-01-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "fc5ebf8739fc0590fde909cfe6074d3bfc8c471d902b6250471d5a48c7595b77"
+  },
+  {
+   "source_file_id": "PDF-018",
+   "document_key": "DOC-018",
+   "version": "1.2",
+   "filename": "HR-018_임직원_복리후생_이용_안내.pdf",
+   "title": "임직원 복리후생 이용 안내",
+   "domain": "인사·근태",
+   "document_type": "안내",
+   "source_document_number": "GW-HR-018",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.01.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-01-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "5007a05db1e8394d03db09f90a6ba87eb104ae86c67a69f5d7c2e4e5a19372ee"
+  },
+  {
+   "source_file_id": "PDF-019",
+   "document_key": "DOC-019",
+   "version": "1.1",
+   "filename": "HR-019_가족돌봄_육아_관련_제도_안내.pdf",
+   "title": "가족돌봄·육아 관련 제도 안내",
+   "domain": "인사·근태",
+   "document_type": "안내",
+   "source_document_number": "GW-HR-019",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.07.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-07-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "6d8a265fe5133d768c776a9963146a6b16964a29b63137ccf545a453ec5088c9"
+  },
+  {
+   "source_file_id": "PDF-020",
+   "document_key": "DOC-020",
+   "version": "1.0",
+   "filename": "HR-020_고용형태별_사내_규정_적용_가이드.pdf",
+   "title": "고용형태별 사내 규정 적용 가이드",
+   "domain": "인사·근태",
+   "document_type": "가이드",
+   "source_document_number": "GW-HR-020",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.07.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-07-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "dd7f7d501142927b7e38ddb9fb2d500dbf318a8a0c78af693841b034bc6ec2d3"
+  },
+  {
+   "source_file_id": "PDF-021",
+   "document_key": "DOC-021",
+   "version": "제2차 개정 (2026.10.01)",
+   "filename": "ED-021_사내_교육_운영_규정.pdf",
+   "title": "사내 교육 운영 규정",
+   "domain": "교육·연수",
+   "document_type": "규정",
+   "source_document_number": "GW-ED-021",
+   "document_role": "normative",
+   "application_basis": "training_start",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 4,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    },
+    {
+     "field": "application_basis",
+     "source": "docs/corpus/03-received-pdf-adjustments.md",
+     "note": "ED-021 제12/20조(교육회차 시작일)"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": "PDF-022",
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)"
+   ],
+   "sha256": "2a884f0d89894959eb2dfe3e1203cefbc3f87ae999e872cb172d04faa29d79b4"
+  },
+  {
+   "source_file_id": "PDF-022",
+   "document_key": "DOC-021",
+   "version": "제1차 개정 (2025.01.01)",
+   "filename": "ED-022_사내_교육_운영_규정_종전.pdf",
+   "title": "사내 교육 운영 규정 [종전]",
+   "domain": "교육·연수",
+   "document_type": "규정",
+   "source_document_number": "GW-ED-022",
+   "document_role": "normative",
+   "application_basis": "training_start",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2025년 01월 01일부터 시행한다"
+    },
+    {
+     "field": "effective_to",
+     "rule": "종료일 포함 표기 → 다음날(종료 제외)",
+     "page": 1,
+     "quote": "적용종료 2026.09.30."
+    },
+    {
+     "field": "application_basis",
+     "source": "docs/corpus/03-received-pdf-adjustments.md",
+     "note": "ED-022(교육회차 시작일)"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2025-01-01",
+   "effective_to": "2026-10-01",
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "superseded",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)"
+   ],
+   "sha256": "38ef3c8b0d8e4b96956f05ec09854d86174679da14a0ff5710813831ea2f40fe"
+  },
+  {
+   "source_file_id": "PDF-023",
+   "document_key": "DOC-023",
+   "version": "2.0",
+   "filename": "ED-023_교육_신청_취소_업무처리_절차.pdf",
+   "title": "교육 신청·취소 업무처리 절차",
+   "domain": "교육·연수",
+   "document_type": "절차",
+   "source_document_number": "GW-ED-023",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀 교육운영담당",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "4a83fe833272e279ab2425631d64750fb3dd7d10e814511b7ad9d488d6b3c25c"
+  },
+  {
+   "source_file_id": "PDF-024",
+   "document_key": "DOC-024",
+   "version": "제1차 개정 (2026.10.01)",
+   "filename": "ED-024_필수교육_지정_및_이수_관리기준.pdf",
+   "title": "필수교육 지정 및 이수 관리기준",
+   "domain": "교육·연수",
+   "document_type": "기준",
+   "source_document_number": "GW-ED-024",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 3,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "d8477a7eb3b4fc191a586eadb1283804944a6a7654309898a1f316e388aa47f5"
+  },
+  {
+   "source_file_id": "PDF-025",
+   "document_key": "DOC-025",
+   "version": "2.1",
+   "filename": "ED-025_정보보안_교육_운영_안내.pdf",
+   "title": "정보보안 교육 운영 안내",
+   "domain": "교육·연수",
+   "document_type": "안내",
+   "source_document_number": "GW-ED-025",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "정보보안팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "b0c4ab910a8cb302d1f28091970563221a4578513a426c500ab994cfb43d89c9"
+  },
+  {
+   "source_file_id": "PDF-026",
+   "document_key": "DOC-026",
+   "version": "1.3",
+   "filename": "ED-026_개인정보보호_교육_운영_안내.pdf",
+   "title": "개인정보보호 교육 운영 안내",
+   "domain": "교육·연수",
+   "document_type": "안내",
+   "source_document_number": "GW-ED-026",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.09.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-09-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "개인정보보호 담당",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "a3fa5e9e6017e7152192a74483086a45aa4d15f03dc14f31a797edb03b5f4e5b"
+  },
+  {
+   "source_file_id": "PDF-027",
+   "document_key": "DOC-027",
+   "version": "1.1",
+   "filename": "ED-027_신규_입사자_온보딩_교육_가이드.pdf",
+   "title": "신규 입사자 온보딩 교육 가이드",
+   "domain": "교육·연수",
+   "document_type": "가이드",
+   "source_document_number": "GW-ED-027",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.07.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-07-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀 교육운영담당",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "cafcf860ffaef68937a0c6704a17fdde90e3313d269d02ee487bae432176ce0b"
+  },
+  {
+   "source_file_id": "PDF-028",
+   "document_key": "DOC-028",
+   "version": "제1차 개정 (2026.08.01)",
+   "filename": "ED-028_직무교육_신청_및_승인_지침.pdf",
+   "title": "직무교육 신청 및 승인 지침",
+   "domain": "교육·연수",
+   "document_type": "지침",
+   "source_document_number": "GW-ED-028",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 3,
+     "quote": "제1조(시행일) 이 규정은 2026년 08월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-08-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "63ab5245cdb4e83f27c296ffc69f334bf716becf44c9c8cbad603a4c097bf4e5"
+  },
+  {
+   "source_file_id": "PDF-029",
+   "document_key": "DOC-029",
+   "version": "2.0",
+   "filename": "ED-029_외부교육_사전_승인_업무절차.pdf",
+   "title": "외부교육 사전 승인 업무절차",
+   "domain": "교육·연수",
+   "document_type": "업무절차",
+   "source_document_number": "GW-ED-029",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀 교육운영담당",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "b8ee48c33291bca6ce9d812e02ce72c29e31566f1006f8214d9f7c35da8390a0"
+  },
+  {
+   "source_file_id": "PDF-030",
+   "document_key": "DOC-030",
+   "version": "제2차 개정 (2026.10.01)",
+   "filename": "ED-030_외부교육비_지원_규정.pdf",
+   "title": "외부교육비 지원 규정",
+   "domain": "교육·연수",
+   "document_type": "규정",
+   "source_document_number": "GW-ED-030",
+   "document_role": "normative",
+   "application_basis": "training_start",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 3,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    },
+    {
+     "field": "application_basis",
+     "source": "docs/corpus/03-received-pdf-adjustments.md",
+     "note": "ED-030 제5조/유의사항(교육 시작일)"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": "PDF-031",
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)"
+   ],
+   "sha256": "03352d147c57f93ccf03f545af2b7d15bf579ff384226f3b7407275ea7cc0946"
+  },
+  {
+   "source_file_id": "PDF-031",
+   "document_key": "DOC-030",
+   "version": "제1차 개정 (2025.01.01)",
+   "filename": "ED-031_외부교육비_지원_규정_종전.pdf",
+   "title": "외부교육비 지원 규정 [종전]",
+   "domain": "교육·연수",
+   "document_type": "규정",
+   "source_document_number": "GW-ED-031",
+   "document_role": "normative",
+   "application_basis": "training_start",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2025년 01월 01일부터 시행한다"
+    },
+    {
+     "field": "effective_to",
+     "rule": "종료일 포함 표기 → 다음날(종료 제외)",
+     "page": 1,
+     "quote": "적용종료 2026.09.30."
+    },
+    {
+     "field": "application_basis",
+     "source": "docs/corpus/03-received-pdf-adjustments.md",
+     "note": "ED-031 제3조(교육 시작일)"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2025-01-01",
+   "effective_to": "2026-10-01",
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "superseded",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)"
+   ],
+   "sha256": "d1daac58412ab1f682b4f81bc44803f9600dafc48c61cf613e422c06b884c0ad"
+  },
+  {
+   "source_file_id": "PDF-032",
+   "document_key": "DOC-032",
+   "version": "2.0",
+   "filename": "ED-032_교육_수료평가_및_재시험_운영_안내.pdf",
+   "title": "교육 수료평가 및 재시험 운영 안내",
+   "domain": "교육·연수",
+   "document_type": "안내",
+   "source_document_number": "GW-ED-032",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀 교육운영담당",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "e839ddf45550c536e08116c03570c8ed30d048445de898dceb2b4724887d04ea"
+  },
+  {
+   "source_file_id": "PDF-033",
+   "document_key": "DOC-033",
+   "version": "1.4",
+   "filename": "ED-033_온라인_교육포털_이용_매뉴얼.pdf",
+   "title": "온라인 교육포털 이용 매뉴얼",
+   "domain": "교육·연수",
+   "document_type": "매뉴얼",
+   "source_document_number": "GW-ED-033",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.05"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-05",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀 / 인사팀 교육운영담당",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "1298e9ae323482cf5f389c7eb243d5b379c42e78ed5e83f68b4aab1b483de84b"
+  },
+  {
+   "source_file_id": "PDF-034",
+   "document_key": "DOC-034",
+   "version": "제1차 개정 (2026.10.01)",
+   "filename": "ED-034_온라인_출석_인정_및_접속_장애_처리기준.pdf",
+   "title": "온라인 출석 인정 및 접속 장애 처리기준",
+   "domain": "교육·연수",
+   "document_type": "기준",
+   "source_document_number": "GW-ED-034",
+   "document_role": "normative",
+   "application_basis": "training_start",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 3,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    },
+    {
+     "field": "application_basis",
+     "source": "docs/corpus/03-received-pdf-adjustments.md",
+     "note": "ED-034 제12조(교육회차 시작일)"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)"
+   ],
+   "sha256": "0e12328fa3ba6a6d0ff619c562220348accda0adb60335eba2b0e785622f712d"
+  },
+  {
+   "source_file_id": "PDF-035",
+   "document_key": "DOC-035",
+   "version": "1.2",
+   "filename": "ED-035_교육_불참_대체교육_미수료_FAQ.pdf",
+   "title": "교육 불참·대체교육·미수료 FAQ",
+   "domain": "교육·연수",
+   "document_type": "FAQ",
+   "source_document_number": "GW-ED-035",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.06"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-06",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀 교육운영담당",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "df7faff8e18a233f94092c587012c4be28a1303a9012a31e8445478ffa802e27"
+  },
+  {
+   "source_file_id": "PDF-036",
+   "document_key": "DOC-036",
+   "version": "2.1",
+   "filename": "IT-036_사내_IT_서비스_이용_가이드.pdf",
+   "title": "사내 IT 서비스 이용 가이드",
+   "domain": "IT 지원",
+   "document_type": "가이드",
+   "source_document_number": "GW-IT-036",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "04513bace00303b9a5107a2ed8bcfc177d8354abc6883fe193cb4fd1d4d2870d"
+  },
+  {
+   "source_file_id": "PDF-037",
+   "document_key": "DOC-037",
+   "version": "2.0",
+   "filename": "IT-037_IT_헬프데스크_티켓_접수_및_처리_절차.pdf",
+   "title": "IT 헬프데스크 티켓 접수 및 처리 절차",
+   "domain": "IT 지원",
+   "document_type": "절차",
+   "source_document_number": "GW-IT-037",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "45b70657c6a5e858ea7404a99a700340e39dfdb5aec3d0e444fc7eb92388de5f"
+  },
+  {
+   "source_file_id": "PDF-038",
+   "document_key": "DOC-038",
+   "version": "제1차 개정 (2026.07.01)",
+   "filename": "IT-038_IT_장애_등급_및_우선순위_기준.pdf",
+   "title": "IT 장애 등급 및 우선순위 기준",
+   "domain": "IT 지원",
+   "document_type": "기준",
+   "source_document_number": "GW-IT-038",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 3,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "e3bfd46ade014d14f2ae7e88c5c1f3b98458ad2d0def93634f932e5259ad463a"
+  },
+  {
+   "source_file_id": "PDF-039",
+   "document_key": "DOC-039",
+   "version": "2.0",
+   "filename": "IT-039_업무용_PC_지급_교체_반납_절차.pdf",
+   "title": "업무용 PC 지급·교체·반납 절차",
+   "domain": "IT 지원",
+   "document_type": "절차",
+   "source_document_number": "GW-IT-039",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "6df2b99886cfb70d4c67ccedd87fcbc3edd87d9784f56e40e322c6763f2e5dea"
+  },
+  {
+   "source_file_id": "PDF-040",
+   "document_key": "DOC-040",
+   "version": "1.3",
+   "filename": "IT-040_업무용_노트북_최초_설정_매뉴얼.pdf",
+   "title": "업무용 노트북 최초 설정 매뉴얼",
+   "domain": "IT 지원",
+   "document_type": "매뉴얼",
+   "source_document_number": "GW-IT-040",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.08.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-08-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "3a92eaecb025cd50875d14a1c6c096f75b9f9ae0608f7dc6c1a8520fc35702ee"
+  },
+  {
+   "source_file_id": "PDF-041",
+   "document_key": "DOC-041",
+   "version": "제2차 개정 (2026.10.01)",
+   "filename": "IT-041_사내_계정_발급_변경_회수_기준.pdf",
+   "title": "사내 계정 발급·변경·회수 기준",
+   "domain": "IT 지원",
+   "document_type": "기준",
+   "source_document_number": "GW-IT-041",
+   "document_role": "normative",
+   "application_basis": "processing_date",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    },
+    {
+     "field": "application_basis",
+     "source": "docs/corpus/03-received-pdf-adjustments.md",
+     "note": "IT-041(처리일)"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": "PDF-042",
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "transition_relations: 원문 경과조항 있음(CM-092 제9조/IT-041 제13조), 사건 조건 매핑 미검수"
+   ],
+   "sha256": "e8479e88a190b50675689185f03037b2a3d6938d9cbef6c4299d7a93ca078ba3"
+  },
+  {
+   "source_file_id": "PDF-042",
+   "document_key": "DOC-041",
+   "version": "제1차 개정 (2025.04.01)",
+   "filename": "IT-042_사내_계정_발급_변경_회수_기준_종전.pdf",
+   "title": "사내 계정 발급·변경·회수 기준 [종전]",
+   "domain": "IT 지원",
+   "document_type": "기준",
+   "source_document_number": "GW-IT-042",
+   "document_role": "normative",
+   "application_basis": "processing_date",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2025년 04월 01일부터 시행한다"
+    },
+    {
+     "field": "effective_to",
+     "rule": "종료일 포함 표기 → 다음날(종료 제외)",
+     "page": 1,
+     "quote": "적용종료 2026.09.30."
+    },
+    {
+     "field": "application_basis",
+     "source": "docs/corpus/03-received-pdf-adjustments.md",
+     "note": "IT-042(처리일)"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2025-04-01",
+   "effective_to": "2026-10-01",
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "superseded",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)"
+   ],
+   "sha256": "6dc23122745fac101b00e5b0648be864def19cd0e2319395536614741451f092"
+  },
+  {
+   "source_file_id": "PDF-043",
+   "document_key": "DOC-043",
+   "version": "1.2",
+   "filename": "IT-043_비밀번호_초기화_및_계정_잠금_해제_가이드.pdf",
+   "title": "비밀번호 초기화 및 계정 잠금 해제 가이드",
+   "domain": "IT 지원",
+   "document_type": "가이드",
+   "source_document_number": "GW-IT-043",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "6d0d71db4b5f2fa6e8fd0bf2f94ba543d6694ba01e325e0996a94ee88d28fd4c"
+  },
+  {
+   "source_file_id": "PDF-044",
+   "document_key": "DOC-044",
+   "version": "2.0",
+   "filename": "IT-044_다중인증_MFA_등록_및_복구_안내.pdf",
+   "title": "다중인증(MFA) 등록 및 복구 안내",
+   "domain": "IT 지원",
+   "document_type": "안내",
+   "source_document_number": "GW-IT-044",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "6ff65d99df4ba2ae542b0823ad06d0b3defb7d58575e3c7116605db75b3f4156"
+  },
+  {
+   "source_file_id": "PDF-045",
+   "document_key": "DOC-045",
+   "version": "2.0",
+   "filename": "IT-045_VPN_원격접속_이용_가이드.pdf",
+   "title": "VPN 원격접속 이용 가이드",
+   "domain": "IT 지원",
+   "document_type": "가이드",
+   "source_document_number": "GW-IT-045",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": "PDF-046",
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "3174f5c2ac36e792b71cf6979168afe81638e1a4d2fde494b7f82190a965eced"
+  },
+  {
+   "source_file_id": "PDF-046",
+   "document_key": "DOC-045",
+   "version": "1.4",
+   "filename": "IT-046_VPN_원격접속_이용_가이드_종전.pdf",
+   "title": "VPN 원격접속 이용 가이드 [종전]",
+   "domain": "IT 지원",
+   "document_type": "가이드",
+   "source_document_number": "GW-IT-046",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2025.04.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2025-04-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "superseded",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "적용 기간 표기 있음(2025.04.01.~2026.09.30.): guidance_valid 또는 effective 구간 검수 필요"
+   ],
+   "sha256": "c8da2a9c82a901ff62c0e9c895a5a8546fe60e573133ed6df6e66619faa11817"
+  },
+  {
+   "source_file_id": "PDF-047",
+   "document_key": "DOC-047",
+   "version": "1.2",
+   "filename": "IT-047_VPN_연결_오류_자가진단_FAQ.pdf",
+   "title": "VPN 연결 오류 자가진단 FAQ",
+   "domain": "IT 지원",
+   "document_type": "FAQ",
+   "source_document_number": "GW-IT-047",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.05"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-05",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "5e1744ce777de11101d95ca321c66ee63da978c11658c6a4e88260d2e0c1eb7f"
+  },
+  {
+   "source_file_id": "PDF-048",
+   "document_key": "DOC-048",
+   "version": "1.5",
+   "filename": "IT-048_사내_Wi_Fi_접속_및_인증_안내.pdf",
+   "title": "사내 Wi-Fi 접속 및 인증 안내",
+   "domain": "IT 지원",
+   "document_type": "안내",
+   "source_document_number": "GW-IT-048",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.07.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-07-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "8cf9b6e9d90092e01c7368498c7cb335d01dad768a2be23c7f18ab2bf9052223"
+  },
+  {
+   "source_file_id": "PDF-049",
+   "document_key": "DOC-049",
+   "version": "1.3",
+   "filename": "IT-049_사내_이메일_설정_및_이용_매뉴얼.pdf",
+   "title": "사내 이메일 설정 및 이용 매뉴얼",
+   "domain": "IT 지원",
+   "document_type": "매뉴얼",
+   "source_document_number": "GW-IT-049",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.06.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-06-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "793ec2eb14f1df52ad0b369ee803bf6e397e595a67438dbcf1c8e6381fcf1453"
+  },
+  {
+   "source_file_id": "PDF-050",
+   "document_key": "DOC-050",
+   "version": "1.2",
+   "filename": "IT-050_이메일_송수신_장애_대응_가이드.pdf",
+   "title": "이메일 송수신 장애 대응 가이드",
+   "domain": "IT 지원",
+   "document_type": "가이드",
+   "source_document_number": "GW-IT-050",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.09.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-09-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "f7c4713bf0b142ec70eb27f690b50bdadfd0efdb7c70cee2bb4d53e045a327b9"
+  },
+  {
+   "source_file_id": "PDF-051",
+   "document_key": "DOC-051",
+   "version": "1.3",
+   "filename": "IT-051_사내_메신저_사용_및_장애_해결_가이드.pdf",
+   "title": "사내 메신저 사용 및 장애 해결 가이드",
+   "domain": "IT 지원",
+   "document_type": "가이드",
+   "source_document_number": "GW-IT-051",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.07.15"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-07-15",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "1bdaf78316aa0a1a840a7da5f1b14f1b62ce05b1c68362d939fab70300ec0854"
+  },
+  {
+   "source_file_id": "PDF-052",
+   "document_key": "DOC-052",
+   "version": "1.4",
+   "filename": "IT-052_화상회의_및_회의실_장비_사용_매뉴얼.pdf",
+   "title": "화상회의 및 회의실 장비 사용 매뉴얼",
+   "domain": "IT 지원",
+   "document_type": "매뉴얼",
+   "source_document_number": "GW-IT-052",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.05.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-05-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "cc75dae07cc5dcdcb3bbd7cecaec9c8edab8782a4886df077df61fea7da02807"
+  },
+  {
+   "source_file_id": "PDF-053",
+   "document_key": "DOC-053",
+   "version": "1.8",
+   "filename": "IT-053_공유_드라이브_및_폴더_권한_이용_가이드.pdf",
+   "title": "공유 드라이브 및 폴더 권한 이용 가이드",
+   "domain": "IT 지원",
+   "document_type": "가이드",
+   "source_document_number": "GW-IT-053",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.09.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-09-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "2f938210466a13bd38e5db75a161f166d6a653413e377a55415b7d3e26879d7e"
+  },
+  {
+   "source_file_id": "PDF-054",
+   "document_key": "DOC-054",
+   "version": "1.2",
+   "filename": "IT-054_프린터_스캐너_장애_해결_안내.pdf",
+   "title": "프린터·스캐너 장애 해결 안내",
+   "domain": "IT 지원",
+   "document_type": "안내",
+   "source_document_number": "GW-IT-054",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.04.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-04-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "81af1e6ff5afda8fff9e3756442eebc5ba876fb1490c3a262468ed6e6e235d41"
+  },
+  {
+   "source_file_id": "PDF-055",
+   "document_key": "DOC-055",
+   "version": "제1차 개정 (2026.07.01)",
+   "filename": "IT-055_소프트웨어_설치_및_사용_승인_절차.pdf",
+   "title": "소프트웨어 설치 및 사용 승인 절차",
+   "domain": "IT 지원",
+   "document_type": "절차",
+   "source_document_number": "GW-IT-055",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "40003605c8623f0d1068a8098702174cbf2808376c188bf3f16c4df8526b6537"
+  },
+  {
+   "source_file_id": "PDF-056",
+   "document_key": "DOC-056",
+   "version": "2.0",
+   "filename": "IT-056_사내_시스템_접근권한_신청_매뉴얼.pdf",
+   "title": "사내 시스템 접근권한 신청 매뉴얼",
+   "domain": "IT 지원",
+   "document_type": "매뉴얼",
+   "source_document_number": "GW-IT-056",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "0b57c0857c0efa3db9b87a2fed47707b98ad67d739df38e8aef934e8ad26f1f0"
+  },
+  {
+   "source_file_id": "PDF-057",
+   "document_key": "DOC-057",
+   "version": "1.5",
+   "filename": "IT-057_신규_입사자_IT_자산_계정_지급_체크리스트.pdf",
+   "title": "신규 입사자 IT 자산·계정 지급 체크리스트",
+   "domain": "IT 지원",
+   "document_type": "체크리스트",
+   "source_document_number": "GW-IT-057",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.08.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-08-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀 / 인사팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "915957ebfe86853d679a628d07b187eebd33edc10500b908bb103e5f1dee17df"
+  },
+  {
+   "source_file_id": "PDF-058",
+   "document_key": "DOC-058",
+   "version": "2.0",
+   "filename": "IT-058_퇴사자_계정_IT_자산_회수_체크리스트.pdf",
+   "title": "퇴사자 계정·IT 자산 회수 체크리스트",
+   "domain": "IT 지원",
+   "document_type": "체크리스트",
+   "source_document_number": "GW-IT-058",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀 / 인사팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "a26c593ab67c66ff5a19b614a25327ea30c883e19e807cc195dad54caa615c48"
+  },
+  {
+   "source_file_id": "PDF-059",
+   "document_key": "DOC-059",
+   "version": "1.0",
+   "filename": "IT-059_VPN_서비스_장애_발생_및_복구_안내.pdf",
+   "title": "VPN 서비스 장애 발생 및 복구 안내",
+   "domain": "IT 지원",
+   "document_type": "안내",
+   "source_document_number": "GW-IT-059",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.09.18"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-09-18",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT운영팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "adc17bfae6f21a50d26af142ccb54420188ca9643d80024ae4fce9a667e62218"
+  },
+  {
+   "source_file_id": "PDF-060",
+   "document_key": "DOC-060",
+   "version": "2.0",
+   "filename": "IT-060_IT_헬프데스크_FAQ_및_담당자_이관_기준.pdf",
+   "title": "IT 헬프데스크 FAQ 및 담당자 이관 기준",
+   "domain": "IT 지원",
+   "document_type": "기준",
+   "source_document_number": "GW-IT-060",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.06"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-06",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "52844d89da28740ae3741910a6e3227c0a2764e95d7eb8c58054d5d417aeb21b"
+  },
+  {
+   "source_file_id": "PDF-061",
+   "document_key": "DOC-061",
+   "version": "제2차 개정 (2026.10.01)",
+   "filename": "SEC-061_정보보안_기본정책.pdf",
+   "title": "정보보안 기본정책",
+   "domain": "정보보안·개인정보",
+   "document_type": "정책",
+   "source_document_number": "GW-SEC-061",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 3,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": "PDF-062",
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "bc50fb830e1c4aa35fa14be7f16d95ce1249734ad6469f70d1abc819e4586ab4"
+  },
+  {
+   "source_file_id": "PDF-062",
+   "document_key": "DOC-061",
+   "version": "제1차 개정 (2025.06.01)",
+   "filename": "SEC-062_정보보안_기본정책_종전.pdf",
+   "title": "정보보안 기본정책 [종전]",
+   "domain": "정보보안·개인정보",
+   "document_type": "정책",
+   "source_document_number": "GW-SEC-062",
+   "document_role": "normative",
+   "application_basis": "processing_date",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2025년 06월 01일부터 시행한다"
+    },
+    {
+     "field": "effective_to",
+     "rule": "종료일 포함 표기 → 다음날(종료 제외)",
+     "page": 1,
+     "quote": "적용 종료 2026.09.30."
+    },
+    {
+     "field": "application_basis",
+     "source": "docs/corpus/03-received-pdf-adjustments.md",
+     "note": "SEC-062(처리일)"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2025-06-01",
+   "effective_to": "2026-10-01",
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "superseded",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)"
+   ],
+   "sha256": "75d527d46a773718344fcb4f0846740cd1c60bbdc7d5ff23625731c391af488d"
+  },
+  {
+   "source_file_id": "PDF-063",
+   "document_key": "DOC-063",
+   "version": "명시 판본 미확인",
+   "filename": "SEC-063_정보자산_등급_분류_및_취급_지침.pdf",
+   "title": "정보자산 등급 분류 및 취급 지침",
+   "domain": "정보보안·개인정보",
+   "document_type": "지침",
+   "source_document_number": "GW-SEC-063",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "c5a684274a277c5c732bfcf9cc96718c1258f6da965c1f4b720857bf3d87c975"
+  },
+  {
+   "source_file_id": "PDF-064",
+   "document_key": "DOC-064",
+   "version": "명시 판본 미확인",
+   "filename": "SEC-064_부서별_문서_접근권한_운영_기준.pdf",
+   "title": "부서별 문서 접근권한 운영 기준",
+   "domain": "정보보안·개인정보",
+   "document_type": "기준",
+   "source_document_number": "GW-SEC-064",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "e6986de2d0c4d95b8e8f342d845b6f79b67a9b24d8b586c3723f5e169170190c"
+  },
+  {
+   "source_file_id": "PDF-065",
+   "document_key": "DOC-065",
+   "version": "명시 판본 미확인",
+   "filename": "SEC-065_개인정보_수집_이용_처리_지침.pdf",
+   "title": "개인정보 수집·이용·처리 지침",
+   "domain": "정보보안·개인정보",
+   "document_type": "지침",
+   "source_document_number": "GW-SEC-065",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "decb8edd022c22c8359e3743f21ead8cf71645cff50c1f48e16f44d74342515b"
+  },
+  {
+   "source_file_id": "PDF-066",
+   "document_key": "DOC-066",
+   "version": "명시 판본 미확인",
+   "filename": "SEC-066_개인정보_보유기간_및_파기_절차.pdf",
+   "title": "개인정보 보유기간 및 파기 절차",
+   "domain": "정보보안·개인정보",
+   "document_type": "절차",
+   "source_document_number": "GW-SEC-066",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 3,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "0e741eef5b17332a5c27ed20ba4107dbf810021934b3498ee35f913be49074ff"
+  },
+  {
+   "source_file_id": "PDF-067",
+   "document_key": "DOC-067",
+   "version": "1.0",
+   "filename": "SEC-067_고객정보_외부_전달_승인_절차.pdf",
+   "title": "고객정보 외부 전달 승인 절차",
+   "domain": "정보보안·개인정보",
+   "document_type": "절차",
+   "source_document_number": "GW-SEC-067",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "개인정보보호담당",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "099c2a5114255ab58b08c91fa72d2110b9b3bca0006b262b018b440537626da8"
+  },
+  {
+   "source_file_id": "PDF-068",
+   "document_key": "DOC-068",
+   "version": "1.0",
+   "filename": "SEC-068_생성형_AI_업무_활용_보안_지침.pdf",
+   "title": "생성형 AI 업무 활용 보안 지침",
+   "domain": "정보보안·개인정보",
+   "document_type": "지침",
+   "source_document_number": "GW-SEC-068",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "정보보안팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "6d68655926eb6ee4f4f42d7e7633196cea0a26959b94da1b5ea3f372d87c8e78"
+  },
+  {
+   "source_file_id": "PDF-069",
+   "document_key": "DOC-069",
+   "version": "명시 판본 미확인",
+   "filename": "SEC-069_외부_파일_공유_및_첨부_제한_기준.pdf",
+   "title": "외부 파일 공유 및 첨부 제한 기준",
+   "domain": "정보보안·개인정보",
+   "document_type": "기준",
+   "source_document_number": "GW-SEC-069",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "6e55daf1be2f6e3fa477273f14783a58968317f4654ad9a6148c9643276e51f9"
+  },
+  {
+   "source_file_id": "PDF-070",
+   "document_key": "DOC-070",
+   "version": "1.0",
+   "filename": "SEC-070_이동식_저장매체_사용_예외_승인_절차.pdf",
+   "title": "이동식 저장매체 사용 예외 승인 절차",
+   "domain": "정보보안·개인정보",
+   "document_type": "절차",
+   "source_document_number": "GW-SEC-070",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "정보보안팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "db30d1747cf3ed4dbb171bc0a444edf4036ce8b6b1663fe43505a5b283b7296e"
+  },
+  {
+   "source_file_id": "PDF-071",
+   "document_key": "DOC-071",
+   "version": "1.0",
+   "filename": "SEC-071_피싱_악성_이메일_신고_가이드.pdf",
+   "title": "피싱·악성 이메일 신고 가이드",
+   "domain": "정보보안·개인정보",
+   "document_type": "가이드",
+   "source_document_number": "GW-SEC-071",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "정보보안팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "55f73ab6f837a31a5729c5ac382682349326d6f6a46ad0f0664747ba2f8d307d"
+  },
+  {
+   "source_file_id": "PDF-072",
+   "document_key": "DOC-072",
+   "version": "1.0",
+   "filename": "SEC-072_보안사고_신고_및_초기_대응_절차.pdf",
+   "title": "보안사고 신고 및 초기 대응 절차",
+   "domain": "정보보안·개인정보",
+   "document_type": "절차",
+   "source_document_number": "GW-SEC-072",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "정보보안팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "0c97f32347d1921eecbca37826c7e8fd2f4fbbea2a1204eddc1717ae77147e07"
+  },
+  {
+   "source_file_id": "PDF-073",
+   "document_key": "DOC-073",
+   "version": "1.0",
+   "filename": "SEC-073_업무용_기기_분실_도난_대응_매뉴얼.pdf",
+   "title": "업무용 기기 분실·도난 대응 매뉴얼",
+   "domain": "정보보안·개인정보",
+   "document_type": "매뉴얼",
+   "source_document_number": "GW-SEC-073",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "정보보안팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "2831e7b8b04345c636a2e85ff55f5ceef79cbd82266cb388f278a83ba9626f6f"
+  },
+  {
+   "source_file_id": "PDF-074",
+   "document_key": "DOC-074",
+   "version": "1.0",
+   "filename": "SEC-074_원격근무_보안_체크리스트.pdf",
+   "title": "원격근무 보안 체크리스트",
+   "domain": "정보보안·개인정보",
+   "document_type": "체크리스트",
+   "source_document_number": "GW-SEC-074",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "정보보안팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "c3a7068539f1dae370ba46175f21621758d75c36a46d7077b5cd98f6f13f3393"
+  },
+  {
+   "source_file_id": "PDF-075",
+   "document_key": "DOC-075",
+   "version": "명시 판본 미확인",
+   "filename": "SEC-075_협력사_계정_및_접근_승인_지침.pdf",
+   "title": "협력사 계정 및 접근 승인 지침",
+   "domain": "정보보안·개인정보",
+   "document_type": "지침",
+   "source_document_number": "GW-SEC-075",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 3,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "4d924a875d6c5c20cf514d4ee3d53384232d3b9fbf4fd6ae7e0bbf39b2dcd130"
+  },
+  {
+   "source_file_id": "PDF-076",
+   "document_key": "DOC-076",
+   "version": "1.0",
+   "filename": "SEC-076_입퇴사자_접근권한_변경_기준.pdf",
+   "title": "입퇴사자 접근권한 변경 기준",
+   "domain": "정보보안·개인정보",
+   "document_type": "기준",
+   "source_document_number": "GW-SEC-076",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "정보보안팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "7804439d21fb5360a2f5137c4c50569ddb2ccbf1327e74fece3068344c3b820b"
+  },
+  {
+   "source_file_id": "PDF-077",
+   "document_key": "DOC-077",
+   "version": "1.0",
+   "filename": "SEC-077_접근권한_정기점검_및_회수_절차.pdf",
+   "title": "접근권한 정기점검 및 회수 절차",
+   "domain": "정보보안·개인정보",
+   "document_type": "절차",
+   "source_document_number": "GW-SEC-077",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "정보보안팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "68474d30cfbcda9f53de86c7737a05b8d6ac45b30dd6fbc93939c609f757a228"
+  },
+  {
+   "source_file_id": "PDF-078",
+   "document_key": "DOC-078",
+   "version": "명시 판본 미확인",
+   "filename": "SEC-078_비밀번호_인증수단_관리_규정.pdf",
+   "title": "비밀번호·인증수단 관리 규정",
+   "domain": "정보보안·개인정보",
+   "document_type": "규정",
+   "source_document_number": "GW-SEC-078",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "f6d64fe43f9410e514a7b62fc219b37156b7d27c6841444aa02b4a7519390d11"
+  },
+  {
+   "source_file_id": "PDF-079",
+   "document_key": "DOC-079",
+   "version": "1.0",
+   "filename": "SEC-079_보안교육_미이수_처리_절차.pdf",
+   "title": "보안교육 미이수 처리 절차",
+   "domain": "정보보안·개인정보",
+   "document_type": "절차",
+   "source_document_number": "GW-SEC-079",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "정보보안팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "32f3ca32f94012f2c74e2e0bc0887dcaacc484bc621aaa17b3ded9964c178180"
+  },
+  {
+   "source_file_id": "PDF-080",
+   "document_key": "DOC-080",
+   "version": "1.0",
+   "filename": "SEC-080_정보보안_예외_신청_및_승인_매뉴얼.pdf",
+   "title": "정보보안 예외 신청 및 승인 매뉴얼",
+   "domain": "정보보안·개인정보",
+   "document_type": "매뉴얼",
+   "source_document_number": "GW-SEC-080",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "정보보안팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "d70e7f600f6f37a78e9009704af30fbfe92775b24d93265e31f3fa5e5c028240"
+  },
+  {
+   "source_file_id": "PDF-081",
+   "document_key": "DOC-081",
+   "version": "제2차 개정 (2026.10.01)",
+   "filename": "GA-081_출장비_지급_기준.pdf",
+   "title": "출장비 지급 기준",
+   "domain": "총무·재무",
+   "document_type": "기준",
+   "source_document_number": "GW-GA-081",
+   "document_role": "normative",
+   "application_basis": "trip_start",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 3,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    },
+    {
+     "field": "application_basis",
+     "source": "docs/corpus/03-received-pdf-adjustments.md",
+     "note": "GA-081 제4조(출장 시작일)"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": "PDF-082",
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)"
+   ],
+   "sha256": "08be16a45e7c1879e670ba66475fba97ee36194f8ec236615caa353f10870804"
+  },
+  {
+   "source_file_id": "PDF-082",
+   "document_key": "DOC-081",
+   "version": "제1차 개정 (2025.01.01)",
+   "filename": "GA-082_출장비_지급_기준_종전.pdf",
+   "title": "출장비 지급 기준 [종전]",
+   "domain": "총무·재무",
+   "document_type": "기준",
+   "source_document_number": "GW-GA-082",
+   "document_role": "normative",
+   "application_basis": "trip_start",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2025년 01월 01일부터 시행한다"
+    },
+    {
+     "field": "effective_to",
+     "rule": "종료일 포함 표기 → 다음날(종료 제외)",
+     "page": 1,
+     "quote": "적용종료 2026.09.30."
+    },
+    {
+     "field": "application_basis",
+     "source": "docs/corpus/03-received-pdf-adjustments.md",
+     "note": "GA-082 제2조(출장 시작일)"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2025-01-01",
+   "effective_to": "2026-10-01",
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "superseded",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)"
+   ],
+   "sha256": "77ed9d90f082794853cc4da546406d54e3efed9b09b4ef20d62c31f8b9ff7b5f"
+  },
+  {
+   "source_file_id": "PDF-083",
+   "document_key": "DOC-083",
+   "version": "2.0",
+   "filename": "GA-083_출장비_정산_및_증빙_제출_가이드.pdf",
+   "title": "출장비 정산 및 증빙 제출 가이드",
+   "domain": "총무·재무",
+   "document_type": "가이드",
+   "source_document_number": "GW-GA-083",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "총무·재무팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "569a99d02f8869a2da097881760214dcf5daf307cc6fb465ef09a6926074aa06"
+  },
+  {
+   "source_file_id": "PDF-084",
+   "document_key": "DOC-084",
+   "version": "제2차 개정 (2026.10.01)",
+   "filename": "GA-084_법인카드_사용_기준.pdf",
+   "title": "법인카드 사용 기준",
+   "domain": "총무·재무",
+   "document_type": "기준",
+   "source_document_number": "GW-GA-084",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 3,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "6fdbef5f4389c74ae66c47057a72e155b502f1250bbbff37a0eabb5f62282e99"
+  },
+  {
+   "source_file_id": "PDF-085",
+   "document_key": "DOC-085",
+   "version": "1.4",
+   "filename": "GA-085_법인카드_정산_FAQ.pdf",
+   "title": "법인카드 정산 FAQ",
+   "domain": "총무·재무",
+   "document_type": "FAQ",
+   "source_document_number": "GW-GA-085",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.05"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-05",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "재무팀 경비정산담당",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "f2c7d2b96c72cb3b796ebcc2673abd81130614ba2b7dcfb03d9306869ad7a71f"
+  },
+  {
+   "source_file_id": "PDF-086",
+   "document_key": "DOC-086",
+   "version": "2.0",
+   "filename": "GA-086_구매요청_및_지출결의_결재_절차.pdf",
+   "title": "구매요청 및 지출결의 결재 절차",
+   "domain": "총무·재무",
+   "document_type": "절차",
+   "source_document_number": "GW-GA-086",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "총무팀 구매담당 / 재무팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "7b0b2fd6b3361b1ed03938300dc2cfd5ae01a543039f1ac5a7f55e8f430e2d81"
+  },
+  {
+   "source_file_id": "PDF-087",
+   "document_key": "DOC-087",
+   "version": "제1차 개정 (2026.10.01)",
+   "filename": "GA-087_소액_비용_처리_운영지침.pdf",
+   "title": "소액 비용 처리 운영지침",
+   "domain": "총무·재무",
+   "document_type": "운영지침",
+   "source_document_number": "GW-GA-087",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "4e42a2ec89311f3131703f1184522b848450fd362d9d7b451151e0b60824f397"
+  },
+  {
+   "source_file_id": "PDF-088",
+   "document_key": "DOC-088",
+   "version": "1.4",
+   "filename": "GA-088_업무용_자산_구매_교체_신청_가이드.pdf",
+   "title": "업무용 자산 구매·교체 신청 가이드",
+   "domain": "총무·재무",
+   "document_type": "가이드",
+   "source_document_number": "GW-GA-088",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "총무팀 자산관리담당 / IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "e35d9a703a664108b86e08ba752accfc6e7eec67d8b66c2a0dea60b06fcc0d55"
+  },
+  {
+   "source_file_id": "PDF-089",
+   "document_key": "DOC-089",
+   "version": "1.2",
+   "filename": "GA-089_경비_반려_및_보완_요청_처리_지침.pdf",
+   "title": "경비 반려 및 보완 요청 처리 지침",
+   "domain": "총무·재무",
+   "document_type": "지침",
+   "source_document_number": "GW-GA-089",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "재무팀 경비정산담당",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "feacbf9a6d91c1c0a14cc55a8016715b3aee5b5f8554cbd62f4214fc6b4923c0"
+  },
+  {
+   "source_file_id": "PDF-090",
+   "document_key": "DOC-090",
+   "version": "1.0",
+   "filename": "GA-090_출장_교육_관련_비용_정산_FAQ.pdf",
+   "title": "출장·교육 관련 비용 정산 FAQ",
+   "domain": "총무·재무",
+   "document_type": "FAQ",
+   "source_document_number": "GW-GA-090",
+   "document_role": "guidance",
+   "application_basis": "per_claim",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.06"
+    },
+    {
+     "field": "application_basis",
+     "source": "docs/corpus/03-received-pdf-adjustments.md",
+     "note": "GA-090 1.2(교육비는 교육 시작일, 출장비는 출장 시작일)"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-06",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "재무팀 / 인사팀 교육운영담당",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)"
+   ],
+   "sha256": "8d52429ba3795d24c272951fd307649eedc3cc80d380ec6314214bab8c410a1f"
+  },
+  {
+   "source_file_id": "PDF-091",
+   "document_key": "DOC-091",
+   "version": "제2차 개정 (2026.10.01)",
+   "filename": "CM-091_전자결재_운영_규정.pdf",
+   "title": "전자결재 운영 규정",
+   "domain": "공통 업무·문서 관리",
+   "document_type": "규정",
+   "source_document_number": "GW-CM-091",
+   "document_role": "normative",
+   "application_basis": "approval_date",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 3,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    },
+    {
+     "field": "application_basis",
+     "source": "docs/corpus/03-received-pdf-adjustments.md",
+     "note": "CM-091(최종 결재일, CM-092와 대조)"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": "PDF-092",
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)"
+   ],
+   "sha256": "c07f51b6a7f32ab57a34374d0794c8e3d70af5acb10e18a92060334b014f71c3"
+  },
+  {
+   "source_file_id": "PDF-092",
+   "document_key": "DOC-091",
+   "version": "제1차 개정 (2025.01.01)",
+   "filename": "CM-092_전자결재_운영_규정_종전.pdf",
+   "title": "전자결재 운영 규정 [종전]",
+   "domain": "공통 업무·문서 관리",
+   "document_type": "규정",
+   "source_document_number": "GW-CM-092",
+   "document_role": "normative",
+   "application_basis": "approval_date",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 2,
+     "quote": "제1조(시행일) 이 규정은 2025년 01월 01일부터 시행한다"
+    },
+    {
+     "field": "effective_to",
+     "rule": "종료일 포함 표기 → 다음날(종료 제외)",
+     "page": 1,
+     "quote": "2026.09.30. 적용종료"
+    },
+    {
+     "field": "application_basis",
+     "source": "docs/corpus/03-received-pdf-adjustments.md",
+     "note": "CM-092 제2/9조(최종 결재일·경과조건)"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2025-01-01",
+   "effective_to": "2026-10-01",
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "superseded",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "transition_relations: 원문 경과조항 있음(CM-092 제9조/IT-041 제13조), 사건 조건 매핑 미검수"
+   ],
+   "sha256": "2cee8bdc18dbb7237f68339205fef0ff87c5b433253d92f3fe32aae73f302408"
+  },
+  {
+   "source_file_id": "PDF-093",
+   "document_key": "DOC-093",
+   "version": "제1차 개정 (2026.10.01)",
+   "filename": "CM-093_결재권한_위임_및_대결_기준.pdf",
+   "title": "결재권한 위임 및 대결 기준",
+   "domain": "공통 업무·문서 관리",
+   "document_type": "기준",
+   "source_document_number": "GW-CM-093",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 3,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": "대외비",
+   "access_policy": {
+    "audience": "restricted",
+    "allowed_role_ids": [
+     "dept_head",
+     "approver",
+     "auditor"
+    ]
+   },
+   "access_policy_source": "user_decision:D-31 (원문 열람 제한 표기)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "e3e4613283526144b7e096573e5cbfbe2502954709d70cb8a8d99b0766221d09"
+  },
+  {
+   "source_file_id": "PDF-094",
+   "document_key": "DOC-094",
+   "version": "1.0",
+   "filename": "CM-094_사내_규정_작성_승인_배포_지침.pdf",
+   "title": "사내 규정 작성·승인·배포 지침",
+   "domain": "공통 업무·문서 관리",
+   "document_type": "지침",
+   "source_document_number": "GW-CM-094",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "경영지원팀 문서관리담당",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "c698a5a96725049c0e255b421caf6ada866e6d88230780b8183e1009f8015fa2"
+  },
+  {
+   "source_file_id": "PDF-095",
+   "document_key": "DOC-095",
+   "version": "제1차 개정 (2026.10.01)",
+   "filename": "CM-095_문서_버전_및_개정_관리_기준.pdf",
+   "title": "문서 버전 및 개정 관리 기준",
+   "domain": "공통 업무·문서 관리",
+   "document_type": "기준",
+   "source_document_number": "GW-CM-095",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 3,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "적용 기간 표기 있음(2026.10.01.~): guidance_valid 또는 effective 구간 검수 필요"
+   ],
+   "sha256": "cf0fd02f9a69fb86ed6f66bf49fb9c0bf72c8df57bb0e740e8f5b5e1e93659dc"
+  },
+  {
+   "source_file_id": "PDF-096",
+   "document_key": "DOC-096",
+   "version": "명시 판본 미확인",
+   "filename": "CM-096_문서_보존기간_및_폐기_운영지침.pdf",
+   "title": "문서 보존기간 및 폐기 운영지침",
+   "domain": "공통 업무·문서 관리",
+   "document_type": "운영지침",
+   "source_document_number": "GW-CM-096",
+   "document_role": "normative",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 4,
+     "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": null,
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "161389ea188d717f2d90777c4ee43d19822e9c40b6cff48b75b6de997591bf84"
+  },
+  {
+   "source_file_id": "PDF-097",
+   "document_key": "DOC-097",
+   "version": "1.0",
+   "filename": "CM-097_부서별_업무_담당자_및_문의처_안내.pdf",
+   "title": "부서별 업무 담당자 및 문의처 안내",
+   "domain": "공통 업무·문서 관리",
+   "document_type": "안내",
+   "source_document_number": "GW-CM-097",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "경영지원팀 운영지원담당",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "1293b2aa28e38cbe985c7a452a0fbbdf6995ead2b84339cd88dbad92ec7dafe7"
+  },
+  {
+   "source_file_id": "PDF-098",
+   "document_key": "DOC-098",
+   "version": "1.0",
+   "filename": "CM-098_신규_입사자_업무_준비_체크리스트.pdf",
+   "title": "신규 입사자 업무 준비 체크리스트",
+   "domain": "공통 업무·문서 관리",
+   "document_type": "체크리스트",
+   "source_document_number": "GW-CM-098",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀 / IT지원팀",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "c1ef4f0d08bde15d5f6f3fb3a9dd4ace6ff856021f5341820cdad3cbeca15b2d"
+  },
+  {
+   "source_file_id": "PDF-099",
+   "document_key": "DOC-099",
+   "version": "1.0",
+   "filename": "CM-099_부서_이동자_업무_인수인계_체크리스트.pdf",
+   "title": "부서 이동자 업무 인수인계 체크리스트",
+   "domain": "공통 업무·문서 관리",
+   "document_type": "체크리스트",
+   "source_document_number": "GW-CM-099",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "인사팀 / 이동 전후 부서",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "8ecc1f4e67a3fe300fce05f9034983b3cf4761cb346dcc1b7c65d1d242f1be8c"
+  },
+  {
+   "source_file_id": "PDF-100",
+   "document_key": "DOC-100",
+   "version": "1.0",
+   "filename": "CM-100_사내_공지사항_작성_배포_정정_기준.pdf",
+   "title": "사내 공지사항 작성·배포·정정 기준",
+   "domain": "공통 업무·문서 관리",
+   "document_type": "기준",
+   "source_document_number": "GW-CM-100",
+   "document_role": "guidance",
+   "application_basis": "general_reference",
+   "basis_evidence": [
+    {
+     "field": "effective_from",
+     "page": 1,
+     "quote": "시행일 | 2026.10.01"
+    }
+   ],
+   "available_from": null,
+   "effective_from": "2026-10-01",
+   "effective_to": null,
+   "guidance_valid_from": null,
+   "guidance_valid_to": null,
+   "transition_relations": [],
+   "supersedes_source_file_id": null,
+   "edition_state": "current",
+   "owning_department": "경영지원팀 사내공지담당",
+   "classification": null,
+   "access_policy": {
+    "audience": "authenticated"
+   },
+   "access_policy_source": "user_decision:D-31 (기본 authenticated)",
+   "related_document_keys": [],
+   "authority_relations": [],
+   "review_status": "needs_review",
+   "review_notes": [
+    "available_from: 원문으로 정할 수 없음(O-02, P-15)",
+    "document_role: 구조로 제안(문서 정보 표)",
+    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+   ],
+   "sha256": "9e7ad7fe41b614fd6338b9d21c30ee85705e9a384c2f305e293ddda5cba05db1"
+  }
+ ]
+}

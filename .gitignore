@@ -37,3 +37,8 @@ build/
 Thumbs.db
 .idea/
 .vscode/
+
+# MOD-06 준비 산출물(임베딩 캐시·파싱 보고서). 게시 데이터가 아니다.
+data/staging/
+# 변이 시험 임시 사본(scratchpad 실행기가 만들고 지운다)
+backend/_mut_*/

@@ -2,6 +2,8 @@
 
     uv run python -m agent.cli seed-trainings [--anchor YYYY-MM-DD] [--mode fixed_status|live_clock]
     uv run python -m agent.cli seed-identity
+    uv run python -m agent.cli draft-manifest            # data/raw/document-manifest.json 초안(검수 전)
+    uv run python -m agent.cli validate-manifest [--release]
     uv run python -m agent.cli ask "다음 주 교육 알려줘" [--fixed-clock] [--live]
 
 ask는 기본이 dry-run이다. 모델에 보낼 요청만 보여 주고 호출하지 않는다.
@@ -83,6 +85,43 @@ async def _seed_identity(args: argparse.Namespace) -> None:
     finally:
         await engine.dispose()
     print(json.dumps(report, ensure_ascii=False))
+
+
+async def _draft_manifest(args: argparse.Namespace) -> None:
+    from agent.app.corpus_ops import MANIFEST_PATH, draft_manifest, write_json
+
+    _settings()
+    if MANIFEST_PATH.exists() and not args.force:
+        # 검수한 manifest를 초안으로 덮어쓰지 않는다.
+        sys.exit(f"{MANIFEST_PATH}가 이미 있다. 다시 만들려면 --force")
+    manifest = draft_manifest(SystemClock().now())
+    write_json(MANIFEST_PATH, manifest)
+    states = [e["edition_state"] for e in manifest["files"]]
+    print(
+        json.dumps(
+            {"written": str(MANIFEST_PATH), "files": len(states), "superseded": states.count("superseded")}
+        )
+    )
+
+
+async def _validate_manifest(args: argparse.Namespace) -> None:
+    from agent.app.corpus_ops import INPUT_ROOT, MANIFEST_PATH
+    from agent.modules.ingestion.manifest import load_manifest, validate_manifest
+
+    report = validate_manifest(load_manifest(MANIFEST_PATH), INPUT_ROOT, release=args.release)
+    print(
+        json.dumps(
+            {
+                "ok": report.ok,
+                "files": report.files,
+                "document_keys": report.document_keys,
+                "superseded": report.superseded,
+                "errors": report.errors,
+                "not_publishable": len(report.not_publishable),
+            },
+            ensure_ascii=False,
+        )
+    )
 
 
 def _cost(model_id: str, input_tokens: int, output_tokens: int) -> float | None:
@@ -169,6 +208,10 @@ def main(argv: list[str] | None = None) -> None:
     seed.add_argument("--mode", choices=["fixed_status", "live_clock"], help="기본은 FIXTURE_MODE 설정")
 
     sub.add_parser("seed-identity", help="개발 DB에 데모 조직·계정을 넣는다(재실행해도 중복 없음)")
+    draft = sub.add_parser("draft-manifest", help="수령 목록·PDF 본문으로 manifest 초안(needs_review)을 쓴다")
+    draft.add_argument("--force", action="store_true", help="이미 있는 manifest를 덮어쓴다")
+    validate = sub.add_parser("validate-manifest", help="manifest를 검사한다(T-18)")
+    validate.add_argument("--release", action="store_true", help="100파일·91키·종전9 구성까지 검사")
 
     ask = sub.add_parser("ask", help="질문 하나로 Agent를 실행한다. 기본은 dry-run")
     ask.add_argument("question")
@@ -176,7 +219,13 @@ def main(argv: list[str] | None = None) -> None:
     ask.add_argument("--live", action="store_true", help="실제 Anthropic API를 호출한다(과금)")
 
     args = parser.parse_args(argv)
-    handler = {"seed-trainings": _seed, "seed-identity": _seed_identity, "ask": _ask}[args.command]
+    handler = {
+        "seed-trainings": _seed,
+        "seed-identity": _seed_identity,
+        "draft-manifest": _draft_manifest,
+        "validate-manifest": _validate_manifest,
+        "ask": _ask,
+    }[args.command]
     # psycopg async는 Windows Proactor 루프를 지원하지 않는다.
     asyncio.run(handler(args), loop_factory=asyncio.SelectorEventLoop)
 

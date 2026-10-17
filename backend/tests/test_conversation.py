@@ -85,6 +85,11 @@ async def _scalar(engine, sql, **params):
         return await conn.scalar(text(sql), params)
 
 
+def _turn(request) -> str:
+    """현재 사용자 턴(대화 자료 블록 포함, P-13 B)."""
+    return request.messages[-1].text or ""
+
+
 # --- 정상 흐름과 M1-4 ---
 
 
@@ -118,7 +123,10 @@ async def test_follow_up_uses_verified_copy_in_model_context(seeded_engine, migr
     assert response.status_code == 200, response.json()
     assert [r["code"] for r in response.json()["training_refs"]] == ["TR-SEC-001"]
     follow_up = model.requests[-1]
-    assert "TR-SEC-001" in follow_up.system and "3층 교육장" in follow_up.system  # 서버가 검증한 사본
+    assert "TR-SEC-001" in _turn(follow_up) and "3층 교육장" in _turn(follow_up)  # 서버가 검증한 사본
+    # P-13 B: 자료는 system이 아니라 현재 사용자 턴 앞 자료 블록에 있다. system에는 규칙만 있다.
+    assert "TR-SEC-001" not in follow_up.system and _turn(follow_up).startswith("[대화 자료]")
+    assert _turn(follow_up).endswith("[사용자 질문]\n그중 보안교육 장소는?")
     assert [m.role for m in follow_up.messages] == ["user", "assistant", "user"]
 
 
@@ -135,7 +143,7 @@ async def test_copy_without_receipt_is_not_trusted(seeded_engine, migrated):
             )
         response = await _post(client, conv, "그 교육 장소?")
     assert (response.status_code, response.json()["error"]["code"]) == (502, "MODEL_OUTPUT_INVALID")
-    assert "대화 자료: 없음" in model.requests[0].system
+    assert "[대화 자료]" not in _turn(model.requests[0])
 
 
 # --- T-05 멱등 재전송 ---
@@ -228,7 +236,7 @@ async def test_other_user_sees_same_404_and_new_conversation_is_empty(seeded_eng
         own = await _new_conversation(client_b)
         response = await _post(client_b, own, "그 교육 장소 어디야?")
     assert response.json()["outcome"] == "needs_clarification"
-    assert "대화 자료: 없음" in model_b.requests[0].system  # 다른 사용자·대화의 후보를 가져오지 않는다
+    assert "[대화 자료]" not in _turn(model_b.requests[0])  # 다른 사용자·대화의 후보를 가져오지 않는다
     assert [m.role for m in model_b.requests[0].messages] == ["user"]
 
 

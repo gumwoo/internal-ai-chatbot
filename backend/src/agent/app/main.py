@@ -9,17 +9,22 @@ from fastapi import FastAPI
 
 from agent.app import error_handlers
 from agent.app.conversations import router as conversations_router
+from agent.app.evidence import router as evidence_router
 from agent.app.health import router as health_router
 from agent.app.session import router as session_router
 from agent.app.trainings import router as trainings_router
 from agent.modules.agent_runtime.prompt import PROMPT_VERSION
 from agent.modules.agent_runtime.runtime import AgentRuntime
+from agent.modules.conversation.records import DbConversationEvidence
 from agent.modules.conversation.service import ConversationService
 from agent.modules.identity_access.service import IdentityService
 from agent.modules.identity_access.session_actor import SessionCurrentActor
 from agent.modules.identity_access.test_stub import TestStubCurrentActor
+from agent.modules.knowledge.service import KnowledgeService
 from agent.modules.model_integration.anthropic_chat import AnthropicChatModel
-from agent.modules.model_integration.ports import ChatModel, ModelConfig
+from agent.modules.model_integration.gemini_embedding import GeminiEmbeddingModel
+from agent.modules.model_integration.ports import ChatModel, EmbeddingModel, ModelConfig
+from agent.modules.retrieval.service import RetrievalService
 from agent.modules.tool_execution.executor import ToolExecutor
 from agent.modules.training.service import TrainingService
 from agent.shared.actor import CurrentActor
@@ -27,9 +32,10 @@ from agent.shared.clock import Clock, SystemClock
 from agent.shared.db import make_engine, make_session_factory
 from agent.shared.origin import OriginCheckMiddleware
 from agent.shared.request_id import RequestIdMiddleware
-from agent.shared.settings import Settings
+from agent.shared.settings import REPO_ROOT, Settings
 
 API_PREFIX = "/api/v1"
+INPUT_ROOT = REPO_ROOT / "data" / "raw" / "pdfs"
 logger = logging.getLogger(__name__)
 
 
@@ -57,6 +63,7 @@ def create_app(
     current_actor: CurrentActor | None = None,
     clock: Clock | None = None,
     chat_model: ChatModel | None = None,
+    embedding_model: EmbeddingModel | None = None,
 ) -> FastAPI:
     settings = settings or Settings()
     clock = clock or SystemClock()
@@ -73,9 +80,27 @@ def create_app(
         key = settings.anthropic_api_key.get_secret_value() if settings.anthropic_api_key else None
         chat = chat_model or AnthropicChatModel(api_key=key)
         model = ModelConfig(model=settings.chat_model, max_output_tokens=1024, config_version=PROMPT_VERSION)
-        runtime = AgentRuntime(chat, ToolExecutor(trainings, clock), clock, model)
+        gemini_key = settings.gemini_api_key.get_secret_value() if settings.gemini_api_key else None
+        embedder = embedding_model or GeminiEmbeddingModel(api_key=gemini_key)
+        knowledge = KnowledgeService(
+            engine, clock, embedder, embedding_model=settings.embedding_model, input_root=INPUT_ROOT
+        )
+        app.state.knowledge = knowledge
+        retrieval = RetrievalService(knowledge)
+        runtime = AgentRuntime(
+            chat,
+            ToolExecutor(trainings, clock, retrieval),
+            clock,
+            model,
+            evidence_reader=DbConversationEvidence(engine),
+        )
         service = ConversationService(
-            engine, clock, runtime, model_name=settings.chat_model, prompt_version=PROMPT_VERSION
+            engine,
+            clock,
+            runtime,
+            model_name=settings.chat_model,
+            prompt_version=PROMPT_VERSION,
+            retrieval=retrieval,
         )
         app.state.conversations = service
         # 시작 시 deadline 지난 running을 회수한다(01-run-lifecycle). DB 접속을 기다리느라 시작이 막히지 않게
@@ -91,6 +116,8 @@ def create_app(
             close = getattr(chat, "aclose", None)
             if close is not None and chat_model is None:
                 await close()
+            if embedding_model is None:
+                await embedder.aclose()
             await engine.dispose()
 
     app = FastAPI(
@@ -107,6 +134,7 @@ def create_app(
         app.include_router(session_router, prefix=API_PREFIX)
     app.include_router(trainings_router, prefix=API_PREFIX)
     app.include_router(conversations_router, prefix=API_PREFIX)
+    app.include_router(evidence_router, prefix=API_PREFIX)
 
     # 바깥부터 RequestId → Origin 순서로 실행된다.
     app.add_middleware(OriginCheckMiddleware, allowed_origins=settings.allowed_origin_set)

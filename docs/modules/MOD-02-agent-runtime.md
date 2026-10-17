@@ -43,3 +43,10 @@ T-05 도구 선택/후속/모호성, T-06 상한·재시도, T-07 결과 원장�
 앱이 주입한 CP-07로 날짜 evidence를 대조한다. SearchRequest는 knowledge_as_of와 사건 as_of_date를 구분한다. 날짜 미확정/unsupported는 CT-14 계약대로 추가 질문/근거 부족이다. Agent prepare 결과는 draft이며 pending 승인/생성을 실행하지 않는다.
 
 origin_candidates의 quote/message ID를 CP-07 user 원문과 대조해 code point 구간을 계산한다. 다중 검색의 support_group은 token 예산 내 완결된 형태로만 답변에 사용한다. 필요한 그룹이 넘치면 해당 결론을 기권하며 근거를5개로 잘라 조건을 잃지 않는다.
+
+## 2026-10-17 M3 구현 메모
+
+- 근거 원장: search_documents 결과 중 모델 문맥에 실제로 넣은 passage만 원장에 올린다. 최종 citation_ids가 원장 밖이면 MODEL_OUTPUT_INVALID다. 되묻기·0건에서는 인용을 저장하지 않는다.
+- 예산: 실행 전체에서 원문 합계 `final_context_token_limit`(초기 4000, token은 `utf8-bytes-div3-v1` 추정값)을 넘기지 않는다. support_group 단위로 MOD-11 순서대로 통째로만 넣고, 못 넣은 그룹은 `evidence_budget_exceeded`로 도구 결과와 내부 로그에 남긴다.
+- P-12 B: 실행 시작 때 CP-07(ConversationEvidenceReader)로 대화 사본을 실제 receipt와 다시 대조한다. 대조 실패는 필수 기록 실패와 같게 실행 실패다.
+- P-13 B: system에는 규칙만 둔다. 검증된 대화 자료는 현재 사용자 턴 앞의 `[대화 자료]` 블록으로, 문서 passage는 tool_result로만 넣는다(프롬프트 `m3-docs-1`).

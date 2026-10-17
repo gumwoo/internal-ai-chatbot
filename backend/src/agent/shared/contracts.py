@@ -63,6 +63,8 @@ class ExecutionPolicy:
     tool_timeout_s: float = 10.0
     history_messages: int = 12
     training_cache_size: int = 20
+    # 답변용 원문 합계 token 예산(초기 4000, D-20/D-21). 여러 검색에 걸쳐 support_group 단위로 채운다.
+    final_context_token_limit: int = 4000
 
 
 @dataclass(frozen=True)
@@ -142,6 +144,12 @@ class ExecutionObserver(Protocol):
     async def record_stage(self, run_id: str, stage: ProgressStage) -> None:
         """진행 단계 기록(RecordStage). 필수 기록이 아니다. 실패해도 실행을 멈추지 않는다."""
         ...
+
+
+class ConversationEvidenceReader(Protocol):
+    """CP-07(MOD-01 구현). MOD-02가 대화 사본을 실행 시점에 실제 receipt와 다시 대조할 때 쓴다(P-12 B)."""
+
+    async def verified_training_pairs(self, conversation_id: str) -> set[tuple[str, str]]: ...
 
 
 @dataclass(frozen=True)

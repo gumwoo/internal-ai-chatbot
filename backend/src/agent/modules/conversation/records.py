@@ -65,6 +65,17 @@ class DbExecutionObserver:
             raise RequiredRecordError("실행 기록 저장 실패") from exc
 
 
+class DbConversationEvidence:
+    """CP-07 ConversationEvidenceReader의 MOD-01 구현(앱이 MOD-02에 주입, P-12 B)."""
+
+    def __init__(self, engine: AsyncEngine) -> None:
+        self._engine = engine
+
+    async def verified_training_pairs(self, conversation_id: str) -> set[tuple[str, str]]:
+        async with self._engine.connect() as conn:
+            return await verified_training_pairs(conn, UUID(conversation_id))
+
+
 async def verified_training_pairs(conn: AsyncConnection, conversation_id: UUID) -> set[tuple[str, str]]:
     """이 대화의 완료된 run이 실제로 받은 (교육 ID, 시작 시각) 쌍. 실패·만료 run의 결과는 쓰지 않는다."""
     rows = await conn.execute(

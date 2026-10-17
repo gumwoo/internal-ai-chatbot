@@ -189,6 +189,7 @@ async def test_prompt_carries_server_time_and_only_allowed_tools(seeded_engine, 
         "outcome",
         "training_ids",
         "selected_training_id",
+        "citation_ids",
     ]
 
 
@@ -505,6 +506,6 @@ def test_prompt_requires_question_text_for_clarification():
     from agent.shared.clock import FIXTURE_NOW
 
     prompt = system_prompt(FIXTURE_NOW)
-    assert PROMPT_VERSION == "m2-training-2"
+    assert PROMPT_VERSION == "m3-docs-1"
     assert "되묻는 경우에도 answer에는 사용자에게 할 질문을 한국어 문장으로 쓴다" in prompt
     assert "어떤 outcome이든 비워 두지 않는다" in prompt

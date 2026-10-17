@@ -578,11 +578,21 @@ async def test_change_membership_rejects_unknown_or_duplicate_ids(org_engine):
         assert error.value.code is ErrorCode.INVALID_REQUEST
 
 
-async def test_login_hashing_does_not_block_event_loop(org_engine):
-    """scrypt는 스레드에서 돈다. 동시 로그인 중에도 이벤트 루프가 크게 멈추지 않는다."""
+async def test_login_hashing_does_not_block_event_loop(org_engine, monkeypatch):
+    """비밀번호 검증은 스레드에서 돈다. 검증이 0.3초 걸려도 이벤트 루프는 그동안 멈추지 않는다.
+
+    실제 scrypt 시간(약 65ms)은 기계 부하에 따라 흔들려서, 일부러 느린 대역 함수로 결정적으로 본다.
+    """
     import asyncio
     import time
 
+    import agent.modules.identity_access.service as service_module
+
+    def slow_verify(password, stored):
+        time.sleep(0.3)  # 이벤트 루프에서 돌면 루프가 0.3초 멈춘다
+        return False
+
+    monkeypatch.setattr(service_module, "verify_password", slow_verify)
     identity = IdentityService(org_engine, FixedClock())
     gaps: list[float] = []
     stop = False
@@ -590,16 +600,16 @@ async def test_login_hashing_does_not_block_event_loop(org_engine):
     async def ticker():
         last = time.perf_counter()
         while not stop:
-            await asyncio.sleep(0.005)
+            await asyncio.sleep(0.01)
             now = time.perf_counter()
             gaps.append(now - last)
             last = now
 
     task = asyncio.create_task(ticker())
     results = await asyncio.gather(
-        *(identity.login("emp-sales", "wrong") for _ in range(8)), return_exceptions=True
+        *(identity.login("emp-sales", "wrong") for _ in range(4)), return_exceptions=True
     )
     stop = True
     await task
     assert all(isinstance(r, AppError) for r in results)
-    assert max(gaps) < 0.06  # scrypt 1회(약 65ms)보다 짧다
+    assert max(gaps) < 0.25

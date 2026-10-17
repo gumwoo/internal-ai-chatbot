@@ -1,6 +1,6 @@
 # HTTP API 계약
 
-기본 경로 `/api/v1`. JSON UTF-8, 시각 ISO8601+offset, 업무 날짜 ISO date. UUID 자원 식별자와 PDF-번호 source_file_id를 구분한다. 아래는 구현 목표다. 현재 실행되는 것은 health, 교육 조회(`/trainings`), 대화·메시지·run(`/conversations`, `/runs`)과 메시지 POST의 진행 상황 스트리밍(SSE), 로컬 세션(`/session`, AUTH_MODE=local_session)이다. 근거/PDF·티켓은 아직 없다.
+기본 경로 `/api/v1`. JSON UTF-8, 시각 ISO8601+offset, 업무 날짜 ISO date. UUID 자원 식별자와 PDF-번호 source_file_id를 구분한다. 아래는 구현 목표다. 현재 실행되는 것은 health, 교육 조회(`/trainings`), 대화·메시지·run(`/conversations`, `/runs`)과 메시지 POST의 진행 상황 스트리밍(SSE), 로컬 세션(`/session`, AUTH_MODE=local_session), 근거·PDF(`/evidence`, `/source-files`)와 메시지 응답·이력의 인용(citations)이다. 티켓은 아직 없다.
 
 ## 공통
 
@@ -102,7 +102,7 @@ GET `/trainings/{id}`: 200 CT-05 Detail, UUID 형식 오류422, 미존재404. �
 | GET `/evidence/{passage_id}` | 200 문서/판본/시행 구간·원문·page_spans. 현재 ACL 재검증 |
 | GET `/source-files/{source_file_id}/pdf` | application/pdf 원본 bytes. 현재 ACL/withdrawn 확인 후만 제공 |
 
-인용 DTO는 `citation_id,passage_id,document_key,source_file_id,version,title,document_role,available_from,knowledge_as_of,prospective,effective_from,effective_to,edition_state,as_of_date,date_basis,event_key,page_spans,quote,evidence_url,pdf_url`다. edition_state는 현행/종전/철회 상태의 서버 표시 값이며 적용 판단은 사건 날짜·시행 구간을 따른다. URL과 날짜 표시도 서버가 생성한다. PDF URL의 `#page=물리페이지`는 보기 힌트이며 권한 수단이 아니다. 근거/PDF는 `Cache-Control: private, no-store`로 제공하고 공개 blob URL/정적 파일 접근을 허용하지 않는다. 존재 불가/접근 불가는 동일404다. PDF를 이미 내려받은 사용자의 로컬 파일을 서버가 회수할 수 있다는 주장은 하지 않는다.
+구현 메모(M3): citation_id는 실행 안에서 `c{도구 호출 순번}-{n}` 형식이다. quote는 passage 원문(300자를 넘으면 앞 300자)이고, 쓸 근거를 서버가 근거 원장에서 고른다. 메시지 이력 항목에도 같은 citations를 두며 가린 답변에서는 빈 목록이다. 인용 DTO는 `citation_id,passage_id,document_key,source_file_id,version,title,document_role,available_from,knowledge_as_of,prospective,effective_from,effective_to,edition_state,as_of_date,date_basis,event_key,page_spans,quote,evidence_url,pdf_url`다. edition_state는 현행/종전/철회 상태의 서버 표시 값이며 적용 판단은 사건 날짜·시행 구간을 따른다. URL과 날짜 표시도 서버가 생성한다. PDF URL의 `#page=물리페이지`는 보기 힌트이며 권한 수단이 아니다. 근거/PDF는 `Cache-Control: private, no-store`로 제공하고 공개 blob URL/정적 파일 접근을 허용하지 않는다. 존재 불가/접근 불가는 동일404다. PDF를 이미 내려받은 사용자의 로컬 파일을 서버가 회수할 수 있다는 주장은 하지 않는다.
 
 초기 MVP는 별도 문서 업로드·Wiki 편집/빌드·임의 검색 전략 전환 HTTP를 만들지 않는다. 문서 운영은 CLI, 채팅 검색은 도구 계약으로 수행한다.
 

@@ -42,6 +42,11 @@ class _NoCaps:
         return ActorContext("test-a", (), (), frozenset(), 1, "test_stub")
 
 
+def _turn(request) -> str:
+    """현재 사용자 턴(대화 자료 블록 포함, P-13 B)."""
+    return request.messages[-1].text or ""
+
+
 async def _set_state(engine, conv, state: dict) -> None:
     async with engine.begin() as conn:
         await conn.execute(
@@ -214,8 +219,8 @@ async def test_no_capability_reader_gets_no_cached_trainings_in_context(seeded_e
     async with api_client(_app(migrated, model, actor=_NoCaps())) as client:
         response = await _post(client, conv, "그 교육 장소?")
     request = model.requests[0]
-    assert "TR-SEC-001" not in request.system and "3층 교육장" not in request.system
-    assert "대화 자료: 없음" in request.system
+    assert "TR-SEC-001" not in _turn(request) and "3층 교육장" not in _turn(request)
+    assert "[대화 자료]" not in _turn(request)
     # 가린 답만 빠지고 사용자 본인의 이전 질문은 남는다(같은 역할은 어댑터가 한 메시지로 합친다).
     assert [m.role for m in request.messages] == ["user", "user"]
     assert response.status_code == 200
@@ -266,7 +271,7 @@ async def test_receipt_from_other_conversation_is_not_trusted(seeded_engine, mig
         await _set_state(seeded_engine, conv, {"training_cache": {SEC: {"id": SEC, "starts_at": SEC_STARTS}}})
         response = await _post(client, conv, "그 교육 장소?")
     assert response.json()["error"]["code"] == "MODEL_OUTPUT_INVALID"
-    assert "대화 자료: 없음" in model.requests[-1].system
+    assert "[대화 자료]" not in _turn(model.requests[-1])
 
 
 async def test_receipt_from_failed_run_is_not_trusted(seeded_engine, migrated):
@@ -283,7 +288,7 @@ async def test_receipt_from_failed_run_is_not_trusted(seeded_engine, migrated):
     assert failed.status_code == 502
     assert await _scalar(seeded_engine, "SELECT count(*) FROM tool_result_receipts") == 1
     assert response.json()["error"]["code"] == "MODEL_OUTPUT_INVALID"
-    assert "대화 자료: 없음" in model.requests[-1].system
+    assert "[대화 자료]" not in _turn(model.requests[-1])
 
 
 async def test_copy_with_wrong_start_time_is_not_trusted_and_selection_is_filtered(seeded_engine, migrated):
@@ -305,7 +310,7 @@ async def test_copy_with_wrong_start_time_is_not_trusted_and_selection_is_filter
         }
         await _set_state(seeded_engine, conv, state)
         await _post(client, conv, "그 교육?")
-    system = model.requests[-1].system
+    system = _turn(model.requests[-1])
     assert "TR-COLLAB-001" in system and "TR-SEC-001" not in system
     assert f'직전 답변이 가리킨 교육 id: ["{COLLAB}"]' in system
     assert "직전에 하나로 정해진 교육 id: null" in system

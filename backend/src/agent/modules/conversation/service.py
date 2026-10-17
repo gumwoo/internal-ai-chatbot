@@ -38,6 +38,7 @@ from agent.modules.conversation.tables import (
     messages,
     tool_calls,
 )
+from agent.modules.retrieval.service import RetrievalService
 from agent.shared.actor import ActorContext
 from agent.shared.clock import KST, Clock
 from agent.shared.contracts import ExecutionContext, ExecutionPolicy, ProgressStage, RetrievalContext
@@ -45,7 +46,9 @@ from agent.shared.errors import AppError, ErrorCode
 
 logger = logging.getLogger(__name__)
 
-RETRIEVAL_STRATEGY = "disabled"  # M1~M2: 문서 미게시 구간(knowledge_enabled=false)
+# 대화 생성 시 서버가 고정하는 검색 전략. 검색 서비스가 조립되면 raw, 아니면 disabled(M1~M2와 같음).
+RETRIEVAL_STRATEGY = "disabled"
+_DOC_PREFIX = "doc:"
 _REDACTED_TEXT = "이 답변은 현재 권한으로 볼 수 없어 가렸습니다."
 # 동시 수락 경쟁에서만 나는 제약 위반: 대화당 running 하나, 같은 키 receipt 하나.
 _BUSY_CONSTRAINTS = frozenset({"ux_agent_runs_one_running", "message_receipts_pkey"})
@@ -74,6 +77,7 @@ class _Accepted:
     user_message_id: UUID
     accepted_at: datetime
     deadline_monotonic: float
+    retrieval: RetrievalContext = RetrievalContext()
 
 
 def _iso(value: datetime | None) -> str | None:
@@ -89,14 +93,22 @@ def _can_view_trainings(actor: ActorContext) -> bool:
     return "training.read" in actor.capabilities
 
 
-def _can_view(actor: ActorContext, message: Any) -> bool:
+def _doc_keys(message: Any) -> set[str]:
+    return {d[len(_DOC_PREFIX) :] for d in message.dependency_ids or [] if str(d).startswith(_DOC_PREFIX)}
+
+
+def _can_view(actor: ActorContext, message: Any, visible_docs: set[str] | None = None) -> bool:
     """답변을 지금 보여 줘도 되는가. 답에 적힌 참조가 아니라 모델 문맥에 들어간 의존 자원 전체로 판정한다.
 
     모델이 인용을 생략해도 접근 검사를 피하지 못하게 하려는 것이다(CT-03).
     """
     if message.visibility != "visible":
         return False
-    return not message.dependency_ids or _can_view_trainings(actor)
+    trainings = [d for d in message.dependency_ids or [] if not str(d).startswith(_DOC_PREFIX)]
+    if trainings and not _can_view_trainings(actor):
+        return False
+    # 문서 의존: 모델 문맥에 들어간 원문 문서를 지금 모두 볼 수 있어야 한다(CP-05, T-04).
+    return _doc_keys(message) <= (visible_docs or set())
 
 
 class ConversationService:
@@ -110,6 +122,7 @@ class ConversationService:
         prompt_version: str,
         policy: ExecutionPolicy | None = None,
         heartbeat_s: float = 15.0,
+        retrieval: RetrievalService | None = None,
     ) -> None:
         self._engine = engine
         self._clock = clock
@@ -120,6 +133,14 @@ class ConversationService:
         self._tasks: set[asyncio.Task] = set()
         self._progress = RunProgress(clock)
         self._heartbeat_s = heartbeat_s
+        self._retrieval = retrieval
+
+    async def _visible_docs(self, actor: ActorContext, rows: list[Any]) -> set[str]:
+        """메시지들이 의존한 문서 중 지금 actor가 볼 수 있는 키(한 번에 조회)."""
+        keys = set().union(*(_doc_keys(r) for r in rows)) if rows else set()
+        if not keys or self._retrieval is None:
+            return set()
+        return await self._retrieval.visible_document_keys(actor, keys)
 
     # --- 대화 ---
 
@@ -129,7 +150,7 @@ class ConversationService:
             "id": uuid.uuid4(),
             "owner_user_id": actor.user_id,
             "title": title,
-            "retrieval_strategy": RETRIEVAL_STRATEGY,
+            "retrieval_strategy": "raw" if self._retrieval is not None else RETRIEVAL_STRATEGY,
             "active_run_id": None,
             "business_state": {},
             "created_at": now,
@@ -196,8 +217,9 @@ class ConversationService:
                 )
             ).all()
         items = []
+        visible_docs = await self._visible_docs(actor, [r for r in rows if r.role == "assistant"])
         for r in rows:
-            visible = r.role == "user" or _can_view(actor, r)
+            visible = r.role == "user" or _can_view(actor, r, visible_docs)
             items.append(
                 {
                     "id": str(r.id),
@@ -207,6 +229,7 @@ class ConversationService:
                     "content": r.content if visible else _REDACTED_TEXT,
                     "outcome": r.outcome if visible else None,
                     "training_refs": r.training_refs if visible else [],
+                    "citations": (r.citations or []) if visible else [],
                     "run_id": str(r.run_id) if r.run_id else None,
                     "created_at": _iso(r.created_at),
                 }
@@ -328,6 +351,9 @@ class ConversationService:
     ) -> _Accepted | UUID:
         """새 실행을 수락하면 _Accepted, 같은 키의 재전송이면 기존 run ID를 돌려준다."""
         digest = content_hash(content)
+        # 검색 snapshot은 수락 시 고정한다(CT-13). 문서 기능은 대화 전략이 raw이고 게시본이 있으며
+        # actor가 knowledge.search를 가질 때만 켠다.
+        snapshot_id = await self._retrieval.current_snapshot() if self._retrieval is not None else None
         try:
             async with self._write() as conn:
                 conv = (
@@ -363,6 +389,14 @@ class ConversationService:
                 if active is not None:
                     raise AppError(ErrorCode.CONVERSATION_BUSY)
 
+                knowledge = RetrievalContext(
+                    knowledge_enabled=(
+                        conv.retrieval_strategy == "raw"
+                        and snapshot_id is not None
+                        and "knowledge.search" in actor.capabilities
+                    ),
+                    corpus_snapshot_id=snapshot_id if conv.retrieval_strategy == "raw" else None,
+                )
                 run_id, message_id = uuid.uuid4(), uuid.uuid4()
                 await conn.execute(
                     messages.insert().values(
@@ -388,7 +422,11 @@ class ConversationService:
                         deadline_at=now + timedelta(seconds=self._policy.run_timeout_s),
                         prompt_version=self._prompt_version,
                         model=self._model_name,
-                        retrieval_context={"knowledge_enabled": False, "corpus_snapshot_id": None},
+                        retrieval_context={
+                            "knowledge_enabled": knowledge.knowledge_enabled,
+                            "corpus_snapshot_id": knowledge.corpus_snapshot_id,
+                            "strategy": conv.retrieval_strategy,
+                        },
                     )
                 )
                 await conn.execute(
@@ -414,7 +452,7 @@ class ConversationService:
             if constraint in _BUSY_CONSTRAINTS:
                 raise AppError(ErrorCode.CONVERSATION_BUSY) from exc
             raise AppError(ErrorCode.PERSISTENCE_FAILED, retryable=True) from exc
-        return _Accepted(run_id, message_id, now, monotonic_now + self._policy.run_timeout_s)
+        return _Accepted(run_id, message_id, now, monotonic_now + self._policy.run_timeout_s, knowledge)
 
     async def _execute(
         self, actor: ActorContext, conversation_id: UUID, content: str, accepted: _Accepted, request_id: str
@@ -440,7 +478,7 @@ class ConversationService:
                 deadline_monotonic=accepted.deadline_monotonic,
                 deadline_at=accepted.accepted_at + timedelta(seconds=self._policy.run_timeout_s),
                 policy=self._policy,
-                retrieval_context=RetrievalContext(),
+                retrieval_context=accepted.retrieval,
             )
             result = await self._runtime.execute(
                 context, snapshot, content, DbExecutionObserver(self._engine, self._progress)
@@ -471,10 +509,11 @@ class ConversationService:
                 select(conversations.c.business_state).where(conversations.c.id == conversation_id)
             )
             pairs = await verified_training_pairs(conn, conversation_id)
+        visible_docs = await self._visible_docs(actor, [r for r in rows if r.role == "assistant"])
         history = [
             HistoryMessage(r.role, r.content)
             for r in reversed(rows)
-            if r.role == "user" or _can_view(actor, r)
+            if r.role == "user" or _can_view(actor, r, visible_docs)
         ]
         # 창이 잘리거나 답이 가려져 첫 메시지가 assistant가 되면 그 앞을 버린다(대화는 user로 시작한다).
         while history and history[0].role == "assistant":
@@ -554,9 +593,15 @@ class ConversationService:
                 run_id=run_id,
                 outcome=result.outcome.value if result.outcome else None,
                 training_refs=refs,
-                # 모델 문맥에 들어간 교육(답에서 가리킨 것 + 이번 결과)의 ID. 접근 재검사 대상이다.
+                citations=list(result.citations),
+                # 모델 문맥에 들어간 교육(답에서 가리킨 것 + 이번 결과)의 ID와 원문 문서 키.
+                # 이력·재전송에서 접근을 다시 검사하는 대상이다.
                 dependency_ids=sorted(
-                    {*(r["id"] for r in refs), *(result.context_candidate or {}).get("training_cache", {})}
+                    {
+                        *(r["id"] for r in refs),
+                        *(result.context_candidate or {}).get("training_cache", {}),
+                        *(f"{_DOC_PREFIX}{key}" for key in result.document_keys),
+                    }
                 ),
                 visibility="visible",
                 created_at=now,
@@ -628,7 +673,7 @@ class ConversationService:
             message = (
                 await conn.execute(select(messages).where(messages.c.id == run.assistant_message_id))
             ).one()
-        visible = _can_view(actor, message)
+        visible = _can_view(actor, message, await self._visible_docs(actor, [message]))
         return MessageResponse(
             200,
             {
@@ -641,7 +686,7 @@ class ConversationService:
                 "answer": message.content if visible else _REDACTED_TEXT,
                 "training_refs": message.training_refs if visible else [],
                 "ticket_refs": [],
-                "citations": [],
+                "citations": (message.citations or []) if visible else [],
                 "action_preview": None,
                 "error": None,
             },

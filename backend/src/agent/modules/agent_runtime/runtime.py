@@ -10,7 +10,7 @@
 import asyncio
 import json
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from pydantic import ValidationError
@@ -23,7 +23,7 @@ from agent.modules.agent_runtime.contracts import (
     Outcome,
     RunUsage,
 )
-from agent.modules.agent_runtime.prompt import PROMPT_VERSION, system_prompt
+from agent.modules.agent_runtime.prompt import PROMPT_VERSION, conversation_data, system_prompt, user_turn
 from agent.modules.model_integration.ports import (
     ChatModel,
     ModelCallError,
@@ -38,6 +38,7 @@ from agent.modules.model_integration.ports import (
 from agent.modules.tool_execution.executor import ToolExecutor
 from agent.shared.clock import Clock
 from agent.shared.contracts import (
+    ConversationEvidenceReader,
     ExecutionContext,
     ExecutionObserver,
     ProgressStage,
@@ -58,7 +59,21 @@ _TRAINING_SUMMARY_KEYS = ("id", "code", "title", "starts_at", "ends_at", "locati
 _TOOL_STAGES = {
     "list_trainings": ProgressStage.TRAINING_LOOKUP,
     "get_training": ProgressStage.TRAINING_LOOKUP,
+    "search_documents": ProgressStage.DOCUMENT_SEARCH,
 }
+# 모델에 보여 줄 원문 passage 필드. 서버 내부 값(passage_id·token_estimate·snapshot)은 넣지 않는다.
+_PASSAGE_VIEW_KEYS = (
+    "citation_id",
+    "title",
+    "version",
+    "document_role",
+    "edition_state",
+    "effective_from",
+    "effective_to",
+    "heading",
+    "section_path",
+    "text",
+)
 
 
 @dataclass
@@ -78,6 +93,11 @@ class _Run:
     ledger: dict[str, dict[str, Any]] = field(default_factory=dict)
     # 성공한 교육 목록 조회 수. no_results는 실제 조회가 있었을 때만 인정한다.
     successful_list_lookups: int = 0
+    # 근거 원장: 이번 실행에서 모델 문맥에 실제로 들어간 원문 passage(citation_id → 서버 값).
+    citations: dict[str, dict[str, Any]] = field(default_factory=dict)
+    evidence_tokens: int = 0
+    # 예산 때문에 넣지 못한 support_group 수(내부 trace, evidence_budget_exceeded).
+    budget_dropped_groups: int = 0
 
     def add_usage(self, usage: Usage) -> None:
         self.input_tokens += usage.input_tokens or 0
@@ -185,11 +205,19 @@ def _summaries(result: ToolResult) -> list[dict[str, Any]]:
 
 
 class AgentRuntime:
-    def __init__(self, chat: ChatModel, tools: ToolExecutor, clock: Clock, model: ModelConfig) -> None:
+    def __init__(
+        self,
+        chat: ChatModel,
+        tools: ToolExecutor,
+        clock: Clock,
+        model: ModelConfig,
+        evidence_reader: ConversationEvidenceReader | None = None,
+    ) -> None:
         self._chat = chat
         self._tools = tools
         self._clock = clock
         self._model = model
+        self._evidence_reader = evidence_reader
 
     async def execute(
         self,
@@ -204,6 +232,7 @@ class AgentRuntime:
             return run.failed(AppError(ErrorCode.RUN_TIMEOUT))
         try:
             async with asyncio.timeout(remaining):
+                run.snapshot = await self._reverify(run)
                 return await self._loop(run, message)
         except TimeoutError:
             return run.failed(AppError(ErrorCode.RUN_TIMEOUT))
@@ -212,6 +241,38 @@ class AgentRuntime:
         except AppError as error:
             return run.failed(error)
 
+    async def _reverify(self, run: _Run) -> ConversationSnapshot:
+        """CP-07(P-12 B): 대화 사본을 실행 시점의 실제 receipt와 다시 대조한다.
+
+        MOD-01이 snapshot을 만들 때 거른 것이 첫 겹이고, 이것이 둘째 겹이다.
+        """
+        snapshot = run.snapshot
+        if self._evidence_reader is None or not snapshot.training_cache:
+            return snapshot
+        try:
+            pairs = await self._evidence_reader.verified_training_pairs(run.context.conversation_id)
+        except Exception as exc:
+            raise RequiredRecordError("대화 사본 대조 실패") from exc
+        cache = {
+            training_id: summary
+            for training_id, summary in snapshot.training_cache.items()
+            if (training_id, str(summary.get("starts_at"))) in pairs
+        }
+        if len(cache) != len(snapshot.training_cache):
+            logger.info(
+                "대화 사본 재대조로 제외 run_id=%s count=%d",
+                run.context.run_id,
+                len(snapshot.training_cache) - len(cache),
+            )
+        return replace(
+            snapshot,
+            training_cache=cache,
+            last_training_ids=tuple(i for i in snapshot.last_training_ids if i in cache),
+            selected_training_id=snapshot.selected_training_id
+            if snapshot.selected_training_id in cache
+            else None,
+        )
+
     def _remaining(self, context: ExecutionContext) -> float:
         return context.deadline_monotonic - self._clock.monotonic()
 
@@ -219,14 +280,14 @@ class AgentRuntime:
         policy = run.context.policy
         history = run.snapshot.messages[-policy.history_messages :] if policy.history_messages else ()
         messages = [ModelMessage(role=m.role, text=m.text) for m in history]
-        messages.append(ModelMessage(role="user", text=message))
-        tools = self._tools.describe_allowed_tools(run.context)
         snapshot = run.snapshot
+        data = conversation_data(
+            snapshot.training_cache, snapshot.last_training_ids, snapshot.selected_training_id
+        )
+        messages.append(ModelMessage(role="user", text=user_turn(message, data)))
+        tools = self._tools.describe_allowed_tools(run.context)
         system = system_prompt(
-            run.context.current_time,
-            snapshot.training_cache,
-            snapshot.last_training_ids,
-            snapshot.selected_training_id,
+            run.context.current_time, documents=any(tool.name == "search_documents" for tool in tools)
         )
 
         while True:
@@ -244,8 +305,11 @@ class AgentRuntime:
                     raise AppError(ErrorCode.RUN_TIMEOUT)
                 run.ordinal += 1
                 result = await self._call_tool(run, proposal, run.ordinal)
+                view = (
+                    _search_view(run, result) if proposal.name == "search_documents" and result.ok else result
+                )
                 results.append(
-                    ToolResultContent(proposal.provider_call_id, _model_view(result), is_error=not result.ok)
+                    ToolResultContent(proposal.provider_call_id, _model_view(view), is_error=not result.ok)
                 )
             messages.append(response.as_assistant_message())
             messages.append(ModelMessage(role="tool_result", tool_results=tuple(results)))
@@ -359,6 +423,13 @@ class AgentRuntime:
                 raise _output_invalid(run, "no_results without successful list lookup")
             if training_ids:
                 raise _output_invalid(run, "no_results with training ids")
+        citation_ids = list(dict.fromkeys(final.citation_ids))
+        unknown_citations = [c for c in citation_ids if c not in run.citations]
+        if unknown_citations:
+            # 이번 실행 문맥에 없던 인용 ID는 지어낸 것으로 보고 실패시킨다(T-07).
+            raise _output_invalid(run, f"{len(unknown_citations)} citation id(s) not in ledger")
+        if final.outcome in (Outcome.NEEDS_CLARIFICATION, Outcome.NO_RESULTS):
+            citation_ids = []
         if final.outcome in (Outcome.NEEDS_CLARIFICATION, Outcome.NO_RESULTS) and selected is not None:
             # 되묻는 중이거나 결과가 없으면 선택 상태를 저장하지 않는다(임의 선택 저장 금지).
             logger.info("선택 후보 무시 run_id=%s outcome=%s", run.context.run_id, final.outcome.value)
@@ -387,4 +458,85 @@ class AgentRuntime:
             error=None,
             model_ids=tuple(run.model_ids),
             answer_source=answer_source,
+            citations=tuple(_citation_dto(run.citations[c]) for c in citation_ids),
+            document_keys=tuple(sorted({c["document_key"] for c in run.citations.values()})),
         )
+
+
+def _search_view(run: _Run, result: ToolResult) -> ToolResult:
+    """검색 결과를 근거 예산에 맞춰 support_group 단위로 채택하고, 채택한 passage만 원장에 올린다.
+
+    - 그룹은 MOD-11이 정한 순서(대표 후보의 거리 순)대로 앞에서부터 넣는다. 그룹 하나를 끊어 넣지 않는다.
+    - 실행 전체에서 final_context_token_limit(초기 4000)을 넘기지 않는다. 넣지 못한 그룹 수를 남긴다.
+    - 모델에는 인용에 필요한 출처 값과 원문만 보낸다.
+    """
+    data = dict(result.data or {})
+    limit = run.context.policy.final_context_token_limit
+    kept_groups, dropped = [], 0
+    for group in data.get("groups", []):
+        passages = group.get("passages", [])
+        cost = sum(int(p.get("token_estimate", 0)) for p in passages)
+        if run.evidence_tokens + cost > limit:
+            dropped += 1
+            continue
+        run.evidence_tokens += cost
+        for passage in passages:
+            run.citations[passage["citation_id"]] = {
+                **passage,
+                "as_of_date": data.get("as_of_date"),
+                "date_basis": data.get("date_basis"),
+                "event_key": data.get("event_key"),
+                "prospective": data.get("prospective"),
+                "knowledge_as_of": run.context.current_time.isoformat(),
+            }
+        kept_groups.append(
+            {
+                "group_id": group.get("group_id"),
+                "passages": [{k: p.get(k) for k in _PASSAGE_VIEW_KEYS} for p in passages],
+            }
+        )
+    if dropped:
+        run.budget_dropped_groups += dropped
+        logger.info(
+            "근거 예산 초과로 제외 run_id=%s groups=%d evidence_budget_exceeded=true",
+            run.context.run_id,
+            dropped,
+        )
+    view = {
+        **{k: data.get(k) for k in ("resolution", "date_basis", "as_of_date", "event_key", "prospective")},
+        "clarification": data.get("clarification"),
+        "unsupported": data.get("unsupported"),
+        "groups": kept_groups,
+    }
+    if dropped:
+        view["evidence_budget_exceeded"] = True
+    return ToolResult.success(view, result.resource_ids)
+
+
+def _citation_dto(passage: dict[str, Any]) -> dict[str, Any]:
+    """인용 DTO(04-api-spec). 제목·페이지·URL은 서버 값으로만 만든다."""
+    spans = passage.get("page_spans") or []
+    first_page = spans[0]["page"] if spans else 1
+    text = passage.get("text") or ""
+    return {
+        "citation_id": passage["citation_id"],
+        "passage_id": passage["passage_id"],
+        "document_key": passage["document_key"],
+        "source_file_id": passage["source_file_id"],
+        "version": passage["version"],
+        "title": passage["title"],
+        "document_role": passage["document_role"],
+        "available_from": passage.get("available_from"),
+        "knowledge_as_of": passage.get("knowledge_as_of"),
+        "prospective": bool(passage.get("prospective")),
+        "effective_from": passage.get("effective_from"),
+        "effective_to": passage.get("effective_to"),
+        "edition_state": passage.get("edition_state"),
+        "as_of_date": passage.get("as_of_date"),
+        "date_basis": passage.get("date_basis"),
+        "event_key": passage.get("event_key"),
+        "page_spans": spans,
+        "quote": text if len(text) <= 300 else text[:300] + "…",
+        "evidence_url": f"/api/v1/evidence/{passage['passage_id']}",
+        "pdf_url": f"/api/v1/source-files/{passage['source_file_id']}/pdf#page={first_page}",
+    }

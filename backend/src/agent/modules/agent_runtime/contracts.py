@@ -1,6 +1,6 @@
 """MOD-02의 입력(CT-03 일부)·최종 출력 후보·결과(CT-10).
 
-M1은 교육 범위만 다룬다. 문서 인용·티켓·action 필드는 해당 단계에서 붙인다.
+M3에서 문서 인용(citation_ids)을 붙였다. 티켓·action 필드는 M5에서 붙인다.
 """
 
 from dataclasses import dataclass, field
@@ -32,6 +32,8 @@ class FinalCandidate(BaseModel):
     training_ids: list[str] = Field(max_length=20)
     # 후속 질문의 "그 교육"이 가리킬 단일 교육. 하나로 정해지지 않으면 null.
     selected_training_id: str | None
+    # 답에 쓴 원문 근거의 citation_id. 이번 실행에서 모델 문맥에 실제로 들어간 근거만 허용한다(T-07).
+    citation_ids: list[str] = Field(default_factory=list, max_length=30)
 
 
 # output_config에 넣을 JSON 스키마. 모든 필드를 required로 둬 생략과 null을 구분한다.
@@ -43,8 +45,9 @@ FINAL_OUTPUT_SCHEMA: dict[str, Any] = {
         "outcome": {"type": "string", "enum": [o.value for o in Outcome if o is not Outcome.ACTION_PENDING]},
         "training_ids": {"type": "array", "items": {"type": "string"}},
         "selected_training_id": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "citation_ids": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["answer", "outcome", "training_ids", "selected_training_id"],
+    "required": ["answer", "outcome", "training_ids", "selected_training_id", "citation_ids"],
     "additionalProperties": False,
 }
 
@@ -95,3 +98,5 @@ class ExecutionResult:
     action_preview: dict[str, Any] | None = None
     # answer를 누가 썼는가. server_fallback이면 모델이 되묻기 질문을 비워 서버의 일반 문구로 채웠다.
     answer_source: Literal["model", "server_fallback"] = "model"
+    # 모델 문맥에 들어간 원문 문서 키(인용 여부와 무관). 이력·최종 응답 가림의 기준이다(CT-03).
+    document_keys: tuple[str, ...] = ()

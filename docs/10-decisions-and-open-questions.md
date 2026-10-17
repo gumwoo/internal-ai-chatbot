@@ -51,7 +51,7 @@
 | ID | 항목 | 정하는 시점·주체 |
 |---|---|---|
 | O-01 | 조직·역할·부서는 D-30으로 데모 값 확정. 남은 것: 정책/예외·우선관계 | 사용자가 PDF 제작/인계할 때 |
-| O-02 | (ACL은 D-31로 확정) 실제 판본 번호·시행/종료일·문서 종류·available_from/document_role/application_basis·guidance 판본 구간·IT-038/055 개정/시행일 확인, transition_relations의 사건 조건 매핑(예: CM-092 "상신"을 어느 닫힌 값으로 볼지)과 검수 주체 | manifest 검수 전, 사용자와 확인 |
+| O-02 | (ACL은 D-31로 확정) 실제 판본 번호·시행/종료일·문서 종류·available_from/document_role/application_basis·guidance 판본 구간·IT-038/055 개정/시행일 확인, transition_relations의 사건 조건 매핑(예: CM-092 "상신"을 어느 닫힌 값으로 볼지)과 검수 주체 | manifest 검수 전, 사용자와 확인. 2026-10-17 초안 작성(`data/raw/document-manifest.json`, 100건 needs_review), available_from 결정 방법은 [P-15](15-policy-options.md#p-15) |
 | O-03 | D-26으로 해소. 남은 것: 각 도구의 버전 고정(uv 잠금 파일에 기록) | M0 |
 | O-04 | 모델·공급자는 D-25/D-27로 확정. 남은 것: 차원은 D-32로 1536 시작(768 비교 기록), 한국어 품질 확인(dev 질문으로 비교 후보 하나와 대조, 예: 로컬 `voyage-4-nano`), judge의 정확한 Gemini 모델 ID, 공급자별 사용 한도 설정 | 차원·한국어 확인은 M3 색인 전. 차원이 pgvector 컬럼에 고정되므로 바꾸면 재색인. judge ID는 holdout 전 |
 | O-05 | 파서는 D-33(pdfplumber)으로 확정. 남은 것: OCR 지원·한계·표 복원·파일 상한 | M3 파일럿 검증 |

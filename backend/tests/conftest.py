@@ -112,7 +112,10 @@ async def seeded_engine(migrated: str) -> AsyncIterator[AsyncEngine]:
                 "TRUNCATE trainings, training_fixture_loads, tool_result_receipts, tool_calls,"
                 " message_receipts, messages, agent_runs, conversations,"
                 " auth_sessions, membership_audit, user_roles, user_departments, users,"
-                " role_capabilities, roles, departments"
+                " role_capabilities, roles, departments,"
+                " corpus_pointer, snapshot_members, corpus_snapshots, chunk_embeddings, chunks,"
+                " document_pages, parsed_artifacts, document_editions, source_files, acl_audit,"
+                " resource_acl, logical_documents"
             )
         )
     await load_demo_trainings(

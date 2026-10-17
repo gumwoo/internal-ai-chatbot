@@ -46,6 +46,8 @@ messages = Table(
     # 표시용 참조(교육 id/code/title)와 접근 재검사용 의존 자원 ID.
     Column("training_refs", JSONB, nullable=False),
     Column("dependency_ids", JSONB, nullable=False),
+    # 서버가 근거 원장으로 만든 인용 DTO(04-api-spec). 가린 답변에서는 내보내지 않는다.
+    Column("citations", JSONB, nullable=False, server_default="[]"),
     Column("visibility", Text, nullable=False),
     Column("created_at", DateTime(timezone=True), nullable=False),
 )

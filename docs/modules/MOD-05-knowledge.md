@@ -48,3 +48,10 @@ LookupApplicableBasis는 현재 ACL/게시/knowledge_as_of를 적용한 검수 �
 ## 3차 검토 보정
 
 ExpandTransitionEvidence와 ReadAllowedCorpus는 위 공개 작업 표가 기준이다. guidance_valid 구간·transition_relations의 저장/검수는 MOD-05 책임이며 [검색 조립](../contracts/05-retrieval-assembly.md)을 따른다.
+
+## 2026-10-17 M3 구현 메모
+
+- 권한은 두 겹이다. 검색·그룹·근거·PDF 조회 SQL이 현재 resource_acl로 먼저 거르고(결과 수·제목도 새지 않음), 결과마다 MOD-09 정책 판정으로 다시 확인한다. 저장된 정책에 모르는 키·값이 있으면 거부다.
+- 게시는 한 트랜잭션에서 판본·artifact·청크·벡터·snapshot을 등록하고 포인터(`corpus_pointer.current`)를 바꾼다. 미검수·필수값 누락·규범 구간 겹침·차원 불일치는 게시 전에 거절하고, 중간 실패는 이전 게시본을 그대로 둔다(T-14).
+- 같은 파일 ID의 PDF hash가 바뀌면 거절한다(새 판본으로 등록해야 함). 같은 입력의 재게시는 artifact를 재사용한다.
+- 원본 PDF 제공은 입력 루트 안의 등록된 파일만, 현재 ACL·철회 확인 후 `Cache-Control: private, no-store`로 한다.

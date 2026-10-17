@@ -8,7 +8,7 @@
 |---|---|---|
 | MOD-09 | users/departments/memberships/sessions | 현재 역할·부서·capability, session 만료/회수, auth_revision |
 | MOD-01 | conversations | owner, 생성 시 서버 검색 전략, active_run, schema v2 업무 상태 |
-| MOD-01 | messages | conversation, role, 본문·outcome, 자원 dependency IDs, citations/action refs |
+| MOD-01 | messages | conversation, role, 본문·outcome, 자원 dependency IDs(교육 ID·`doc:문서키`), citations(서버 인용 DTO)/action refs |
 | MOD-01 | message_receipts | actor+conversation+key 유일, content hash, user_message/run ID; 대화 보존 기간 유지 |
 | MOD-01 | tool_result_receipts | run/ordinal/resource ID/starts_at/hash, 교육 API 실제 결과 및 선택 user 메시지; CP-07 읽기 |
 | MOD-01 | agent_runs/tool_calls | request/run, accepted_at/deadline_at, 고정 snapshot/config, running/completed/failed/expired·usage·오류·ordinal/attempt |
