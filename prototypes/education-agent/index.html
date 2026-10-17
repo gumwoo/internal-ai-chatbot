@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f1f4f7">
+  <title>사내 업무 도우미 · 화면 시안</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a href="#composer-input" class="skip-link">질문 입력으로 이동</a>
+  <div class="app-shell" id="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="대화 탐색">
+      <div class="brand">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4.5h6.5L12 6l1.5-1.5H20v15h-6.5L12 21l-1.5-1.5H4zM12 6v15"/></svg>
+        <span>사내 업무 도우미</span>
+        <button class="icon-button mobile-close" id="close-menu" type="button" aria-label="대화 목록 닫기"></button>
+      </div>
+      <button class="new-conversation" id="new-conversation" type="button"><span id="plus-icon" aria-hidden="true"></span>새 대화</button>
+      <nav class="conversation-nav" aria-label="최근 대화">
+        <h2>최근 대화</h2>
+        <div id="conversation-list"></div>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="account-avatar" aria-hidden="true">김</div>
+        <div><strong>김직원</strong><span>로컬 데모 사용자</span></div>
+      </div>
+    </aside>
+
+    <main class="workspace" id="workspace">
+      <header class="workspace-header">
+        <button type="button" class="icon-button menu-toggle" id="open-menu" aria-label="대화 목록 열기" aria-expanded="false" aria-controls="sidebar"></button>
+        <h1 id="conversation-title">새 대화</h1>
+        <span class="workspace-context">규정 · 교육 · IT 지원</span>
+      </header>
+      <div class="conversation-scroll" id="conversation-scroll" tabindex="-1">
+        <div class="conversation-content" id="conversation-content"></div>
+      </div>
+      <div class="composer-region">
+        <form class="composer" id="composer">
+          <label for="composer-input" class="sr-only">사내 업무 질문</label>
+          <textarea id="composer-input" rows="2" maxlength="4000" placeholder="규정, 교육 일정, IT 지원에 대해 물어보세요"></textarea>
+          <div class="composer-footer">
+            <span class="keyboard-hint">Enter 전송 · Shift + Enter 줄바꿈</span>
+            <button type="submit" class="send-button" id="send-button" disabled>전송 <span id="send-icon" aria-hidden="true"></span></button>
+          </div>
+        </form>
+        <p class="composer-note">제공한 가상 회사 PDF를 반영한 고정 시안입니다. 실제 AI 응답·IT 접수가 아닙니다.</p>
+      </div>
+    </main>
+
+    <aside class="detail-panel" id="detail-panel" aria-labelledby="detail-heading" hidden>
+      <header class="detail-header"><h2 id="detail-heading">상세 정보</h2><button type="button" class="icon-button" id="close-detail" aria-label="상세 정보 닫기"></button></header>
+      <div class="detail-content" id="detail-content"></div>
+    </aside>
+  </div>
+  <button class="menu-backdrop" id="menu-backdrop" type="button" aria-label="대화 목록 닫기" hidden></button>
+  <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+</body>
+</html>

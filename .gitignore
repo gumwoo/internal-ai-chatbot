@@ -1,0 +1,39 @@
+# 비밀값 — 예시 파일만 커밋
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Claude Code 개인 설정·반복 감지 기록
+.claude/settings.local.json
+.claude/state/
+CLAUDE.local.md
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node·프런트엔드
+node_modules/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# 도구 산출물(브라우저 로그 등)
+.playwright-cli/
+
+# OS·편집기
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

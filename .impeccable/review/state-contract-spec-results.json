@@ -1,0 +1,10 @@
+{
+  "scope": "Static specification checks, not semantic proof or server tests",
+  "markdown_files": 48,
+  "local_links": 189,
+  "pdf_files": 100,
+  "ct": 16,
+  "modules": 12,
+  "test_ids": 35,
+  "errors": []
+}

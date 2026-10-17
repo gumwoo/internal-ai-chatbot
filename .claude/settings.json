@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Edit(./.env)",
+      "Write(./.env)",
+      "Edit(./data/raw/pdfs/**/*.pdf)",
+      "Write(./data/raw/pdfs/**/*.pdf)"
+    ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -I \"${CLAUDE_PROJECT_DIR}/.claude/hooks/repeat_counter.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Read|Grep|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -I \"${CLAUDE_PROJECT_DIR}/.claude/hooks/protect_paths.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
