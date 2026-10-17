@@ -507,7 +507,7 @@ def test_prompt_requires_question_text_for_clarification():
     from agent.shared.clock import FIXTURE_NOW
 
     prompt = system_prompt(FIXTURE_NOW)
-    assert PROMPT_VERSION == "m3-docs-6"
+    assert PROMPT_VERSION == "m3-docs-7"
     assert "되묻는 경우에도 answer에는 사용자에게 할 질문을 한국어 문장으로 쓴다" in prompt
     assert "어떤 outcome이든 비워 두지 않는다" in prompt
 

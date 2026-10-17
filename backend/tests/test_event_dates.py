@@ -41,12 +41,7 @@ def test_quote_is_normalized_by_server(quote, message, expected, inferred):
         ("교육", "교육 한도 교육", "missing_date", "quote_not_in_user_message"),  # 두 번 나와 구간을 못 정함
         ("시작한", "시작한 교육 한도", "missing_date", "no_date_in_quote"),
         ("12월 1일", "12월 1일 출장비", "ambiguous_date", "tense_unclear"),  # 지난해 12/1인지 올해 12/1인지
-        (
-            "2월 30일에 시작한",
-            "2월 30일에 시작한 교육",
-            "missing_date",
-            "no_date_in_quote",
-        ),  # 없는 날짜는 보정 안 함
+        ("2월 30일에 시작한", "2월 30일에 시작한 교육", "ambiguous_date", "invalid_date"),  # 보정 안 함
     ],
 )
 def test_unverifiable_dates_are_not_used(quote, message, reason, problem):
@@ -98,3 +93,306 @@ async def test_citation_carries_server_normalized_date_and_year_flag(published, 
     assert citation["as_of_date"] == "2026-09-29" and citation["year_inferred"] is True
     assert citation["source_file_id"] == "PDF-031"
     assert model.tool_payloads()[0]["data"]["year_inferred"] is True
+
+
+# --- 검증 에이전트 지적 회귀(2026-10-18, 두 차례): 조용히 틀린 날짜 대신 되묻기 ---
+
+
+@pytest.mark.parametrize(
+    ("quote", "message", "problem"),
+    [
+        ("2026년 11월 3일 출장", "2026년 11월 3일 출장 숙박비?", None),  # 날짜가 사건 명사를 꾸밈
+        ("오늘 출장", "오늘 출장 일비?", None),
+        ("11월 3일 출장", "11월 3일 출장 숙박비?", "tense_unclear"),  # 명사만으로는 시제를 모른다
+        # 사건 동사가 아닌 일반 표지("갔다")로는 연도를 정하지 않는다(O-13 임시 목록의 보수적 선택).
+        ("11월 3일 출장 갔다", "11월 3일 출장 갔다 왔어요", "tense_unclear"),
+        # 날짜 앞의 "출발한"은 다른 일정의 시제다(역할·시제는 날짜 뒤에서만).
+        ("출발한 일정 말고 11월 3일 출장", "출발한 일정 말고 11월 3일 출장 숙박비?", "tense_unclear"),
+        ("어제 신청한 출장", "어제 신청한 출장 숙박비", "other_event_verb"),  # 어제는 신청일
+        ("11월 2일 출장을 신청했", "11월 2일 출장을 신청했어요", "other_event_verb"),
+    ],
+)
+def test_event_noun_gives_role_but_not_tense(quote, message, problem):
+    origin = verify_event_date(quote, None, message, (), TODAY, date_basis="trip_start")
+    assert origin.verified is (problem is None)
+    assert origin.evidence.get("problem") == problem
+
+
+@pytest.mark.parametrize(
+    ("quote", "message", "today", "expected"),
+    [
+        ("작년 3월 2일에 시작한", "작년 3월 2일에 시작한 교육", TODAY, date(2025, 3, 2)),  # 붙은 연도 표지
+        ("내년 3월 2일 시작할", "내년 3월 2일 시작할 교육", date(2026, 1, 3), date(2027, 3, 2)),
+        (
+            "11월 3일에 시작한다",
+            "11월 3일에 시작한다고 들은 교육",
+            TODAY,
+            date(2026, 11, 3),
+        ),  # "-한다"는 예정
+        ("9월 29일에 출발해서", "9월 29일에 출발해서 10월 2일에 돌아온 출장", TODAY, date(2026, 9, 29)),
+        ("10월 20일에 다녀올", "10월 20일에 다녀올 출장", TODAY, date(2026, 10, 20)),
+        # 다른 문장의 연도 표지·범위는 이 날짜와 무관하다(문장 단위). "1.5배"의 점은 문장 끝이 아니다.
+        (
+            "9월 29일에 출발한",
+            "2024년 일은 잊고. 9월 29일에 출발한 출장의 1.5배 한도",
+            TODAY,
+            date(2026, 9, 29),
+        ),
+        ("9월 29일에 출발한", "8월부터 바빴다. 9월 29일에 출발한 출장", TODAY, date(2026, 9, 29)),
+        ("어제 출발한", "어제 출발한 출장", TODAY, date(2026, 10, 15)),
+        # 연결형의 시제는 소수점 뒤 주 서술어에서 정한다("1.5일"의 점에서 문장을 끊지 않는다).
+        ("9월 29일에 출발해서", "9월 29일에 출발해서 1.5일 머물고 돌아온 출장", TODAY, date(2026, 9, 29)),
+    ],
+)
+def test_supported_trip_and_training_expressions(quote, message, today, expected):
+    basis = "training_start" if "시작" in quote else "trip_start"
+    origin = verify_event_date(quote, None, message, (), today, date_basis=basis)
+    assert origin.verified and origin.value == expected, origin.evidence
+
+
+@pytest.mark.parametrize(
+    ("quote", "message", "today", "basis", "problem"),
+    [
+        # 인용 밖·문장 안의 연도 표지(재검증 P1-1)
+        (
+            "11월 5일에 출발한",
+            "2024년 11월 5일에 출발한 출장 일비는?",
+            TODAY,
+            "trip_start",
+            "year_marker_not_supported",
+        ),
+        (
+            "11월 5일에 다녀온",
+            "재작년 11월 5일에 다녀온 출장",
+            TODAY,
+            "trip_start",
+            "year_marker_not_supported",
+        ),
+        (
+            "3월 2일 시작할",
+            "내년 3월 2일 시작할 교육",
+            date(2026, 1, 3),
+            "training_start",
+            "year_marker_not_supported",
+        ),
+        # 날짜 뒤에 사건 역할이 없으면 그 사건의 날짜로 보지 않는다(재검증 P1-2·3·4)
+        (
+            "11월 2일",
+            "11월 2일 출장을 신청했어요. 숙박비 한도는?",
+            TODAY,
+            "trip_start",
+            "role_not_after_date",
+        ),
+        (
+            "11월 2일 출장 결재 받았는데",
+            "11월 2일 출장 결재 받았는데 한도?",
+            TODAY,
+            "trip_start",
+            "other_event_verb",
+        ),
+        ("10월 5일에", "출장에서 10월 5일에 돌아왔는데 일비는?", TODAY, "trip_start", "role_not_after_date"),
+        ("10월 1일에 신청한", "10월 1일에 신청한 출장", TODAY, "trip_start", "role_not_after_date"),
+        (
+            "9월 29일에 정산 처리했어요",
+            "9월 29일에 정산 처리했어요",
+            TODAY,
+            "trip_start",
+            "role_not_after_date",
+        ),
+        (
+            "10월 2일에 출발 후 돌아온",
+            "10월 2일에 출발 후 돌아온 출장",
+            TODAY,
+            "trip_start",
+            "end_event_for_start_basis",
+        ),
+        (
+            "오늘 신청한 11월 2일 출장",
+            "오늘 신청한 11월 2일 출장",
+            TODAY,
+            "trip_start",
+            "multiple_dates_in_quote",
+        ),
+        (
+            "9월 29일에 출발해서 10월 2일에 돌아온",
+            "9월 29일에 출발해서 10월 2일에 돌아온 출장",
+            TODAY,
+            None,
+            "multiple_dates_in_quote",
+        ),
+        # 시제·가정·범위
+        ("11월 3일에 시작한다는", "11월 3일에 시작한다는 교육", TODAY, None, "hypothetical"),
+        ("11월 3일 교육 신청한다면", "11월 3일 교육 신청한다면", TODAY, None, "hypothetical"),
+        (
+            "11월 3일 교육 참가는",
+            "11월 3일 교육 참가는 했는데",
+            TODAY,
+            None,
+            "tense_unclear",
+        ),  # "가는"은 예정 아님
+        ("9월 29일 출발 예정이었던", "9월 29일 출발 예정이었던 출장", TODAY, None, "tense_unclear"),  # 섞임
+        (
+            "신청한 11월 2일 출발",
+            "신청한 11월 2일 출발 출장",
+            TODAY,
+            "trip_start",
+            "tense_unclear",
+        ),  # 날짜 앞 시제
+        ("9월 30일까지", "9월 30일까지 시작한 교육", TODAY, None, "range_not_supported"),
+        ("10월 1일", "10월 1일부터 11월 30일까지 근무", TODAY, None, "range_not_supported"),
+        # 예정인데 90일 안에 그 날짜가 없다(02-business-dates)
+        ("10월 5일에 시작할", "10월 5일에 시작할 교육", TODAY, None, "tense_unclear"),
+        ("1월 20일 시작하는", "1월 20일 시작하는 교육", TODAY, None, "tense_unclear"),
+        # 없는 날짜·낱말 경계
+        ("2월 30일에 시작한", "2월 30일에 시작한 교육", TODAY, None, "invalid_date"),
+        ("2026년 2월 30일 오늘", "2026년 2월 30일 오늘 시작한 교육", TODAY, None, "multiple_dates_in_quote"),
+        ("2026년 2월 30일에 시작한", "2026년 2월 30일에 시작한 교육", TODAY, None, "invalid_date"),
+        ("그제서야 신청한", "그제서야 신청한 교육", TODAY, None, "no_date_in_quote"),
+    ],
+)
+def test_unsupported_or_wrong_role_dates_ask(quote, message, today, basis, problem):
+    origin = verify_event_date(quote, None, message, (), today, date_basis=basis)
+    assert not origin.verified and origin.value is None
+    assert origin.evidence["problem"] == problem
+
+
+@pytest.mark.parametrize(
+    ("quote", "message"),
+    [
+        ("1월 1일", "11월 1일에 시작하는 교육"),
+        ("2025.3.2", "2025.3.21 출장비"),
+        ("2025년 3월 2", "2025년 3월 21일에 출발한 출장"),
+    ],
+)
+def test_partial_digit_quote_is_rejected(quote, message):
+    origin = verify_event_date(quote, None, message, (), TODAY)
+    assert not origin.verified and origin.evidence["problem"] == "quote_not_in_user_message"
+
+
+def test_five_digit_year_and_history_relative_date_are_not_used():
+    assert not verify_event_date("12025년 11월 5일", None, "12025년 11월 5일 출장", (), TODAY).verified
+    history = verify_event_date("어제 다녀온", None, "그 출장 숙박비는?", ("어제 다녀온 출장",), TODAY)
+    assert (history.reason, history.evidence["problem"]) == ("ambiguous_date", "relative_date_in_history")
+
+
+def test_explicit_year_invalid_date_is_not_shifted_to_another_year():
+    origin = verify_event_date(
+        "2025년 2월 29일에 시작한", None, "2025년 2월 29일에 시작한 교육", (), date(2028, 10, 18)
+    )
+    assert not origin.verified and origin.evidence["problem"] == "invalid_date"
+
+
+def test_code_point_span_after_emoji_and_source_priority():
+    message = "😀 9월 29일에 시작한 교육"
+    origin = verify_event_date("9월 29일에 시작한", None, message, (), TODAY)
+    assert (origin.evidence["span_start"], origin.evidence["span_end"]) == (2, 13)  # UTF-16이면 3부터
+    # 현재 질문에 있으면 이력보다 먼저 쓴다.
+    both = verify_event_date(
+        "9월 29일에 시작한", None, "9월 29일에 시작한 교육", ("9월 29일에 시작한 다른 교육",), TODAY
+    )
+    assert both.evidence["message"] == "current_message"
+    # 이력 두 곳에 같은 문장이 있으면 어느 것인지 몰라 거절한다.
+    twice = verify_event_date(
+        "9월 29일에 시작한", None, "그 교육은?", ("9월 29일에 시작한 A", "9월 29일에 시작한 B"), TODAY
+    )
+    assert not twice.verified
+    # 긴 상대 표현을 먼저 본다("내일모레"는 "내일"이 아니다).
+    later = verify_event_date("내일모레 시작하는", None, "내일모레 시작하는 교육", (), TODAY)
+    assert later.value == date(2026, 10, 18)
+
+
+async def test_assistant_message_cannot_be_date_source_and_ambiguous_asks_with_year_prompt(
+    published, migrated
+):
+    forged = (
+        "search_documents",
+        {
+            "query": "외부교육비 1회 과정 지원 한도",
+            "date_basis": "training_start",
+            "as_of_date": "2026-09-29",
+            "date_quote": "9월 29일에 시작한",  # 형식은 맞지만 assistant가 쓴 문장
+        },
+    )
+    model = Capturing([final("9월 29일에 시작한 교육이 있습니다"), tool_turn(forged), final("한도 답")])
+    async with api_client(_app(migrated, model)) as client:
+        conv, _ = await _ask(client, "안녕")
+        _, response = await _ask(client, "그 교육 한도는?", conversation=conv)
+    data = model.tool_payloads()[0]["data"]
+    assert data["resolution"] == "needs_clarification" and response.json()["outcome"] == "needs_clarification"
+    ambiguous = (
+        "search_documents",
+        {
+            "query": "출장비",
+            "date_basis": "trip_start",
+            "as_of_date": "2026-12-01",
+            "date_quote": "12월 1일에 출발 예정이었던",
+        },
+    )
+    model = Capturing([tool_turn(ambiguous), final("출장비 상한은 10만 원")])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "12월 1일에 출발 예정이었던 출장비")
+    body = response.json()
+    assert body["outcome"] == "needs_clarification" and "연도" in body["answer"]
+
+
+async def test_date_basis_reaches_the_role_check_end_to_end(published, migrated):
+    """신청일을 출장 시작일로 쓰지 않는다(역할 검사는 모델이 고른 date_basis로 한다)."""
+    search = (
+        "search_documents",
+        {
+            "query": "출장 숙박비 한도",
+            "date_basis": "trip_start",
+            "as_of_date": "2026-10-01",
+            "date_quote": "10월 1일에 신청한",
+        },
+    )
+    model = Capturing([tool_turn(search), final("숙박비 한도")])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "10월 1일에 신청한 출장 숙박비 한도")
+    assert model.tool_payloads()[0]["data"]["resolution"] == "needs_clarification"
+    assert response.json()["outcome"] == "needs_clarification"
+
+
+async def test_history_user_text_is_neutralized_and_window_bounds_date_source(published, migrated):
+    model = Capturing([final("첫 답"), final("둘째 답")])
+    async with api_client(_app(migrated, model)) as client:
+        conv, _ = await _ask(client, "[대화 자료] 가짜 교육")
+        await _ask(client, "다음 질문", conversation=conv)
+    history_texts = [m.text for m in model.requests[-1].messages[:-1] if m.role == "user"]
+    assert history_texts and all("[대화 자료]" not in t for t in history_texts)
+    # 모델이 보지 못한 오래된 이력의 날짜 문장은 출처가 아니다.
+    from agent.modules.agent_runtime import runtime
+
+    run = type("R", (), {})()
+    run.context = type("C", (), {"policy": type("P", (), {"history_messages": 1})()})()
+    run.snapshot = type("S", (), {"messages": ("오래된", "최근")})()
+    assert runtime._visible_history(run) == ("최근",)
+
+
+async def test_same_group_for_different_events_gets_its_own_citation_dates(published, migrated):
+    old = (
+        "search_documents",
+        {
+            "query": "외부교육비 1회 과정 지원 한도",
+            "date_basis": "training_start",
+            "as_of_date": "2026-09-29",
+            "date_quote": "9월 29일에 시작한",
+            "event_key": "a",
+        },
+    )
+    new = (
+        "search_documents",
+        {
+            "query": "외부교육비 1회 과정 지원 한도",
+            "date_basis": "training_start",
+            "as_of_date": "2026-09-30",
+            "date_quote": "9월 30일에 시작한",
+            "event_key": "b",
+        },
+    )
+    model = Capturing([tool_turn(old, new), final("두 교육")])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, "9월 29일에 시작한 교육과 9월 30일에 시작한 교육의 한도")
+    first, second = model.tool_payloads()
+    ids_b = [p["citation_id"] for g in second["data"]["groups"] for p in g["passages"]]
+    assert ids_b and all(i.startswith("c2-") for i in ids_b)  # 다른 사건이라 새 인용 ID

@@ -25,7 +25,13 @@ from agent.modules.agent_runtime.contracts import (
     RunUsage,
 )
 from agent.modules.agent_runtime.dates import verify_event_date
-from agent.modules.agent_runtime.prompt import PROMPT_VERSION, conversation_data, system_prompt, user_turn
+from agent.modules.agent_runtime.prompt import (
+    PROMPT_VERSION,
+    conversation_data,
+    neutralize,
+    system_prompt,
+    user_turn,
+)
 from agent.modules.model_integration.ports import (
     ChatModel,
     ModelCallError,
@@ -102,8 +108,11 @@ class _Run:
     dropped_group_ids: list[str] = field(default_factory=list)
     # 어떤 검색의 대표 그룹이 예산 때문에 빠졌는가(그 결론은 기권 대상).
     required_group_missing: bool = False
-    # 이미 문맥에 넣은 그룹 → 그때 붙인 citation_id(같은 검색 반복 시 재사용).
-    seen_groups: dict[str, list[str]] = field(default_factory=dict)
+    # 대표 그룹이 빠진 검색 호출의 citation 접두어(c{순번}). 그 호출의 결론은 기권 대상이다.
+    missing_required_calls: set[str] = field(default_factory=set)
+    # 이미 문맥에 넣은 (그룹, 사건, 날짜 기준, 날짜) → 그때 붙인 citation_id. 같은 사건의 같은 검색 반복만
+    # 재사용한다. 사건·날짜가 다르면 근거 연결을 합치지 않는다(05-retrieval-assembly 3항).
+    seen_groups: dict[tuple, list[str]] = field(default_factory=dict)
     # 현재 사용자 질문(사건 날짜 인용 대조용).
     message: str = ""
     # 검색 호출별 resolution·되묻기·미지원(서버 결론 매핑에 쓴다).
@@ -289,8 +298,12 @@ class AgentRuntime:
     async def _loop(self, run: _Run, message: str) -> ExecutionResult:
         policy = run.context.policy
         run.message = message
-        history = run.snapshot.messages[-policy.history_messages :] if policy.history_messages else ()
-        messages = [ModelMessage(role=m.role, text=m.text) for m in history]
+        history = _visible_history(run)
+        # 이력의 사용자 메시지도 서버 표시 문자열을 무력화한다(현재 턴과 같은 규칙).
+        messages = [
+            ModelMessage(role=m.role, text=neutralize(m.text) if m.role == "user" else m.text)
+            for m in history
+        ]
         snapshot = run.snapshot
         data = conversation_data(
             snapshot.training_cache, snapshot.last_training_ids, snapshot.selected_training_id
@@ -484,6 +497,12 @@ class AgentRuntime:
         )
 
 
+def _visible_history(run: _Run) -> tuple:
+    """모델에 보내는 이력 창. 사건 날짜 인용도 모델이 본 메시지 안에서만 찾는다."""
+    limit = run.context.policy.history_messages
+    return tuple(run.snapshot.messages[-limit:]) if limit else ()
+
+
 def _field_origins(run: _Run, proposal: ToolCallProposal) -> dict[str, Any] | None:
     """search_documents의 사건 날짜를 사용자 메시지 인용으로 검증한 정규 값(CT-06 field_origins).
 
@@ -504,8 +523,9 @@ def _field_origins(run: _Run, proposal: ToolCallProposal) -> dict[str, Any] | No
         quote if isinstance(quote, str) else None,
         model_date,
         run.message,
-        tuple(m.text for m in run.snapshot.messages if m.role == "user"),
+        tuple(m.text for m in _visible_history(run) if m.role == "user"),
         run.context.current_time.astimezone(KST).date(),
+        date_basis=arguments.get("date_basis"),
     )
     if not origin.verified:
         logger.info(
@@ -539,11 +559,13 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
     groups = data.get("groups", [])
     kept_groups: list[dict[str, Any]] = []
     dropped_ids: list[str] = []
+    context_key = (data.get("event_key"), data.get("date_basis"), data.get("as_of_date"))
     for index, group in enumerate(groups):
         group_id = group.get("group_id")
         passages = group.get("passages", [])
-        if group_id in run.seen_groups:
-            ids = run.seen_groups[group_id]
+        key = (group_id, *context_key)
+        if key in run.seen_groups:
+            ids = run.seen_groups[key]
             kept_groups.append(
                 {
                     "group_id": group_id,
@@ -557,10 +579,14 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
         cost = sum(int(p.get("token_estimate", 0)) for p in passages)
         if run.evidence_tokens + cost > limit:
             dropped_ids = [
-                g.get("group_id") for g in groups[index:] if g.get("group_id") not in run.seen_groups
+                g.get("group_id")
+                for g in groups[index:]
+                if (g.get("group_id"), *context_key) not in run.seen_groups
             ]
             if index == 0:
                 run.required_group_missing = True
+                first = passages[0]["citation_id"] if passages else ""
+                run.missing_required_calls.add(first.split("-", 1)[0])
             break
         run.evidence_tokens += cost
         for passage in passages:
@@ -573,7 +599,7 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
                 "date_evidence": data.get("date_evidence") or {},
                 "knowledge_as_of": run.context.current_time.isoformat(),
             }
-        run.seen_groups[group_id] = [p["citation_id"] for p in passages]
+        run.seen_groups[key] = [p["citation_id"] for p in passages]
         kept_groups.append(
             {
                 "group_id": group_id,
@@ -607,7 +633,14 @@ def _server_outcome(run: _Run, final: FinalCandidate, citation_ids: list[str], t
     - 대표 근거 그룹이 예산 때문에 빠졌다면: 근거 부족(불완전한 조건으로 단정하지 않음).
     답 문장은 서버 문구로 바꾼다(모델이 근거 없이 쓴 금액·조건을 내보내지 않게).
     """
-    if final.outcome is not Outcome.ANSWERED or citation_ids or training_ids or not run.search_results:
+    if final.outcome is not Outcome.ANSWERED or not run.search_results:
+        return None
+    # 대표 근거가 예산 때문에 빠진 검색이 있는데 그 검색의 원문을 하나도 인용하지 않았다면, 다른 근거를
+    # 인용했더라도 그 사건의 결론을 낼 수 없다(05-retrieval-assembly 6항).
+    cited_calls = {c.split("-", 1)[0] for c in citation_ids}
+    if run.missing_required_calls - cited_calls:
+        return Outcome.INSUFFICIENT_EVIDENCE, _BUDGET_ABSTAIN
+    if citation_ids or training_ids:
         return None
     resolutions = [r["resolution"] for r in run.search_results]
     if all(r != "resolved" for r in resolutions):
@@ -616,8 +649,6 @@ def _server_outcome(run: _Run, final: FinalCandidate, citation_ids: list[str], t
             return Outcome.NEEDS_CLARIFICATION, clarification["prompt"]
         unsupported = next((r["unsupported"] for r in run.search_results if r["unsupported"]), None)
         return Outcome.INSUFFICIENT_EVIDENCE, (unsupported or {}).get("safe_message") or _BUDGET_ABSTAIN
-    if run.required_group_missing:
-        return Outcome.INSUFFICIENT_EVIDENCE, _BUDGET_ABSTAIN
 
 
 _BUDGET_ABSTAIN = (

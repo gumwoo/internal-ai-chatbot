@@ -232,12 +232,12 @@ async def test_far_future_event_is_unsupported(published, migrated):
             "query": "출장비",
             "date_basis": "trip_start",
             "as_of_date": "2027-03-01",
-            "date_quote": "2027년 3월 1일",
+            "date_quote": "2027년 3월 1일에 출발하는",
         },
     )
     model = Capturing([tool_turn(search), final("안내할 수 없습니다", outcome="insufficient_evidence")])
     async with api_client(_app(migrated, model)) as client:
-        await _ask(client, "2027년 3월 1일 출장비")
+        await _ask(client, "2027년 3월 1일에 출발하는 출장비")
     data = model.tool_payloads()[0]["data"]
     assert data["resolution"] == "unsupported" and data["unsupported"]["reason"] == "event_out_of_horizon"
 
@@ -463,12 +463,12 @@ async def test_server_maps_answers_after_unsupported_or_clarification(published,
             "query": "출장비",
             "date_basis": "trip_start",
             "as_of_date": "2027-03-01",
-            "date_quote": "2027년 3월 1일",
+            "date_quote": "2027년 3월 1일에 출발하는",
         },
     )
     model = FakeModelClient([tool_turn(far), final("출장비 상한은 10만 원입니다")])
     async with api_client(_app(migrated, model)) as client:
-        _, unsupported = await _ask(client, "2027년 3월 1일 출장비")
+        _, unsupported = await _ask(client, "2027년 3월 1일에 출발하는 출장비")
     body = unsupported.json()
     assert body["outcome"] == "insufficient_evidence" and "10만 원" not in body["answer"]
     undated = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "training_start"})
@@ -673,3 +673,22 @@ async def test_uncited_document_in_context_still_hides_answer_after_revocation(p
         )
         history = (await client.get(f"/api/v1/conversations/{conv}/messages")).json()["items"]
     assert history[-1]["visibility"] == "redacted"
+
+
+async def test_budget_dropped_search_abstains_even_with_other_citations(published, migrated, monkeypatch):
+    """검증 지적: 대표 그룹이 예산으로 빠진 검색이 있으면 다른 검색을 인용했어도 그 사건은 단정하지 않는다."""
+    from agent.shared import contracts
+    from agent.shared.tokens import estimate_tokens
+
+    probe = Capturing([tool_turn(SEARCH_OLD), final("답")])
+    async with api_client(_app(migrated, probe)) as client:
+        await _ask(client, "9월 29일에 시작한 외부교육 한도")
+    first_group = probe.tool_payloads()[0]["data"]["groups"][0]["passages"]
+    limit = sum(estimate_tokens(p["text"]) for p in first_group)  # 첫 검색의 첫 그룹만 들어가는 예산
+    monkeypatch.setattr(contracts.ExecutionPolicy, "__init__", _policy_init(final_context_token_limit=limit))
+    model = Capturing([tool_turn(SEARCH_OLD, IT_TABLE), final("한도와 상태", citations=["c1-1"])])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "9월 29일에 시작한 외부교육 한도와 티켓 상태")
+    old, table = model.tool_payloads()
+    assert old["data"]["groups"] and table["data"]["groups"] == []
+    assert response.json()["outcome"] == "insufficient_evidence"
