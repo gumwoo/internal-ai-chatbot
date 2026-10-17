@@ -1,7 +1,34 @@
+import shutil
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
+from agent.shared.settings import Settings, database_name
 from tests.conftest import make_settings
+
+ENV_EXAMPLE = Path(__file__).resolve().parents[2] / ".env.example"
+
+
+def test_env_example_loads_as_is(tmp_path, monkeypatch):
+    """.env.example을 그대로 복사한 .env로 서버 설정이 만들어져야 한다(문자열 숫자·빈 값·줄 끝 주석)."""
+    for name in Settings.model_fields:
+        monkeypatch.delenv(name.upper(), raising=False)
+    env_file = tmp_path / ".env"
+    shutil.copyfile(ENV_EXAMPLE, env_file)
+    settings = Settings(_env_file=env_file)
+    assert settings.embedding_dim == 1536
+    assert settings.app_env == "local"
+    assert settings.test_actor_id == "test-a"
+    assert settings.anthropic_api_key is None
+    assert settings.judge_model is None
+    assert database_name(settings.database_url) == "agent_dev"
+    assert database_name(settings.test_database_url) == "agent_test"
+
+
+def test_embedding_dim_rejects_other_values():
+    with pytest.raises(ValidationError, match="EMBEDDING_DIM"):
+        make_settings(embedding_dim=3072)
 
 
 def test_test_stub_allowed_in_test_env():

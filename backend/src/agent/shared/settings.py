@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
 
-from pydantic import SecretStr, model_validator
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -20,6 +20,8 @@ class Settings(BaseSettings):
         env_file=REPO_ROOT / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        # `ANTHROPIC_API_KEY=`처럼 빈 값은 빈 문자열이 아니라 미설정(None/기본값)으로 본다.
+        env_ignore_empty=True,
     )
 
     app_env: Literal["local", "test", "production"] = "local"
@@ -36,7 +38,8 @@ class Settings(BaseSettings):
 
     chat_model: str = "claude-haiku-5-5"
     embedding_model: str = "gemini-embedding-2"
-    embedding_dim: Literal[768, 1536] = 1536
+    # 환경 변수는 문자열로 들어오므로 int로 받은 뒤 허용값을 검사한다(Literal[int]는 "1536"을 거절한다).
+    embedding_dim: int = 1536
     judge_model: str | None = None
     anthropic_api_key: SecretStr | None = None
     gemini_api_key: SecretStr | None = None
@@ -46,6 +49,13 @@ class Settings(BaseSettings):
     @property
     def allowed_origin_set(self) -> frozenset[str]:
         return frozenset(o.strip() for o in self.allowed_origins.split(",") if o.strip())
+
+    @field_validator("embedding_dim")
+    @classmethod
+    def _check_embedding_dim(cls, value: int) -> int:
+        if value not in (768, 1536):
+            raise ValueError("EMBEDDING_DIM은 768 또는 1536이다(O-04에서 확정)")
+        return value
 
     @model_validator(mode="after")
     def _check_combination(self) -> "Settings":
