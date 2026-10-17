@@ -21,7 +21,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from agent.modules.retrieval.service import RetrievalResult, RetrievalService, SearchRequest
 from agent.modules.training.models import TrainingPage, TrainingSearchInput
 from agent.modules.training.service import TrainingService
-from agent.shared.clock import Clock
+from agent.shared.clock import KST, Clock
 from agent.shared.contracts import (
     ExecutionContext,
     RequiredRecordError,
@@ -59,7 +59,8 @@ class SearchDocumentsArgs(BaseModel):
     top_k: int | None = Field(default=None, ge=1, le=20)
     date_basis: DateBasis = "current"
     as_of_date: date | None = None
-    event_key: str | None = Field(default=None, max_length=40)
+    # 서버가 인용 DTO에 그대로 싣는 값이라 안전한 식별자 모양만 받는다.
+    event_key: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,40}$")
 
 
 @dataclass(frozen=True)
@@ -112,6 +113,18 @@ _TOOLS: dict[str, _Tool] = {
         capability="knowledge.search",
     ),
 }
+
+
+# 질의 임베딩(MOD-07)·검색 준비 실패의 닫힌 오류 코드. MOD-03은 MOD-07 타입을 import하지 않고 코드로 판정한다.
+_SEARCH_INFRA_ERRORS = frozenset(
+    {
+        ErrorCode.MODEL_NOT_CONFIGURED,
+        ErrorCode.MODEL_OUTPUT_INVALID,
+        ErrorCode.MODEL_UPSTREAM_ERROR,
+        ErrorCode.UPSTREAM_RATE_LIMITED,
+        ErrorCode.RETRIEVAL_NOT_READY,
+    }
+)
 
 
 def _field_names(exc: ValidationError) -> list[str]:
@@ -235,8 +248,9 @@ class ToolExecutor:
         except TimeoutError:
             return ToolResult.failure(AppError(ErrorCode.TOOL_TIMEOUT, retryable=True))
         except AppError as exc:
-            if exc.code in (ErrorCode.MODEL_UPSTREAM_ERROR, ErrorCode.UPSTREAM_RATE_LIMITED):
-                # 질의 임베딩 실패는 검색 장애다. 0건으로 바꾸지 않는다(T-08).
+            if exc.code in _SEARCH_INFRA_ERRORS:
+                # 질의 임베딩 실패(설정 누락·무효 응답 포함)와 검색 미준비는 검색 장애다.
+                # 모델이 고칠 인자 오류도, 0건도 아니다(T-08).
                 return ToolResult.failure(AppError(ErrorCode.TOOL_EXECUTION_FAILED, retryable=exc.retryable))
             return ToolResult.failure(exc)
         except (SQLAlchemyError, OSError):
@@ -286,7 +300,7 @@ def search_view(result: RetrievalResult, ordinal: int) -> dict[str, Any]:
                     "edition_state": passage.edition_state,
                     "effective_from": passage.effective_from.isoformat() if passage.effective_from else None,
                     "effective_to": passage.effective_to.isoformat() if passage.effective_to else None,
-                    "available_from": passage.available_from.isoformat(),
+                    "available_from": passage.available_from.astimezone(KST).isoformat(),
                     "heading": passage.heading,
                     "section_path": list(passage.section_path),
                     "page_spans": list(passage.page_spans),

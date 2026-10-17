@@ -504,7 +504,7 @@ async def test_snapshot_itself_filters_selection_and_last_ids(seeded_engine, mig
         await _set_state(seeded_engine, conv, state)
         message_id = await _scalar(seeded_engine, "SELECT id FROM messages WHERE role = 'user'")
         actor = ActorContext("test-a", ("d",), ("employee",), frozenset({"training.read"}), 1, "test_stub")
-        snapshot = await app.state.conversations._snapshot(actor, uuid.UUID(conv), message_id)
+        snapshot, _ = await app.state.conversations._snapshot(actor, uuid.UUID(conv), message_id)
     assert snapshot.last_training_ids == (SEC,)
     assert snapshot.selected_training_id is None
     assert set(snapshot.training_cache) == {SEC, COLLAB}

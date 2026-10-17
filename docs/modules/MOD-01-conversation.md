@@ -48,3 +48,10 @@ T-01 대화 격리, T-02 동시/재시작·lazy 만료, T-03 기록 실패·로�
 ## 2026-10-17 계약 보정
 
 CP-07 ConversationEvidenceReader 구현을 소유한다. ReadUserEvidence는 본인/run 문맥 user 원문만 반환하고 ReadTrainingEvidence는 CT-11로 저장된 실제 교육 receipt를 대조한다.202 이후 동일 키 POST replay로 최종 응답을 제공한다.
+
+## 2026-10-18 M3 구현 메모
+
+- 수락 시 대화 전략(raw)·게시 snapshot·actor의 knowledge.search로 지식 기능을 켜고 run에 고정한다.
+- 답변의 dependency_ids에는 이번 문맥의 교육 ID·문서 키(`doc:키`)와, 이력으로 다시 넣은 assistant 메시지의 의존 합집합을 함께 저장한다(CT-03). 권한을 잃으면 그 답과 그 답을 이어받은 답이 함께 가려진다.
+- 최종 응답(JSON·SSE·재전송) 직전에 MOD-09 ReloadActor로 actor를 다시 읽는다. 세션 회수·비활성이면 가린다.
+- 사용자 입력의 서버 표시 문자열("[대화 자료]", "[사용자 질문]")은 모델 문맥에 넣을 때 괄호를 바꿔 서버 블록과 섞이지 않게 한다(MOD-02).

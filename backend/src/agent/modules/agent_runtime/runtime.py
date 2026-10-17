@@ -96,8 +96,14 @@ class _Run:
     # 근거 원장: 이번 실행에서 모델 문맥에 실제로 들어간 원문 passage(citation_id → 서버 값).
     citations: dict[str, dict[str, Any]] = field(default_factory=dict)
     evidence_tokens: int = 0
-    # 예산 때문에 넣지 못한 support_group 수(내부 trace, evidence_budget_exceeded).
-    budget_dropped_groups: int = 0
+    # 예산 때문에 넣지 못한 support_group ID(내부 trace, evidence_budget_exceeded).
+    dropped_group_ids: list[str] = field(default_factory=list)
+    # 어떤 검색의 대표 그룹이 예산 때문에 빠졌는가(그 결론은 기권 대상).
+    required_group_missing: bool = False
+    # 이미 문맥에 넣은 그룹 → 그때 붙인 citation_id(같은 검색 반복 시 재사용).
+    seen_groups: dict[str, list[str]] = field(default_factory=dict)
+    # 검색 호출별 resolution·되묻기·미지원(서버 결론 매핑에 쓴다).
+    search_results: list[dict[str, Any]] = field(default_factory=list)
 
     def add_usage(self, usage: Usage) -> None:
         self.input_tokens += usage.input_tokens or 0
@@ -440,11 +446,16 @@ class AgentRuntime:
         if unknown:
             # 원장에 없는 교육을 말하면 지어낸 것으로 보고 실패시킨다.
             raise _output_invalid(run, f"{len(unknown)} training id(s) not in ledger")
+        outcome, answer = final.outcome, final.answer
+        mapped = _server_outcome(run, final, citation_ids, training_ids)
+        if mapped is not None:
+            logger.info("결론 서버 매핑 run_id=%s %s->%s", run.context.run_id, outcome.value, mapped[0].value)
+            (outcome, answer), answer_source = mapped, "server_mapping"
 
         return ExecutionResult(
             status="completed",
-            outcome=final.outcome,
-            answer=final.answer,
+            outcome=outcome,
+            answer=answer,
             training_refs=tuple(allowed[i] for i in training_ids),
             context_candidate={
                 "schema_version": 2,
@@ -467,18 +478,48 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
     """검색 결과를 근거 예산에 맞춰 support_group 단위로 채택하고, 채택한 passage만 원장에 올린다.
 
     - 그룹은 MOD-11이 정한 순서(대표 후보의 거리 순)대로 앞에서부터 넣는다. 그룹 하나를 끊어 넣지 않는다.
-    - 실행 전체에서 final_context_token_limit(초기 4000)을 넘기지 않는다. 넣지 못한 그룹 수를 남긴다.
+    - 실행 전체에서 final_context_token_limit(초기 4000)을 넘기지 않는다. 처음으로 들어가지 않는 그룹에서
+      멈춘다. 예산 밖 후보를 순서를 바꿔 다시 넣지 않는다(05-retrieval-assembly 7항).
+    - 대표 그룹(첫 그룹)이 들어가지 않으면 그 검색의 필수 근거가 빠진 것이다(6항).
+      표시하고 기권 대상으로 남긴다.
+    - 같은 실행에서 이미 문맥에 넣은 그룹은 비용을 다시 세지 않고 처음 받은 citation_id를 그대로 쓴다.
     - 모델에는 인용에 필요한 출처 값과 원문만 보낸다.
     """
     data = dict(result.data or {})
+    run.search_results.append(
+        {
+            "resolution": data.get("resolution"),
+            "clarification": data.get("clarification"),
+            "unsupported": data.get("unsupported"),
+        }
+    )
     limit = run.context.policy.final_context_token_limit
-    kept_groups, dropped = [], 0
-    for group in data.get("groups", []):
+    groups = data.get("groups", [])
+    kept_groups: list[dict[str, Any]] = []
+    dropped_ids: list[str] = []
+    for index, group in enumerate(groups):
+        group_id = group.get("group_id")
         passages = group.get("passages", [])
+        if group_id in run.seen_groups:
+            ids = run.seen_groups[group_id]
+            kept_groups.append(
+                {
+                    "group_id": group_id,
+                    "passages": [
+                        {**{k: p.get(k) for k in _PASSAGE_VIEW_KEYS}, "citation_id": cid}
+                        for p, cid in zip(passages, ids, strict=False)
+                    ],
+                }
+            )
+            continue
         cost = sum(int(p.get("token_estimate", 0)) for p in passages)
         if run.evidence_tokens + cost > limit:
-            dropped += 1
-            continue
+            dropped_ids = [
+                g.get("group_id") for g in groups[index:] if g.get("group_id") not in run.seen_groups
+            ]
+            if index == 0:
+                run.required_group_missing = True
+            break
         run.evidence_tokens += cost
         for passage in passages:
             run.citations[passage["citation_id"]] = {
@@ -489,18 +530,19 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
                 "prospective": data.get("prospective"),
                 "knowledge_as_of": run.context.current_time.isoformat(),
             }
+        run.seen_groups[group_id] = [p["citation_id"] for p in passages]
         kept_groups.append(
             {
-                "group_id": group.get("group_id"),
+                "group_id": group_id,
                 "passages": [{k: p.get(k) for k in _PASSAGE_VIEW_KEYS} for p in passages],
             }
         )
-    if dropped:
-        run.budget_dropped_groups += dropped
+    if dropped_ids:
+        run.dropped_group_ids.extend(dropped_ids)
         logger.info(
-            "근거 예산 초과로 제외 run_id=%s groups=%d evidence_budget_exceeded=true",
+            "근거 예산 초과로 제외 run_id=%s groups=%s evidence_budget_exceeded=true",
             run.context.run_id,
-            dropped,
+            dropped_ids,
         )
     view = {
         **{k: data.get(k) for k in ("resolution", "date_basis", "as_of_date", "event_key", "prospective")},
@@ -508,9 +550,35 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
         "unsupported": data.get("unsupported"),
         "groups": kept_groups,
     }
-    if dropped:
+    if dropped_ids:
         view["evidence_budget_exceeded"] = True
     return ToolResult.success(view, result.resource_ids)
+
+
+def _server_outcome(run: _Run, final: FinalCandidate, citation_ids: list[str], training_ids: list[str]):
+    """검색 결과에 맞지 않는 결론을 서버가 바로잡는다(CT-14 → CT-10 매핑). 바꿀 것이 없으면 None.
+
+    근거(인용·교육) 없이 answered로 끝냈을 때만 본다.
+    - 이번 실행의 검색이 모두 needs_clarification/unsupported였다면: 되묻기가 있으면 되묻기, 아니면 근거 부족.
+    - 대표 근거 그룹이 예산 때문에 빠졌다면: 근거 부족(불완전한 조건으로 단정하지 않음).
+    답 문장은 서버 문구로 바꾼다(모델이 근거 없이 쓴 금액·조건을 내보내지 않게).
+    """
+    if final.outcome is not Outcome.ANSWERED or citation_ids or training_ids or not run.search_results:
+        return None
+    resolutions = [r["resolution"] for r in run.search_results]
+    if all(r != "resolved" for r in resolutions):
+        clarification = next((r["clarification"] for r in run.search_results if r["clarification"]), None)
+        if clarification is not None:
+            return Outcome.NEEDS_CLARIFICATION, clarification["prompt"]
+        unsupported = next((r["unsupported"] for r in run.search_results if r["unsupported"]), None)
+        return Outcome.INSUFFICIENT_EVIDENCE, (unsupported or {}).get("safe_message") or _BUDGET_ABSTAIN
+    if run.required_group_missing:
+        return Outcome.INSUFFICIENT_EVIDENCE, _BUDGET_ABSTAIN
+
+
+_BUDGET_ABSTAIN = (
+    "필요한 규정 원문을 모두 확인하지 못해 결론을 드릴 수 없습니다. 질문을 나눠 다시 물어 주세요."
+)
 
 
 def _citation_dto(passage: dict[str, Any]) -> dict[str, Any]:

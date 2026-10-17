@@ -47,6 +47,8 @@ origin_candidates의 quote/message ID를 CP-07 user 원문과 대조해 code poi
 ## 2026-10-17 M3 구현 메모
 
 - 근거 원장: search_documents 결과 중 모델 문맥에 실제로 넣은 passage만 원장에 올린다. 최종 citation_ids가 원장 밖이면 MODEL_OUTPUT_INVALID다. 되묻기·0건에서는 인용을 저장하지 않는다.
+- 예산 해석(2026-10-18): 그룹은 MOD-11 순서대로 넣다가 처음으로 들어가지 않는 그룹에서 멈춘다(예산 밖 후보를 순서를 바꿔 넣지 않음, 05-retrieval-assembly 7항). 대표 그룹(첫 그룹)이 빠지면 필수 근거 누락으로 표시하고, 근거 없이 answered로 끝내면 서버가 insufficient_evidence로 바꾼다. 같은 실행에서 이미 넣은 그룹은 비용을 다시 세지 않고 처음 citation_id를 재사용한다.
+- 결론 매핑: 이번 실행의 검색이 모두 needs_clarification/unsupported인데 근거 없이 answered로 끝내면 서버가 되묻기(서버 문구) 또는 insufficient_evidence(미지원 안내)로 바꾼다(answer_source=server_mapping).
 - 예산: 실행 전체에서 원문 합계 `final_context_token_limit`(초기 4000, token은 `utf8-bytes-div3-v1` 추정값)을 넘기지 않는다. support_group 단위로 MOD-11 순서대로 통째로만 넣고, 못 넣은 그룹은 `evidence_budget_exceeded`로 도구 결과와 내부 로그에 남긴다.
 - P-12 B: 실행 시작 때 CP-07(ConversationEvidenceReader)로 대화 사본을 실제 receipt와 다시 대조한다. 대조 실패는 필수 기록 실패와 같게 실행 실패다.
 - P-13 B: system에는 규칙만 둔다. 검증된 대화 자료는 현재 사용자 턴 앞의 `[대화 자료]` 블록으로, 문서 passage는 tool_result로만 넣는다(프롬프트 `m3-docs-1`, 이후 실제 모델 smoke에 따라 `m3-docs-4`까지 조정, TS-24).

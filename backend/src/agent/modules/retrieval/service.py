@@ -157,9 +157,12 @@ class RetrievalService:
             vector,
             knowledge_as_of=knowledge_as_of,
             as_of_date=as_of,
-            limit=min(request.top_k, RAW_CANDIDATE_LIMIT),
+            # 기준이 맞지 않는 규정이 후보 자리를 차지해 거짓 0건이 되지 않게, 넉넉히 받아 거른 뒤 자른다.
+            limit=min(request.top_k, RAW_CANDIDATE_LIMIT) * 3,
         )
-        hits = [h for h in hits if _basis_fits(h, request.date_basis)]
+        hits = [h for h in hits if _basis_fits(h, request.date_basis)][
+            : min(request.top_k, RAW_CANDIDATE_LIMIT)
+        ]
         groups = await self._groups(actor, hits)
         return RetrievalResult(
             "resolved",

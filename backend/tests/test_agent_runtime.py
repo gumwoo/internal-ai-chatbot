@@ -507,6 +507,62 @@ def test_prompt_requires_question_text_for_clarification():
     from agent.shared.clock import FIXTURE_NOW
 
     prompt = system_prompt(FIXTURE_NOW)
-    assert PROMPT_VERSION == "m3-docs-4"
+    assert PROMPT_VERSION == "m3-docs-5"
     assert "되묻는 경우에도 answer에는 사용자에게 할 질문을 한국어 문장으로 쓴다" in prompt
     assert "어떤 outcome이든 비워 두지 않는다" in prompt
+
+
+# --- P-12 B: CP-07 재대조 ---
+
+
+class _Reader:
+    def __init__(self, pairs=None, fail=False):
+        self.pairs, self.fail, self.calls = pairs or set(), fail, 0
+
+    async def verified_training_pairs(self, conversation_id):
+        self.calls += 1
+        if self.fail:
+            raise RuntimeError("db down")
+        return self.pairs
+
+
+def _snapshot_with_copy():
+    from agent.modules.agent_runtime.contracts import ConversationSnapshot
+
+    summary = {"id": "t1", "code": "TR-1", "title": "보안", "starts_at": "2026-10-20T14:00:00+09:00"}
+    return ConversationSnapshot(
+        training_cache={"t1": summary}, last_training_ids=("t1",), selected_training_id="t1"
+    )
+
+
+async def test_runtime_reverifies_copy_with_cp07_reader(seeded_engine, clock):
+    model = FakeModelClient([final()])
+    reader = _Reader(pairs=set())
+    runtime = AgentRuntime(
+        model, ToolExecutor(TrainingService(seeded_engine), clock), clock, MODEL, evidence_reader=reader
+    )
+    await _run(runtime, clock, "그 교육?", snapshot=_snapshot_with_copy())
+    assert reader.calls == 1
+    turn = model.requests[0].messages[-1].text
+    assert "TR-1" not in turn and turn.startswith("[대화 자료] 없음")
+    kept = _Reader(pairs={("t1", "2026-10-20T14:00:00+09:00")})
+    model = FakeModelClient([final()])
+    runtime = AgentRuntime(
+        model, ToolExecutor(TrainingService(seeded_engine), clock), clock, MODEL, evidence_reader=kept
+    )
+    await _run(runtime, clock, "그 교육?", snapshot=_snapshot_with_copy())
+    assert "TR-1" in model.requests[0].messages[-1].text
+
+
+async def test_cp07_reader_failure_fails_run(seeded_engine, clock):
+    model = FakeModelClient([final()])
+    runtime = AgentRuntime(
+        model,
+        ToolExecutor(TrainingService(seeded_engine), clock),
+        clock,
+        MODEL,
+        evidence_reader=_Reader(fail=True),
+    )
+    result = await _run(runtime, clock, "그 교육?", snapshot=_snapshot_with_copy())
+    assert result.status == "failed" and result.error.code.value == "PERSISTENCE_FAILED"
+    assert model.requests == []

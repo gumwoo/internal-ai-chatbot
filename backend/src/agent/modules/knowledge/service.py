@@ -374,7 +374,12 @@ class KnowledgeService:
             raise AppError(ErrorCode.RESOURCE_NOT_FOUND) from exc
         async with self._engine.connect() as conn:
             row = (
-                (await conn.execute(text(_EVIDENCE_SQL), {**_acl_params(actor), "passage_id": key}))
+                (
+                    await conn.execute(
+                        text(_EVIDENCE_SQL),
+                        {**_acl_params(actor), "passage_id": key, "now": self._clock.now()},
+                    )
+                )
                 .mappings()
                 .first()
             )
@@ -718,7 +723,7 @@ FROM chunks c
 JOIN parsed_artifacts p ON p.artifact_id = c.artifact_id
 JOIN document_editions e ON e.edition_id = p.edition_id
 JOIN resource_acl a ON a.document_key = e.document_key
-WHERE c.passage_id = :passage_id AND e.edition_state <> 'withdrawn'
+WHERE c.passage_id = :passage_id AND e.edition_state <> 'withdrawn' AND e.available_from <= :now
 """
     + _ACL_CLAUSE
 )

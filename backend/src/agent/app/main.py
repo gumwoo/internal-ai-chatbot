@@ -101,6 +101,7 @@ def create_app(
             model_name=settings.chat_model,
             prompt_version=PROMPT_VERSION,
             retrieval=retrieval,
+            identity=app.state.identity,
         )
         app.state.conversations = service
         # 시작 시 deadline 지난 running을 회수한다(01-run-lifecycle). DB 접속을 기다리느라 시작이 막히지 않게

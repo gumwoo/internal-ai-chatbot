@@ -97,6 +97,7 @@ class ExecutionResult:
     citations: tuple[dict[str, Any], ...] = ()
     action_preview: dict[str, Any] | None = None
     # answer를 누가 썼는가. server_fallback이면 모델이 되묻기 질문을 비워 서버의 일반 문구로 채웠다.
-    answer_source: Literal["model", "server_fallback"] = "model"
+    # server_mapping이면 검색 결과(되묻기·미지원·예산 초과)에 맞춰 서버가 결론과 문구를 바꿨다.
+    answer_source: Literal["model", "server_fallback", "server_mapping"] = "model"
     # 모델 문맥에 들어간 원문 문서 키(인용 여부와 무관). 이력·최종 응답 가림의 기준이다(CT-03).
     document_keys: tuple[str, ...] = ()

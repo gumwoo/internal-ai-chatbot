@@ -38,6 +38,7 @@ from agent.modules.conversation.tables import (
     messages,
     tool_calls,
 )
+from agent.modules.identity_access.service import IdentityService
 from agent.modules.retrieval.service import RetrievalService
 from agent.shared.actor import ActorContext
 from agent.shared.clock import KST, Clock
@@ -123,6 +124,7 @@ class ConversationService:
         policy: ExecutionPolicy | None = None,
         heartbeat_s: float = 15.0,
         retrieval: RetrievalService | None = None,
+        identity: IdentityService | None = None,
     ) -> None:
         self._engine = engine
         self._clock = clock
@@ -134,6 +136,7 @@ class ConversationService:
         self._progress = RunProgress(clock)
         self._heartbeat_s = heartbeat_s
         self._retrieval = retrieval
+        self._identity = identity
 
     async def _visible_docs(self, actor: ActorContext, rows: list[Any]) -> set[str]:
         """메시지들이 의존한 문서 중 지금 actor가 볼 수 있는 키(한 번에 조회)."""
@@ -468,7 +471,7 @@ class ConversationService:
         self, actor: ActorContext, conversation_id: UUID, content: str, accepted: _Accepted, request_id: str
     ) -> bool:
         try:
-            snapshot = await self._snapshot(actor, conversation_id, accepted.user_message_id)
+            snapshot, inherited = await self._snapshot(actor, conversation_id, accepted.user_message_id)
             context = ExecutionContext(
                 request_id=request_id,
                 conversation_id=str(conversation_id),
@@ -489,12 +492,16 @@ class ConversationService:
             # 이력·사본을 읽다 난 DB 오류는 저장소 장애(PERSISTENCE_FAILED)로 남긴다.
             failure = exc if isinstance(exc, AppError) else AppError(ErrorCode.SERVICE_UNAVAILABLE)
             return await self._finish(conversation_id, accepted.run_id, None, failure)
-        return await self._finish(conversation_id, accepted.run_id, result, result.error)
+        return await self._finish(conversation_id, accepted.run_id, result, result.error, inherited)
 
     async def _snapshot(
         self, actor: ActorContext, conversation_id: UUID, user_message_id: UUID
-    ) -> ConversationSnapshot:
-        """CT-03: 이번 질문 전의 최근 메시지(가린 답변 제외)와 receipt로 검증한 업무 상태."""
+    ) -> tuple[ConversationSnapshot, set[str]]:
+        """CT-03: 이번 질문 전의 최근 메시지(가린 답변 제외)와 receipt로 검증한 업무 상태.
+
+        함께 돌려주는 집합은 모델 문맥에 다시 넣은 assistant 메시지들의 의존 자원 합집합이다. 이 run의 답도
+        그 내용에 기댈 수 있으므로 같은 의존을 물려받아 저장한다(권한 철회 시 함께 가려지게).
+        """
         async with self._read() as conn:
             current_seq = await conn.scalar(select(messages.c.seq).where(messages.c.id == user_message_id))
             rows = (
@@ -510,27 +517,31 @@ class ConversationService:
             )
             pairs = await verified_training_pairs(conn, conversation_id)
         visible_docs = await self._visible_docs(actor, [r for r in rows if r.role == "assistant"])
-        history = [
-            HistoryMessage(r.role, r.content)
-            for r in reversed(rows)
-            if r.role == "user" or _can_view(actor, r, visible_docs)
-        ]
+        kept = [r for r in reversed(rows) if r.role == "user" or _can_view(actor, r, visible_docs)]
         # 창이 잘리거나 답이 가려져 첫 메시지가 assistant가 되면 그 앞을 버린다(대화는 user로 시작한다).
-        while history and history[0].role == "assistant":
-            history.pop(0)
+        while kept and kept[0].role == "assistant":
+            kept.pop(0)
+        history = [HistoryMessage(r.role, r.content) for r in kept]
+        inherited = {str(d) for r in kept if r.role == "assistant" for d in (r.dependency_ids or [])}
         state = state or {}
         # receipt로 검증한 사본도 지금 볼 수 없는 자원이면 모델 문맥에 넣지 않는다(CT-03 현재 권한 재검증).
         cache = verified_cache(state, pairs) if _can_view_trainings(actor) else {}
         selected = state.get("selected_training_id")
-        return ConversationSnapshot(
+        snapshot = ConversationSnapshot(
             messages=tuple(history),
             training_cache=cache,
             last_training_ids=tuple(i for i in state.get("last_training_ids", []) if i in cache),
             selected_training_id=selected if selected in cache else None,
         )
+        return snapshot, inherited
 
     async def _finish(
-        self, conversation_id: UUID, run_id: UUID, result: ExecutionResult | None, error: AppError | None
+        self,
+        conversation_id: UUID,
+        run_id: UUID,
+        result: ExecutionResult | None,
+        error: AppError | None,
+        inherited: set[str] | None = None,
     ) -> bool:
         """Finalize(완료) 또는 Fail/Expire. 저장에 성공하면 True. 예외를 밖으로 던지지 않는다."""
         try:
@@ -539,7 +550,9 @@ class ConversationService:
                 await self._lock_conversation(conn, conversation_id)
                 now = self._clock.now()  # 잠금을 얻은 뒤의 시각으로 deadline을 비교한다
                 if result is not None and result.status == "completed":
-                    done = await self._complete(conn, conversation_id, run_id, result, now)
+                    done = await self._complete(
+                        conn, conversation_id, run_id, result, now, inherited or set()
+                    )
                     if not done:
                         # deadline 이후 도착한 결과: 덮어쓰지 않고 만료로 회수한다.
                         logger.info("늦은 완료 무시 run_id=%s", run_id)
@@ -561,6 +574,7 @@ class ConversationService:
         run_id: UUID,
         result: ExecutionResult,
         now: datetime,
+        inherited: set[str] = frozenset(),
     ) -> bool:
         message_id = uuid.uuid4()
         claimed = await conn.scalar(
@@ -601,6 +615,7 @@ class ConversationService:
                         *(r["id"] for r in refs),
                         *(result.context_candidate or {}).get("training_cache", {}),
                         *(f"{_DOC_PREFIX}{key}" for key in result.document_keys),
+                        *inherited,
                     }
                 ),
                 visibility="visible",
@@ -673,7 +688,12 @@ class ConversationService:
             message = (
                 await conn.execute(select(messages).where(messages.c.id == run.assistant_message_id))
             ).one()
-        visible = _can_view(actor, message, await self._visible_docs(actor, [message]))
+        # 실행 도중 부서·역할이 바뀌거나 세션이 회수됐을 수 있다.
+        # 내보내기 직전의 actor로 다시 판정한다(CT-01).
+        current = await self._identity.reload_actor(actor) if self._identity is not None else actor
+        visible = current is not None and _can_view(
+            current, message, await self._visible_docs(current, [message])
+        )
         return MessageResponse(
             200,
             {
