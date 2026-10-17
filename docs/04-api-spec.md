@@ -1,6 +1,6 @@
 # HTTP API 계약
 
-기본 경로 `/api/v1`. JSON UTF-8, 시각 ISO8601+offset, 업무 날짜 ISO date. UUID 자원 식별자와 PDF-번호 source_file_id를 구분한다. 아래는 구현 목표이며 현재 실행되는 백엔드가 아니다.
+기본 경로 `/api/v1`. JSON UTF-8, 시각 ISO8601+offset, 업무 날짜 ISO date. UUID 자원 식별자와 PDF-번호 source_file_id를 구분한다. 아래는 구현 목표다. 현재 실행되는 것은 health와 교육 조회(`/trainings`)뿐이며 나머지 경로는 아직 없다.
 
 ## 공통
 
