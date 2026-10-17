@@ -1,6 +1,6 @@
 # HTTP API 계약
 
-기본 경로 `/api/v1`. JSON UTF-8, 시각 ISO8601+offset, 업무 날짜 ISO date. UUID 자원 식별자와 PDF-번호 source_file_id를 구분한다. 아래는 구현 목표다. 현재 실행되는 것은 health와 교육 조회(`/trainings`)뿐이며 나머지 경로는 아직 없다.
+기본 경로 `/api/v1`. JSON UTF-8, 시각 ISO8601+offset, 업무 날짜 ISO date. UUID 자원 식별자와 PDF-번호 source_file_id를 구분한다. 아래는 구현 목표다. 현재 실행되는 것은 health, 교육 조회(`/trainings`), 대화·메시지·run(`/conversations`, `/runs`, JSON 응답만)이다. 세션·근거/PDF·티켓·진행 상황 스트리밍은 아직 없다.
 
 ## 공통
 
@@ -21,7 +21,7 @@
 }
 ```
 
-message에는 CT-12.safe_message만 매핑한다. stage는 CT-12와 같은 이름을 사용하고 내부 원인은 숨긴다. 같은 자원 종류의 미존재/접근 불가는 code·message·stage·HTTP를 동일하게 만든다. 대화/메시지/run/세션/티켓/action/근거/PDF 응답은 `Cache-Control: private, no-store`다. UI의 메모리 캐시도 로그아웃·권한 변경에서 지운다.
+메시지 POST가 run을 수락한 뒤의 실패·만료(최초 응답과 재전송 모두)는 최상위에 `run_id`를 함께 둔다. 그 밖의 오류에는 없다. message에는 CT-12.safe_message만 매핑한다. stage는 CT-12와 같은 이름을 사용하고 내부 원인은 숨긴다. 같은 자원 종류의 미존재/접근 불가는 code·message·stage·HTTP를 동일하게 만든다. 대화/메시지/run/세션/티켓/action/근거/PDF 응답은 `Cache-Control: private, no-store`다. UI의 메모리 캐시도 로그아웃·권한 변경에서 지운다.
 
 ## 세션 — MOD-09
 

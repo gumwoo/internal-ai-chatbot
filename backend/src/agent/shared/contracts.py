@@ -85,6 +85,8 @@ class ExecutionContext:
     policy: ExecutionPolicy = field(default_factory=ExecutionPolicy)
     retrieval_context: RetrievalContext = field(default_factory=RetrievalContext)
     timezone: str = "Asia/Seoul"
+    # 영속 deadline(서버 시각). 프로세스 재시작 뒤 회수의 기준이다. MOD-01이 수락 때 고정한다.
+    deadline_at: datetime | None = None
 
 
 @dataclass(frozen=True)

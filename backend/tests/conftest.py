@@ -107,7 +107,12 @@ async def seeded_engine(migrated: str) -> AsyncIterator[AsyncEngine]:
     """교육 테이블을 비우고 고정 기준 시각(2026-10-16 10:00 KST)의 fixture로 채운다."""
     engine = make_engine(migrated)
     async with engine.begin() as conn:
-        await conn.execute(text("TRUNCATE trainings, training_fixture_loads"))
+        await conn.execute(
+            text(
+                "TRUNCATE trainings, training_fixture_loads, tool_result_receipts, tool_calls,"
+                " message_receipts, messages, agent_runs, conversations"
+            )
+        )
     await load_demo_trainings(
         engine, anchor_date=date(2026, 10, 16), fixture_mode="fixed_status", now=FIXTURE_NOW
     )

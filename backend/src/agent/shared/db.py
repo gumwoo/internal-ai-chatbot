@@ -13,7 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async
 def make_engine(url: str, connect_timeout_s: float = 5.0) -> AsyncEngine:
     # libpq connect_timeout은 정수 초이고 2초 미만은 2초로 본다.
     timeout = max(2, math.ceil(connect_timeout_s))
-    return create_async_engine(url, pool_pre_ping=True, connect_args={"connect_timeout": timeout})
+    # hide_parameters: DB 오류 메시지에 SQL 파라미터(답변 본문·입력)가 실려 로그로 새지 않게 한다(T-03).
+    return create_async_engine(
+        url, pool_pre_ping=True, hide_parameters=True, connect_args={"connect_timeout": timeout}
+    )
 
 
 def make_session_factory(engine: AsyncEngine) -> async_sessionmaker:

@@ -188,7 +188,13 @@ class AgentRuntime:
         messages = [ModelMessage(role=m.role, text=m.text) for m in history]
         messages.append(ModelMessage(role="user", text=message))
         tools = self._tools.describe_allowed_tools(run.context)
-        system = system_prompt(run.context.current_time)
+        snapshot = run.snapshot
+        system = system_prompt(
+            run.context.current_time,
+            snapshot.training_cache,
+            snapshot.last_training_ids,
+            snapshot.selected_training_id,
+        )
 
         while True:
             response = await self._call_model(run, tuple(messages), tools, system)

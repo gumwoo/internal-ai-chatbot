@@ -178,6 +178,7 @@ class AppError(Exception):
         retryable: bool = False,
         details: dict[str, Any] | None = None,
         internal_cause_id: str | None = None,
+        run_id: str | None = None,
     ) -> None:
         if code not in ERROR_TABLE:
             raise ValueError(f"닫힌 오류 사전에 없는 코드: {code}")
@@ -188,12 +189,14 @@ class AppError(Exception):
         self.retryable = retryable
         self.details = details
         self.internal_cause_id = internal_cause_id
+        # 메시지 POST가 run을 수락한 뒤의 오류에만 붙인다. 클라이언트가 GET run으로 상태를 확인할 수 있다.
+        self.run_id = run_id
         self.safe_message = _SAFE_BY_STATUS[self.http_status]
         super().__init__(code.value)
 
     def to_envelope(self, request_id: str) -> dict[str, Any]:
-        """HTTP 오류 envelope. internal_cause_id는 내보내지 않는다."""
-        return {
+        """HTTP 오류 envelope. internal_cause_id는 내보내지 않는다. run_id는 있을 때만 최상위에 둔다."""
+        envelope: dict[str, Any] = {
             "error": {
                 "code": self.code.value,
                 "message": self.safe_message,
@@ -203,3 +206,6 @@ class AppError(Exception):
             },
             "request_id": request_id,
         }
+        if self.run_id is not None:
+            envelope["run_id"] = self.run_id
+        return envelope

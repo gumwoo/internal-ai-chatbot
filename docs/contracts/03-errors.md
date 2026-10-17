@@ -5,7 +5,7 @@
 ## 구조
 
 AppError=`code,safe_message,stage,retryable,details,internal_cause_id`.
-HTTP error=`code,message,stage,retryable,details`이며 message=safe_message, internal_cause_id는 제외한다. details는 null 또는 코드별 허용 객체다. ACTION_SUPERSEDED/ACTION_HEAD_CONFLICT는 본인 자격 확인 뒤 `{current_action_id,head_revision}`, 필드 오류는 `{field_names}`만 허용한다. 미존재/불허는 details=null이며 제한 ID/제목/원문을 넣지 않는다. 버전 충돌도 타인 여부가 확인되기 전에는 노출하지 않는다. details에 임의 키를 넣지 않는다.
+HTTP error=`code,message,stage,retryable,details`이며 message=safe_message, internal_cause_id는 제외한다. 메시지 POST의 수락 후 실패·만료 응답은 envelope 최상위에 `run_id`를 더한다([API](../04-api-spec.md)). details는 null 또는 코드별 허용 객체다. ACTION_SUPERSEDED/ACTION_HEAD_CONFLICT는 본인 자격 확인 뒤 `{current_action_id,head_revision}`, 필드 오류는 `{field_names}`만 허용한다. 미존재/불허는 details=null이며 제한 ID/제목/원문을 넣지 않는다. 버전 충돌도 타인 여부가 확인되기 전에는 노출하지 않는다. details에 임의 키를 넣지 않는다.
 
 stage enum=`validation|auth|execution|search|wiki|model|tool|persistence|confirmation`.
 

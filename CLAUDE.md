@@ -4,7 +4,7 @@
 
 ## 현재 상태
 
-- M1 코드까지 있다(`backend/`): MOD-04 교육 조회·HTTP, MOD-07 Anthropic 어댑터(thinking 끔), MOD-03 도구 2개, MOD-02 실행 반복·상한·근거 원장(메모리 observer). 대화 저장·receipt·복구(MOD-01)는 M2, RAG·Wiki·프런트는 아직 없다(`docs/08-development-plan.md`).
+- M2 코드까지 있다(`backend/`): MOD-04 교육 조회, MOD-07 Anthropic 어댑터(thinking 끔), MOD-03 도구 2개, MOD-02 실행 반복·상한·근거 원장, MOD-01 대화 저장·멱등 재전송·만료 회수·영속 observer·검증된 사본(CP-07 최소형). 진행 상황 스트리밍(SSE), RAG·Wiki·티켓·프런트는 아직 없다(`docs/08-development-plan.md`).
 - 실제 모델 호출은 과금된다. `ask --live`와 `pytest -m live_model`은 사용자 승인 후에만 실행한다.
 - 도구는 uv · SQLAlchemy 2 + Alembic · psycopg 3 · pytest · ruff, 프런트는 Vite + React + TS다(D-26). 서버는 비동기(D-28), Python 3.13.
 - 코드 위치: 공통 계약은 `backend/src/agent/shared/`, 업무 모듈은 `backend/src/agent/modules/<패키지>/`, 앱 조립은 `backend/src/agent/app/`. 모듈 import 방향은 `tests/test_module_boundaries.py`가 검사한다.
