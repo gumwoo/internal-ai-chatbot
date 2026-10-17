@@ -4,7 +4,7 @@ const {chromium}=require("playwright");
 const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const path=require("node:path");
-const base=process.env.PROTOTYPE_URL||"http://127.0.0.1:8787/prototypes/education-agent/";
+const base=process.env.PROTOTYPE_URL||"http://127.0.0.1:8787/prototypes/work-assistant/";
 if(!process.env.PROTOTYPE_RESULTS_DIR)throw new Error("Set PROTOTYPE_RESULTS_DIR explicitly; historical results must not be overwritten.");
 const output=path.resolve(process.env.PROTOTYPE_RESULTS_DIR);
 console.log("Verified output path: "+output);

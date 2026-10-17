@@ -4,7 +4,7 @@
 
 1. 저장소 루트에서 `python -m http.server 8787 --bind 127.0.0.1` 실행(기존 서버가 있으면 재사용).
 2. **먼저 결과 경로를 명시한다.** PowerShell 예: `$env:PROTOTYPE_RESULTS_DIR=Join-Path ([System.IO.Path]::GetTempPath()) ("llm-api-review-"+[guid]::NewGuid().ToString("N"))`. 스크립트가 절대 출력 경로를 표시하며 미설정 시 실행을 거절한다. 기존54개 보고서를 덮어쓰지 않는다.
-3. Playwright가 설치된 Node 환경에서 `node prototypes/education-agent/tests/browser-flows.cjs` 실행. 일반 설치는 `npm install --no-save playwright`와 `npx playwright install chromium`이다.
+3. Playwright가 설치된 Node 환경에서 `node prototypes/work-assistant/tests/browser-flows.cjs` 실행. 일반 설치는 `npm install --no-save playwright`와 `npx playwright install chromium`이다.
 4. 설치된 Chrome을 사용하면 PowerShell에서 `$env:PLAYWRIGHT_CHROMIUM_EXECUTABLE='C:/Program Files/Google/Chrome/Application/chrome.exe'`로 지정한다. 별도 Node 라이브러리 경로는 NODE_PATH로 지정할 수 있다. URL 변경은 PROTOTYPE_URL을 사용한다.
 5. 저장소 루트에서 `python -B scripts/check_specs.py`로 문서 링크/JSON/계약 필드·PDF 해시 목록을 확인한다.
 

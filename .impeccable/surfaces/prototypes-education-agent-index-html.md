@@ -1,8 +1,8 @@
 ---
 version: 1
 slug: "prototypes-education-agent-index-html"
-primary_target: "prototypes/education-agent/index.html"
-related_targets: ["prototypes/education-agent/styles.css","prototypes/education-agent/app.js"]
+primary_target: "prototypes/work-assistant/index.html"
+related_targets: ["prototypes/work-assistant/styles.css","prototypes/work-assistant/app.js"]
 ---
 
 # 통합 업무지원 시안 확장

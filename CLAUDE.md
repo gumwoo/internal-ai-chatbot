@@ -46,6 +46,6 @@ P-xx(정책)와 CP-xx(공통 포트)는 다른 체계다.
 SPEC_RESULTS_DIR="$TEMP/spec-results" python -B scripts/check_specs.py
 ```
 
-정적 시안 테스트: `prototypes/education-agent/tests/README.md` 참조(`PROTOTYPE_RESULTS_DIR`는 저장소 밖).
+정적 시안 테스트: `prototypes/work-assistant/tests/README.md` 참조(`PROTOTYPE_RESULTS_DIR`는 저장소 밖).
 
 백엔드·프런트 실행/테스트: M0 구현 후 추가.

@@ -32,8 +32,8 @@ HTTP는 [API 명세](docs/04-api-spec.md), 데이터 소유권은 [데이터 모
 
 ## UI 시안
 
-[통합 업무지원 화면 시안](prototypes/education-agent/README.md)은 기존 배치·색감을 유지하고 규정/PDF 출처, 사건 날짜 기준의 과거 규정, IT 요청 입력·확인·접수 예시를 클릭할 수 있게 확장했습니다. [사용 순서](docs/ui/02-prototype-walkthrough.md)와 [화면 요구사항](docs/ui/01-screen-proposal.md)을 확인합니다. 실제 AI·인증·DB·접수 기능은 없습니다. React·TypeScript / FastAPI / PostgreSQL·pgvector / Docker Compose 방향을 유지합니다.
+[통합 업무지원 화면 시안](prototypes/work-assistant/README.md)은 기존 배치·색감을 유지하고 규정/PDF 출처, 사건 날짜 기준의 과거 규정, IT 요청 입력·확인·접수 예시를 클릭할 수 있게 확장했습니다. [사용 순서](docs/ui/02-prototype-walkthrough.md)와 [화면 요구사항](docs/ui/01-screen-proposal.md)을 확인합니다. 실제 AI·인증·DB·접수 기능은 없습니다. React·TypeScript / FastAPI / PostgreSQL·pgvector / Docker Compose 방향을 유지합니다.
 
 ## 3차 검토 보정
 
-[정책 선택 기록](docs/15-policy-options.md), [닫힌 오류 사전](docs/contracts/03-errors.md), [입력 출처 계약](docs/contracts/04-field-origins.md), [안내 판본·경과조항·검색 병합](docs/contracts/05-retrieval-assembly.md)을 추가했다. 최종 근거5개 고정 상한은 폐지하고 필요한 조건/예외의 support_group과 공통 token 예산을 사용한다. [시안 회귀 테스트](prototypes/education-agent/tests/README.md)는 결과 경로를 명시해 과거 보고서를 보존한다.
+[정책 선택 기록](docs/15-policy-options.md), [닫힌 오류 사전](docs/contracts/03-errors.md), [입력 출처 계약](docs/contracts/04-field-origins.md), [안내 판본·경과조항·검색 병합](docs/contracts/05-retrieval-assembly.md)을 추가했다. 최종 근거5개 고정 상한은 폐지하고 필요한 조건/예외의 support_group과 공통 token 예산을 사용한다. [시안 회귀 테스트](prototypes/work-assistant/tests/README.md)는 결과 경로를 명시해 과거 보고서를 보존한다.

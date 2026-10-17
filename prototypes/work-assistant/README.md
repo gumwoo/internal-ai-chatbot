@@ -4,7 +4,7 @@
 
 ## 실행
 
-워크스페이스 루트를 정적 서버의 루트로 열어야 PDF 상대 링크도 동작한다. 현재 미리보기는 http://127.0.0.1:8787/prototypes/education-agent/ 이다. 서버가 종료되면 `C:\LLM-API`에서 `python -m http.server 8787 --bind 127.0.0.1 --directory C:\LLM-API`로 다시 열 수 있다. 이는 파일 제공용 정적 서버이며 업무 API가 아니다.
+워크스페이스 루트를 정적 서버의 루트로 열어야 PDF 상대 링크도 동작한다. 현재 미리보기는 http://127.0.0.1:8787/prototypes/work-assistant/ 이다. 서버가 종료되면 `C:\LLM-API`에서 `python -m http.server 8787 --bind 127.0.0.1 --directory C:\LLM-API`로 다시 열 수 있다. 이는 파일 제공용 정적 서버이며 업무 API가 아니다.
 
 ## 눌러볼 흐름
 

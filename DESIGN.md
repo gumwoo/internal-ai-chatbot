@@ -1,7 +1,7 @@
 > 적용 범위: 기존 정적 시안의 시각 기준이다. 통합 업무지원의 기능 요구사항은 [UI 명세](docs/ui/01-screen-proposal.md)에 정의한다. 2026-10-17 사용자 승인 보정으로 입력 경계 토큰을 추가했으며 그 외 시각 방향은 유지한다.
 
 ---
-name: "교육 업무 도우미 · 검토용 시안"
+name: "사내 업무 도우미 · 검토용 시안"
 description: "구현된 정적 시안의 시각 기준; 최종 디자인 승인 및 서비스 구현과 구분한다."
 colors:
   ink: "#202a34"
@@ -110,13 +110,13 @@ components:
     width: "100%"
 ---
 
-# Design System: 교육 업무 도우미 · 검토용 시안
+# Design System: 사내 업무 도우미 · 검토용 시안
 
 ## Overview
 
 **Creative North Star: "밝고 차분한 업무 도구"**
 
-이 문서는 `prototypes/education-agent/`의 검토용 정적 시안에서 추출한 시각 기준이다. 서비스 구현 완료나 사용자의 최종 색상 승인을 뜻하지 않는다. PC 우선·모바일 기본 지원과 대화 목록·중앙 대화·선택적 근거 영역은 수락한 방향이며, 아래 색·간격·세부 모양은 사용자 디자인 검토를 기다리는 현재 구현값이다.
+이 문서는 `prototypes/work-assistant/`의 검토용 정적 시안에서 추출한 시각 기준이다. 서비스 구현 완료나 사용자의 최종 색상 승인을 뜻하지 않는다. PC 우선·모바일 기본 지원과 대화 목록·중앙 대화·선택적 근거 영역은 수락한 방향이며, 아래 색·간격·세부 모양은 사용자 디자인 검토를 기다리는 현재 구현값이다.
 
 Operate 모드의 밝고 차분한 업무 도구다. 흰 읽기 영역과 옅은 회청색 탐색 영역을 얇은 선으로 구분하고, 절제한 청색으로 선택과 동작을 표시한다. 한국어 시스템 산세리프는 긴 답변과 일정 비교를 위한 의도적인 선택이다. 별도의 브랜드 은유나 확정 기업 아이덴티티를 부여하지 않는다.
 
@@ -127,7 +127,7 @@ Operate 모드의 밝고 차분한 업무 도구다. 흰 읽기 영역과 옅은
 - 평면 배경, 얇은 구분선, 단일 청색 강조
 - 가상 데이터와 화면 시안 범위의 지속적인 표시
 
-추출 근거: [현재 스타일](prototypes/education-agent/styles.css), [화면 구조](prototypes/education-agent/index.html), [로컬 상태](prototypes/education-agent/app.js). 범위는 [제품 맥락](PRODUCT.md)과 [수락한 화면 방향](docs/ui/01-screen-proposal.md)을 따른다. [검토 결과](.impeccable/review/reviewer-result.md)의 ship은 정적 시안 범위의 판정이다.
+추출 근거: [현재 스타일](prototypes/work-assistant/styles.css), [화면 구조](prototypes/work-assistant/index.html), [로컬 상태](prototypes/work-assistant/app.js). 범위는 [제품 맥락](PRODUCT.md)과 [수락한 화면 방향](docs/ui/01-screen-proposal.md)을 따른다. [검토 결과](.impeccable/review/reviewer-result.md)의 ship은 정적 시안 범위의 판정이다.
 
 ## Colors
 
