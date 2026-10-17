@@ -40,6 +40,7 @@ from agent.shared.clock import Clock
 from agent.shared.contracts import (
     ExecutionContext,
     ExecutionObserver,
+    ProgressStage,
     RequiredRecordError,
     ToolCallProposal,
     ToolCallRecord,
@@ -53,6 +54,11 @@ logger = logging.getLogger(__name__)
 # 재시도해도 남은 도구 장애. 모델에 되돌려 보정할 대상이 아니라 실행 실패다.
 _INFRA_TOOL_ERRORS = frozenset({ErrorCode.TOOL_EXECUTION_FAILED, ErrorCode.TOOL_TIMEOUT})
 _TRAINING_SUMMARY_KEYS = ("id", "code", "title", "starts_at", "ends_at", "location", "status")
+# 도구 이름 → 진행 단계. 목록에 없는 이름(미등록 도구 제안)은 단계를 남기지 않는다.
+_TOOL_STAGES = {
+    "list_trainings": ProgressStage.TRAINING_LOOKUP,
+    "get_training": ProgressStage.TRAINING_LOOKUP,
+}
 
 
 @dataclass
@@ -130,6 +136,14 @@ def _next_cache(
     order += referenced
     keep = order[-run.context.policy.training_cache_size :]
     return {i: allowed[i] for i in keep}
+
+
+async def _stage(run: _Run, stage: ProgressStage) -> None:
+    """진행 단계를 남긴다. 필수 기록이 아니라 실패해도 실행을 계속한다(진단 로그만)."""
+    try:
+        await run.observer.record_stage(run.context.run_id, stage)
+    except Exception as exc:
+        logger.warning("진행 단계 기록 실패 run_id=%s error=%s", run.context.run_id, type(exc).__name__)
 
 
 # 모델이 되묻기 판단만 하고 질문 문장을 비운 경우 쓰는 일반 문구(TS-19). 특정 교육을 지어내지 않는다.
@@ -218,7 +232,7 @@ class AgentRuntime:
         while True:
             response = await self._call_model(run, tuple(messages), tools, system)
             if not response.wants_tools:
-                return self._finish(run, response)
+                return await self._finish(run, response)
             results: list[ToolResultContent] = []
             for proposal in response.tool_proposals:
                 # 무효 인자·미등록 도구도 제안 수에 포함한다(T-09).
@@ -249,6 +263,7 @@ class AgentRuntime:
                 raise AppError(ErrorCode.RUN_TIMEOUT)
             timeout = min(policy.model_timeout_s, remaining)
             run.model_attempts += 1
+            await _stage(run, ProgressStage.MODEL_WAITING)
             request = ModelRequest(
                 purpose="agent_answer",
                 messages=messages,
@@ -278,6 +293,9 @@ class AgentRuntime:
     async def _call_tool(self, run: _Run, proposal: ToolCallProposal, ordinal: int) -> ToolResult:
         policy = run.context.policy
         attempt = 0
+        stage = _TOOL_STAGES.get(proposal.name)
+        if stage is not None:
+            await _stage(run, stage)
         while True:
             attempt += 1
             started = self._clock.monotonic()
@@ -319,9 +337,10 @@ class AgentRuntime:
                 raise result.error
             return result
 
-    def _finish(self, run: _Run, response: ModelResponse) -> ExecutionResult:
+    async def _finish(self, run: _Run, response: ModelResponse) -> ExecutionResult:
         if response.final_candidate is None:
             raise _output_invalid(run, "final candidate missing")
+        await _stage(run, ProgressStage.VERIFYING)
         candidate, answer_source = _fill_empty_clarification(run, response.final_candidate)
         try:
             final = FinalCandidate.model_validate(candidate)

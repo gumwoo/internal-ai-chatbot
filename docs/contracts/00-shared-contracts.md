@@ -76,7 +76,7 @@ MOD-06→05. 사용자 manifest, PDF SHA-256, 원본 안전 경로, parser/confi
 
 ## CT-11 ExecutionObserver
 
-MOD-02가 요구하고 MOD-01 어댑터가 구현한다. MOD-02는 CT-06의 ToolExecutionInput으로 같은 observer를 MOD-03에 넘긴다. 작업은 RecordToolCall(모든 도구 시도, MOD-02)과 RecordTrainingResult(MOD-04 결과 receipt, MOD-03)다. run/ordinal/이름/허용된 인자 요약/시도 수/시간/오류 단계/반환 자원 ID를 기록한다. `(run_id,ordinal)` 멱등 기록. 필수 기록 실패는 추가 모델·도구 호출을 중단한다. 일반 진단 로그 실패와 구분한다. 이미 만료된 run의 늦은 이벤트가 활성 상태를 변경하지 않는다.
+MOD-02가 요구하고 MOD-01 어댑터가 구현한다. MOD-02는 CT-06의 ToolExecutionInput으로 같은 observer를 MOD-03에 넘긴다. 작업은 RecordToolCall(모든 도구 시도, MOD-02)과 RecordTrainingResult(MOD-04 결과 receipt, MOD-03), RecordStage(진행 단계, MOD-02)다. RecordStage는 run_id와 닫힌 stage 값(accepted/model_waiting/training_lookup/document_search/ticket_lookup/ticket_prepare/verifying)만 받으며 필수 기록이 아니다. 실패해도 실행을 멈추지 않고, 저장하지 않으며 같은 프로세스의 진행 스트림(MOD-01 StreamRunProgress)에만 넘긴다. run/ordinal/이름/허용된 인자 요약/시도 수/시간/오류 단계/반환 자원 ID를 기록한다. `(run_id,ordinal)` 멱등 기록. 필수 기록 실패는 추가 모델·도구 호출을 중단한다. 일반 진단 로그 실패와 구분한다. 이미 만료된 run의 늦은 이벤트가 활성 상태를 변경하지 않는다.
 
 ## CT-12 AppError
 

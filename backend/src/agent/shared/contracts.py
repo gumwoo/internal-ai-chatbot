@@ -6,6 +6,7 @@ CT-02 ExecutionContext, CT-06 ToolCallProposal/ToolResult/ToolExecutionInput, CT
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import StrEnum
 from typing import Any, Protocol
 
 from agent.shared.actor import ActorContext
@@ -115,6 +116,18 @@ class TrainingResultReceipt:
     result_hash: str
 
 
+class ProgressStage(StrEnum):
+    """진행 이벤트의 닫힌 단계(04-api-spec 진행 상황 스트리밍). 인자·제목·결과 수는 담지 않는다."""
+
+    ACCEPTED = "accepted"
+    MODEL_WAITING = "model_waiting"
+    TRAINING_LOOKUP = "training_lookup"
+    DOCUMENT_SEARCH = "document_search"
+    TICKET_LOOKUP = "ticket_lookup"
+    TICKET_PREPARE = "ticket_prepare"
+    VERIFYING = "verifying"
+
+
 class RequiredRecordError(Exception):
     """필수 기록 저장 실패. 추가 모델·도구 호출을 멈추고 실행을 실패로 끝내야 한다(CT-11)."""
 
@@ -125,6 +138,10 @@ class ExecutionObserver(Protocol):
     async def record_tool_call(self, record: ToolCallRecord) -> None: ...
 
     async def record_training_result(self, receipt: TrainingResultReceipt) -> None: ...
+
+    async def record_stage(self, run_id: str, stage: ProgressStage) -> None:
+        """진행 단계 기록(RecordStage). 필수 기록이 아니다. 실패해도 실행을 멈추지 않는다."""
+        ...
 
 
 @dataclass(frozen=True)

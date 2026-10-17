@@ -13,6 +13,7 @@ import asyncio
 import hashlib
 import logging
 import uuid
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
@@ -28,6 +29,7 @@ from agent.modules.agent_runtime.contracts import (
     HistoryMessage,
 )
 from agent.modules.agent_runtime.runtime import AgentRuntime
+from agent.modules.conversation.progress import RunProgress, progress_events
 from agent.modules.conversation.records import DbExecutionObserver, verified_cache, verified_training_pairs
 from agent.modules.conversation.tables import (
     agent_runs,
@@ -38,7 +40,7 @@ from agent.modules.conversation.tables import (
 )
 from agent.shared.actor import ActorContext
 from agent.shared.clock import KST, Clock
-from agent.shared.contracts import ExecutionContext, ExecutionPolicy, RetrievalContext
+from agent.shared.contracts import ExecutionContext, ExecutionPolicy, ProgressStage, RetrievalContext
 from agent.shared.errors import AppError, ErrorCode
 
 logger = logging.getLogger(__name__)
@@ -59,6 +61,11 @@ class MessageResponse:
 
     status_code: int
     body: dict[str, Any]
+
+
+# SSE 이벤트: ("progress", {run_id, seq, stage}) · ("heartbeat", None) · ("result", 본문)
+# · ("error", AppError).
+StreamEvent = tuple[str, Any]
 
 
 @dataclass(frozen=True)
@@ -102,6 +109,7 @@ class ConversationService:
         model_name: str,
         prompt_version: str,
         policy: ExecutionPolicy | None = None,
+        heartbeat_s: float = 15.0,
     ) -> None:
         self._engine = engine
         self._clock = clock
@@ -110,6 +118,8 @@ class ConversationService:
         self._prompt_version = prompt_version
         self._policy = policy or ExecutionPolicy()
         self._tasks: set[asyncio.Task] = set()
+        self._progress = RunProgress(clock)
+        self._heartbeat_s = heartbeat_s
 
     # --- 대화 ---
 
@@ -259,15 +269,59 @@ class ConversationService:
         accepted = await self._accept(actor, conversation_id, content, idempotency_key, request_id)
         if not isinstance(accepted, _Accepted):
             return await self._respond(actor, accepted)
-        # 실행은 별도 task로 돌린다. HTTP 연결이 끊기거나 요청이 취소돼도 실행·완료 commit은 계속된다.
-        task = asyncio.create_task(self._execute(actor, conversation_id, content, accepted, request_id))
-        self._tasks.add(task)
-        task.add_done_callback(self._tasks.discard)
+        task = self._start(actor, conversation_id, content, accepted, request_id)
         finished = await asyncio.shield(task)
         if not finished:
             # 최종 commit 실패: 성공도 "실행 중"도 아니다. run은 deadline 뒤 회수된다(T-03).
             raise AppError(ErrorCode.PERSISTENCE_FAILED, retryable=True, run_id=str(accepted.run_id))
         return await self._respond(actor, accepted.run_id)
+
+    async def stream_message(
+        self, actor: ActorContext, conversation_id: UUID, content: str, idempotency_key: UUID, request_id: str
+    ) -> MessageResponse | AsyncIterator[StreamEvent]:
+        """StreamRunProgress. 새로 수락한 실행만 이벤트 스트림을 돌려준다.
+
+        수락·409·replay 규칙은 post_message와 같다. 같은 키 재전송은 SSE를 다시 열지 않고 JSON 응답
+        (실행 중 202, 종료 200 또는 저장된 오류)을 돌려준다. 수락 전 오류는 AppError로 던진다.
+        """
+        accepted = await self._accept(actor, conversation_id, content, idempotency_key, request_id)
+        if not isinstance(accepted, _Accepted):
+            return await self._respond(actor, accepted)
+        run_id = str(accepted.run_id)
+        channel = self._progress.open(run_id, accepted.deadline_monotonic)
+        self._progress.publish(run_id, ProgressStage.ACCEPTED)
+        task = self._start(actor, conversation_id, content, accepted, request_id)
+        return self._stream_events(actor, accepted.run_id, channel, task)
+
+    async def _stream_events(
+        self, actor: ActorContext, run_id: UUID, channel: Any, task: asyncio.Task
+    ) -> AsyncIterator[StreamEvent]:
+        try:
+            async for event in progress_events(channel, task, self._heartbeat_s):
+                yield ("heartbeat", None) if event is None else ("progress", event)
+            if not task.result():
+                yield ("error", AppError(ErrorCode.PERSISTENCE_FAILED, retryable=True, run_id=str(run_id)))
+                return
+            try:
+                response = await self._respond(actor, run_id)
+            except AppError as error:
+                # 실패·만료 run: JSON 요청과 같은 오류 envelope(가능한 run_id 포함).
+                yield ("error", error)
+                return
+            # 종료 저장 뒤 현재 권한으로 다시 만든 JSON 200과 같은 본문을 한 번만 보낸다.
+            yield ("result", response.body)
+        finally:
+            # 연결이 끊겨 중간에 멈춰도 실행 task는 취소하지 않는다. 채널만 닫는다.
+            self._progress.close(str(run_id))
+
+    def _start(
+        self, actor: ActorContext, conversation_id: UUID, content: str, accepted: _Accepted, request_id: str
+    ) -> asyncio.Task:
+        # 실행은 별도 task로 돌린다. HTTP 연결이 끊기거나 요청이 취소돼도 실행·완료 commit은 계속된다.
+        task = asyncio.create_task(self._execute(actor, conversation_id, content, accepted, request_id))
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.discard)
+        return task
 
     async def _accept(
         self, actor: ActorContext, conversation_id: UUID, content: str, key: UUID, request_id: str
@@ -367,6 +421,15 @@ class ConversationService:
     ) -> bool:
         """실행하고 종료 상태를 저장한다. 종료 저장에 성공하면 True."""
         try:
+            return await self._execute_and_finish(actor, conversation_id, content, accepted, request_id)
+        finally:
+            # 종료 저장 뒤의 늦은 단계는 보내지 않는다.
+            self._progress.close(str(accepted.run_id))
+
+    async def _execute_and_finish(
+        self, actor: ActorContext, conversation_id: UUID, content: str, accepted: _Accepted, request_id: str
+    ) -> bool:
+        try:
             snapshot = await self._snapshot(actor, conversation_id, accepted.user_message_id)
             context = ExecutionContext(
                 request_id=request_id,
@@ -380,7 +443,7 @@ class ConversationService:
                 retrieval_context=RetrievalContext(),
             )
             result = await self._runtime.execute(
-                context, snapshot, content, DbExecutionObserver(self._engine)
+                context, snapshot, content, DbExecutionObserver(self._engine, self._progress)
             )
         except Exception as exc:
             # 실행 준비 중 예기치 못한 오류. 예외 메시지에는 입력·본문이 실릴 수 있어 종류만 남긴다(T-03).
@@ -444,8 +507,9 @@ class ConversationService:
                         await self._expire_runs(conn, now, run_id=run_id)
                 else:
                     await self._fail(conn, conversation_id, run_id, result, error, now)
-        except (AppError, SQLAlchemyError, OSError) as exc:
+        except Exception as exc:
             # 최종 commit 실패: 성공으로 응답하지 않는다. run은 running으로 남고 deadline 뒤 회수된다.
+            # 예상 밖 예외(프로그래밍 오류)도 같은 실패로 다룬다(JSON·SSE 모두 run_id 붙은 오류 하나).
             # 예외 메시지·traceback에는 답변 본문이 실릴 수 있어 종류만 남긴다(T-03).
             logger.error("실행 종료 저장 실패 run_id=%s error=%s", run_id, _error_kind(exc))
             return False

@@ -19,7 +19,7 @@ conversations/messages/message_receipts/agent_runs/tool_calls/tool_result_receip
 | RecordToolCall | CT-11 이벤트 | run/ordinal 기준 필수 기록 |
 | RecoverExpiredRuns | 서버 현재 시각·선택 대화/run | deadline 지난 running 종료·해제; 시작/조회/수락에 사용 |
 | CheckPrepare/CheckActionOrigin | CP-06의 actor·conversation·run/action | 현재 run 자격·채택된 원본 action 읽기 판정 |
-| StreamRunProgress | actor·소유 run | M2 이후. CT-11로 기록된 단계만 progress로 보내고, Finalize 뒤 같은 최종 응답을 result로 한 번 보냄. 내용·인자·결과 수 미포함 |
+| StreamRunProgress | actor·소유 run | M2 이후. 새로 수락한 실행에만 채널을 연다(같은 키 재전송은 JSON). accepted는 MOD-01이, 나머지는 CT-11 RecordStage로 기록된 단계만 progress로 보내고, deadline 뒤·종료 저장 뒤의 단계는 버린다. Finalize 뒤 같은 최종 응답을 result로 한 번 보냄. 내용·인자·결과 수 미포함 |
 
 ## 협력
 

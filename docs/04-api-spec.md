@@ -1,6 +1,6 @@
 # HTTP API 계약
 
-기본 경로 `/api/v1`. JSON UTF-8, 시각 ISO8601+offset, 업무 날짜 ISO date. UUID 자원 식별자와 PDF-번호 source_file_id를 구분한다. 아래는 구현 목표다. 현재 실행되는 것은 health, 교육 조회(`/trainings`), 대화·메시지·run(`/conversations`, `/runs`, JSON 응답만)이다. 세션·근거/PDF·티켓·진행 상황 스트리밍은 아직 없다.
+기본 경로 `/api/v1`. JSON UTF-8, 시각 ISO8601+offset, 업무 날짜 ISO date. UUID 자원 식별자와 PDF-번호 source_file_id를 구분한다. 아래는 구현 목표다. 현재 실행되는 것은 health, 교육 조회(`/trainings`), 대화·메시지·run(`/conversations`, `/runs`)과 메시지 POST의 진행 상황 스트리밍(SSE)이다. 세션·근거/PDF·티켓은 아직 없다.
 
 ## 공통
 
@@ -54,7 +54,7 @@
 
 - `progress` 이벤트: `{run_id, seq, stage}`. stage 닫힌 값은 accepted/model_waiting/training_lookup/document_search/ticket_lookup/ticket_prepare/verifying이다. 서버가 CT-11 observer로 실제 기록한 단계만 보낸다. 도구 인자·문서 제목·검색 결과 수·답변 일부는 넣지 않는다(결과 수는 제한 문서의 존재를 짐작하게 할 수 있다).
 - 종료 이벤트는 정확히 하나다. `result`는 JSON 200 응답과 같은 본문이며 권한 재확인·인용 검증·commit 뒤에만 보낸다. `error`는 오류 envelope와 같은 내용이다.
-- 15초마다 heartbeat 주석 줄을 보내 연결을 유지한다. 연결이 끊겨도 실행을 취소하지 않으며 UI는 기존처럼 GET run 후 동일 키 POST replay로 최종 결과를 받는다. 실행 중 replay는 SSE를 다시 열지 않고 JSON 202를 반환한다.
+- 15초마다 heartbeat 주석 줄을 보내 연결을 유지한다. 연결이 끊겨도 실행을 취소하지 않으며 UI는 기존처럼 GET run 후 동일 키 POST replay로 최종 결과를 받는다. 실행 중 replay는 SSE를 다시 열지 않고 JSON 202를 반환한다. 종료된 run의 replay도 SSE가 아니라 JSON 요청과 같은 응답(200 또는 저장된 오류)이다. 수락 전 오류(404·409·422)는 스트림을 열지 않고 JSON 오류로 반환한다.
 - 만료·종료된 run의 늦은 단계는 보내지 않는다. 다른 사용자의 run은 동일404다.
 
 메시지 성공 응답은 `conversation_id,run_id,message_id,status,outcome,answer,training_refs,ticket_refs,citations,action_preview,error`다. status=completed와 error=null, outcome은 [Agent 정책](05-agent-execution.md)과 같다. refs는 실제 결과의 ID/title 요약이다. 날짜/장소·ticket 상태는 해당 상세 API나 검증된 서버 DTO로 표시한다.

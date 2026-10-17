@@ -13,13 +13,20 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
+from agent.modules.conversation.progress import RunProgress
 from agent.modules.conversation.tables import agent_runs, tool_calls, tool_result_receipts
-from agent.shared.contracts import RequiredRecordError, ToolCallRecord, TrainingResultReceipt
+from agent.shared.contracts import (
+    ProgressStage,
+    RequiredRecordError,
+    ToolCallRecord,
+    TrainingResultReceipt,
+)
 
 
 class DbExecutionObserver:
-    def __init__(self, engine: AsyncEngine) -> None:
+    def __init__(self, engine: AsyncEngine, progress: RunProgress | None = None) -> None:
         self._engine = engine
+        self._progress = progress
 
     async def record_tool_call(self, record: ToolCallRecord) -> None:
         values = {
@@ -44,6 +51,11 @@ class DbExecutionObserver:
             "result_hash": receipt.result_hash,
         }
         await self._insert(insert(tool_result_receipts).values(values).on_conflict_do_nothing())
+
+    async def record_stage(self, run_id: str, stage: ProgressStage) -> None:
+        # 진행 단계는 저장하지 않는다. 같은 프로세스의 SSE 채널에만 넘긴다(채널이 없으면 버림).
+        if self._progress is not None:
+            self._progress.publish(run_id, stage)
 
     async def _insert(self, statement: Any) -> None:
         try:

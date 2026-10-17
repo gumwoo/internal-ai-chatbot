@@ -1,14 +1,18 @@
 """대화·메시지·run HTTP(docs/04-api-spec.md MOD-01 절). 응답은 모두 Cache-Control: private, no-store."""
 
-from typing import Annotated
+import json
+from collections.abc import AsyncIterator
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from agent.app.deps import current_actor
+from agent.modules.conversation.service import MessageResponse
 from agent.shared.actor import ActorContext
+from agent.shared.errors import AppError
 from agent.shared.request_id import request_id_of
 
 router = APIRouter(tags=["conversations"])
@@ -86,12 +90,54 @@ async def post_message(
     conversation_id: UUID,
     body: PostMessage,
     idempotency_key: Annotated[UUID, Header(alias="Idempotency-Key")],
-) -> JSONResponse:
-    """최초 동기 완료 200, 같은 키 실행 중 202, 다른 실행 중 409, 같은 키·다른 내용 409(01-run-lifecycle)."""
-    result = await request.app.state.conversations.post_message(
-        actor, conversation_id, body.content, idempotency_key, request_id_of(request.scope)
+    accept: Annotated[str | None, Header()] = None,
+) -> Response:
+    """최초 동기 완료 200, 같은 키 실행 중 202, 다른 실행 중 409, 같은 키·다른 내용 409(01-run-lifecycle).
+
+    `Accept: text/event-stream`이면 새로 수락한 실행만 SSE로 진행 단계와 최종 결과를 보낸다(D-29).
+    """
+    service = request.app.state.conversations
+    request_id = request_id_of(request.scope)
+    if not _wants_stream(accept):
+        result = await service.post_message(actor, conversation_id, body.content, idempotency_key, request_id)
+        return _json(result.body, result.status_code)
+    outcome = await service.stream_message(actor, conversation_id, body.content, idempotency_key, request_id)
+    if isinstance(outcome, MessageResponse):
+        # 같은 키 재전송: SSE를 다시 열지 않는다(실행 중 202, 종료 200).
+        return _json(outcome.body, outcome.status_code)
+    return StreamingResponse(
+        _sse(outcome, request_id),
+        media_type="text/event-stream",
+        headers={**_NO_STORE, "X-Accel-Buffering": "no", "X-Request-Id": request_id},
     )
-    return _json(result.body, result.status_code)
+
+
+def _wants_stream(accept: str | None) -> bool:
+    """Accept에 text/event-stream이 있고 q=0(거부)이 아니면 SSE."""
+    if accept is None:
+        return False
+    for part in accept.split(","):
+        media, *params = (piece.strip().lower() for piece in part.split(";"))
+        if media != "text/event-stream":
+            continue
+        q = next((p.split("=", 1)[1].strip() for p in params if p.startswith("q=")), "1")
+        try:
+            return float(q) > 0
+        except ValueError:
+            return False
+    return False
+
+
+async def _sse(events: AsyncIterator[tuple[str, Any]], request_id: str) -> AsyncIterator[str]:
+    """SSE 직렬화. heartbeat는 주석 줄, 종료 이벤트(result·error)는 정확히 하나."""
+    async for kind, payload in events:
+        if kind == "heartbeat":
+            yield ": heartbeat\n\n"
+            continue
+        if kind == "error":
+            assert isinstance(payload, AppError)  # noqa: S101 - 서비스 계약
+            payload = payload.to_envelope(request_id)
+        yield f"event: {kind}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 
 @router.get("/runs/{run_id}")
