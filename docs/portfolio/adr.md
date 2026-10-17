@@ -12,7 +12,7 @@
 | [ADR-06](#adr-06) | 메시지 멱등 수락: 행 잠금 + 부분 유일 인덱스 | D-13, [실행 계약](../contracts/01-run-lifecycle.md) | 구현(`94f5f3b`) |
 | [ADR-07](#adr-07) | 큐 없이 요청 안에서 실행하고 연결 끊김에서 보호 | [실행 계약](../contracts/01-run-lifecycle.md) | 구현(`94f5f3b`) |
 | [ADR-08](#adr-08) | 검증된 대화 사본만 모델 문맥에 | D-15, CT-03 | 구현(`94f5f3b`) |
-| [ADR-09](#adr-09) | 답변 본문은 검사 후 한 번에, 스트리밍은 진행 상황만 | D-29, [P-09](../15-policy-options.md) | 구현(커밋 후 기입) |
+| [ADR-09](#adr-09) | 답변 본문은 검사 후 한 번에, 스트리밍은 진행 상황만 | D-29, [P-09](../15-policy-options.md) | 구현(`ae3d369`) |
 | [ADR-10](#adr-10) | 근거 개수 고정 상한 대신 token 예산 | D-20, D-21, [P-03](../15-policy-options.md) | 결정(M3에서 측정) |
 | [ADR-11](#adr-11) | 과금 호출 통제 장치 | [테스트 문서](../07-test-and-evaluation.md) | 구현(`a9217ea`) |
 | [ADR-12](#adr-12) | AI가 쓴 코드의 검증 절차 | [포트폴리오 기록](../11-references-and-portfolio.md) 7번 | 운영 중 |
