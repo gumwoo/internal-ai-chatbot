@@ -44,9 +44,18 @@ message에는 CT-12.safe_message만 매핑한다. stage는 CT-12와 같은 이�
 | POST `/conversations/{id}/messages` | content(1~4000자), UUID Idempotency-Key header | 최초 동기 완료200, 동일 요청 실행 중 replay202, 유효한 다른 실행 중409 |
 | GET `/runs/{id}` | 본인 run ID | 만료 회수·현재 가시성 재검증 후200 상태·outcome·시간·usage·도구 안전 요약 |
 
-메시지 POST는 스트리밍/단계 이벤트 없는 동기 처리다. HTTP 응답 유실·클라이언트 timeout을 서버 취소로 간주하지 않는다. 같은 사용자 입력의 재시도는 같은 키를 유지한다. MOD-01은 actor/conversation/key/content hash와 run을 원자 수락하고, 재전송은 기존 실행만 조회/재표시한다. 같은 키·다른 내용은409 MESSAGE_IDEMPOTENCY_CONFLICT다. 활성 run은 running, 종료는 completed/failed/expired다. 시작·조회·다음 수락에서 deadline 지난 running을 회수한다. 전이·늦은 완료·복구는 [실행 계약](contracts/01-run-lifecycle.md)이 기준이다. run의 내부 원인·제한 도구 인자/결과·Wiki 진단 전문을 반환하지 않는다.
+메시지 POST의 기본(`Accept: application/json`)은 단계 이벤트 없는 동기 처리다. M2 이후에는 아래 "진행 상황 스트리밍"을 선택적으로 쓴다. 어느 쪽이든 답변 본문은 권한 재확인·인용 검증·commit을 마친 뒤 한 번에 보낸다. HTTP 응답 유실·클라이언트 timeout을 서버 취소로 간주하지 않는다. 같은 사용자 입력의 재시도는 같은 키를 유지한다. MOD-01은 actor/conversation/key/content hash와 run을 원자 수락하고, 재전송은 기존 실행만 조회/재표시한다. 같은 키·다른 내용은409 MESSAGE_IDEMPOTENCY_CONFLICT다. 활성 run은 running, 종료는 completed/failed/expired다. 시작·조회·다음 수락에서 deadline 지난 running을 회수한다. 전이·늦은 완료·복구는 [실행 계약](contracts/01-run-lifecycle.md)이 기준이다. run의 내부 원인·제한 도구 인자/결과·Wiki 진단 전문을 반환하지 않는다.
 
 202 replay는 conversation_id/user_message_id/run_id/status=running을 반환한다. UI는202 뒤 GET run으로 종료를 확인한 다음 동일 키/본문 POST replay로 최종 answer를 받는다. 종료 replay는 현재 권한으로 안전 응답을 다시 구성하며 최초 성공은200, 실패/만료는 저장된 오류 HTTP로 반환한다. 원래 입력과 run을 새로 만들지 않는다.
+
+### 진행 상황 스트리밍(M2 이후, 선택)
+
+같은 메시지 POST를 `Accept: text/event-stream`으로 보내면 Server-Sent Events로 응답한다. 새 경로는 만들지 않으며 멱등키·수락·409·replay 규칙은 JSON 요청과 같다.
+
+- `progress` 이벤트: `{run_id, seq, stage}`. stage 닫힌 값은 accepted/model_waiting/training_lookup/document_search/ticket_lookup/ticket_prepare/verifying이다. 서버가 CT-11 observer로 실제 기록한 단계만 보낸다. 도구 인자·문서 제목·검색 결과 수·답변 일부는 넣지 않는다(결과 수는 제한 문서의 존재를 짐작하게 할 수 있다).
+- 종료 이벤트는 정확히 하나다. `result`는 JSON 200 응답과 같은 본문이며 권한 재확인·인용 검증·commit 뒤에만 보낸다. `error`는 오류 envelope와 같은 내용이다.
+- 15초마다 heartbeat 주석 줄을 보내 연결을 유지한다. 연결이 끊겨도 실행을 취소하지 않으며 UI는 기존처럼 GET run 후 동일 키 POST replay로 최종 결과를 받는다. 실행 중 replay는 SSE를 다시 열지 않고 JSON 202를 반환한다.
+- 만료·종료된 run의 늦은 단계는 보내지 않는다. 다른 사용자의 run은 동일404다.
 
 메시지 성공 응답은 `conversation_id,run_id,message_id,status,outcome,answer,training_refs,ticket_refs,citations,action_preview,error`다. status=completed와 error=null, outcome은 [Agent 정책](05-agent-execution.md)과 같다. refs는 실제 결과의 ID/title 요약이다. 날짜/장소·ticket 상태는 해당 상세 API나 검증된 서버 DTO로 표시한다.
 

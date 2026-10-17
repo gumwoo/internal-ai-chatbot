@@ -33,6 +33,8 @@
 | D-25 | 대화(답변) 모델은 A/B·평가 실행을 포함해 Claude Haiku 5.5(`claude-haiku-5-5`), SDK는 Anthropic 공식 Python SDK | 사용자 확인(예산). judge는 D-27로 변경([정책 선택](15-policy-options.md) P-08) |
 | D-26 | 백엔드 도구: uv(패키지·잠금), SQLAlchemy 2 + Alembic, psycopg 3, pytest, ruff. 프런트엔드: Vite + React + TypeScript | 사용자 확인. O-03 해소 |
 | D-27 | 임베딩은 Google `gemini-embedding-2`(무료 티어부터), judge는 Gemini Flash 계열 무료 티어 | 사용자 확인(예산). 조건: 청크마다 별도 입력으로 임베딩, 차원은 768/1536 중 선택(O-04), 평가 때 호출 한도에 걸리면 유료 전환, 무료 티어 입력은 Google 제품 개선에 쓰이므로 가상 문서에만 사용, judge 모델 ID·날짜는 holdout 전 고정 |
+| D-28 | 비동기 서버: FastAPI async 엔드포인트 + SQLAlchemy 2 async + psycopg 3 async, Python 3.13 | 사용자 확인. 모델 응답을 최대60초 기다리는 동안 다른 요청을 처리하고 NFR-03 동시성 테스트를 자연스럽게 하기 위함. 3.14는 라이브러리 지원을 확인하지 않아 보류 |
+| D-29 | M2 이후 진행 상황 스트리밍: 같은 메시지 POST에 `Accept: text/event-stream`, 서버가 기록한 단계만 progress로 보내고 답변 본문은 검사·commit 뒤 result로 한 번 | 사용자 확인([정책 선택](15-policy-options.md) P-09 A). 토큰 단위 스트리밍은 권한 재확인·인용 검증 원칙과 충돌해 쓰지 않음 |
 
 ## 초기 기본 정책 — 설정으로 명시
 
