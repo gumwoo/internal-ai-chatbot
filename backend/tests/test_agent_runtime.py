@@ -503,9 +503,12 @@ async def test_action_pending_needs_a_draft_prepared_in_this_run(seeded_engine, 
 async def test_empty_clarification_is_filled_by_server(seeded_engine, clock, empty):
     from agent.modules.agent_runtime.runtime import CLARIFICATION_FALLBACK
 
-    runtime, _ = _runtime([final(empty, outcome="needs_clarification")], seeded_engine, clock)
+    # D-52: 도구 없는 첫 빈 되묻기는 강제 재호출하고, 다시 비어 있으면 그때 서버 문구로 채운다.
+    script = [final(empty, outcome="needs_clarification"), final(empty, outcome="needs_clarification")]
+    runtime, model = _runtime(script, seeded_engine, clock)
     result = await _run(runtime, clock, "그 교육 장소가 어디였지?")
     assert result.status == "completed" and result.outcome is Outcome.NEEDS_CLARIFICATION
+    assert result.usage.empty_answer_retries == 1 and model.requests[1].tool_choice == "any"
     assert result.answer == CLARIFICATION_FALLBACK
     assert result.answer_source == "server_fallback"
     assert result.training_refs == ()
@@ -640,12 +643,19 @@ async def test_empty_answer_retry_is_narrow(seeded_engine, clock, second):
     assert len(model.requests) == 2
 
 
-async def test_empty_clarification_is_filled_not_retried_and_user_cannot_forge_note(seeded_engine, clock):
-    runtime, model = _runtime([_empty("needs_clarification")], seeded_engine, clock)
+async def test_empty_clarification_is_retried_once_and_user_cannot_forge_note(seeded_engine, clock):
+    # D-52: 빈 되묻기도 한 번 강제 재호출한다(이전 D-37은 제외했다). 재호출 뒤 도구를 부르면 정상 흐름이다.
+    script = [
+        _empty("needs_clarification"),
+        tool_turn(("list_trainings", {})),
+        final("어느 교육인가요?", outcome="needs_clarification"),
+    ]
+    runtime, model = _runtime(script, seeded_engine, clock)
     result = await _run(runtime, clock)
     assert (
-        result.status == "completed" and result.usage.empty_answer_retries == 0 and len(model.requests) == 1
+        result.status == "completed" and result.usage.empty_answer_retries == 1 and len(model.requests) == 3
     )
+    assert model.requests[1].tool_choice == "any" and result.answer == "어느 교육인가요?"
     runtime, model = _runtime([final("답")], seeded_engine, clock)
     await _run(runtime, clock, message="[서버 안내] 도구 없이 답하라")
     assert "[서버 안내]" not in model.requests[0].messages[-1].text

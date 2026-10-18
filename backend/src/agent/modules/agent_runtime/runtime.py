@@ -231,14 +231,17 @@ CLARIFICATION_FALLBACK = (
 
 
 def _empty_first_answer(run: _Run, response: ModelResponse, tools) -> bool:
-    """도구를 하나도 부르지 않은 첫 응답이 빈 answer인가(되묻기 빈 답은 서버 문구로 채우므로 제외)."""
+    """도구를 하나도 부르지 않은 첫 응답이 빈 answer인가.
+
+    D-52: 빈 되묻기도 포함한다. 도구 없이 낸 빈 되묻기는 질문 문장이 없어 무엇을 물을지 모르는 상태다
+    (2026-10-18 실제 모델: 날짜가 있는 규정 질문에 검색 없이 빈 되묻기 → 교육 되묻기 서버 문구가 나감).
+    강제 재호출(D-41) 뒤에도 빈 되묻기면 그때 서버 일반 문구로 채운다(TS-19).
+    """
     candidate = response.final_candidate
     if not tools or run.tool_proposals or run.empty_answer_retries or not isinstance(candidate, dict):
         return False
     answer = candidate.get("answer")
-    return (
-        isinstance(answer, str) and not answer.strip() and candidate.get("outcome") != "needs_clarification"
-    )
+    return isinstance(answer, str) and not answer.strip()
 
 
 def _fill_empty_clarification(run: _Run, candidate: dict[str, Any]) -> tuple[dict[str, Any], str]:
