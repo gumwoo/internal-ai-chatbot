@@ -347,6 +347,32 @@ class KnowledgeService:
             )
         return list(seen.values())
 
+    async def normative_covers(
+        self,
+        actor: ActorContext,
+        snapshot_id: str,
+        document_key: str,
+        *,
+        as_of_date: date,
+        knowledge_as_of: datetime,
+    ) -> bool:
+        """이 문서 키에 사건 날짜를 적용 구간에 포함하는 공개·게시 규범 판본이 있는가(규범 공백 확인).
+
+        05-retrieval-assembly: 적용 원규정 판본에 공백이 있으면 안내로 결론을 대신하지 않는다.
+        """
+        if not _allowed(actor, "knowledge.search"):
+            return False
+        params = {
+            **_acl_params(actor),
+            "snapshot_id": uuid.UUID(snapshot_id),
+            "document_key": document_key,
+            "as_of_date": as_of_date,
+            "knowledge_as_of": knowledge_as_of,
+        }
+        async with self._engine.connect() as conn:
+            rows = (await conn.execute(text(_COVERS_SQL), params)).mappings().all()
+        return any(_row_allowed(actor, row["policy"]) for row in rows)
+
     async def support_group(self, actor: ActorContext, passage: Passage) -> list[Passage]:
         """같은 단위(조항·FAQ 문항·표)의 청크 전체. 권한은 문서 키 단위라 기준 passage와 같다."""
         sql = _GROUP_SQL
@@ -698,6 +724,24 @@ WHERE m.snapshot_id = :snapshot_id
 ORDER BY distance, c.passage_id
 LIMIT :limit
 """
+)
+
+_COVERS_SQL = (
+    """
+SELECT a.policy
+FROM snapshot_members m
+JOIN parsed_artifacts p ON p.artifact_id = m.artifact_id
+JOIN document_editions e ON e.edition_id = p.edition_id
+JOIN resource_acl a ON a.document_key = e.document_key
+WHERE m.snapshot_id = :snapshot_id
+  AND e.document_key = :document_key
+  AND e.document_role = 'normative'
+  AND e.edition_state <> 'withdrawn'
+  AND e.available_from <= :knowledge_as_of
+  AND e.effective_from <= CAST(:as_of_date AS date)
+  AND (e.effective_to IS NULL OR CAST(:as_of_date AS date) < e.effective_to)
+"""
+    + _ACL_CLAUSE
 )
 
 _GROUP_SQL = (

@@ -7,6 +7,8 @@
 3. 검색: MOD-05가 권한·게시·지식 시점·규범 적용 구간으로 먼저 거른 후보만 받는다(raw_candidate_limit=20).
 4. 조립: 후보마다 support_group(조항·FAQ 문항·표 전체)을 붙이고, 그룹을 대표 후보의 거리 순으로 정렬한다.
    같은 그룹은 한 번만 넣는다. 여러 검색의 최종 예산 조립은 MOD-02가 한다.
+5. 규범 공백(T-17): 가장 가까운 규범이 이 날짜 기준에 맞는데 그 날짜를 포함하는 공개 판본이 없으면
+   normative_gap을 표시한다. 안내 문서는 절차 확인용으로만 남기고, 결론 보류는 MOD-02가 한다.
 """
 
 from dataclasses import dataclass, field
@@ -77,6 +79,8 @@ class RetrievalResult:
     clarification: dict[str, Any] | None = None
     unsupported: dict[str, Any] | None = None
     date_evidence: dict[str, Any] = field(default_factory=dict)
+    # 적용 원규정 판본이 없는 날짜(05-retrieval-assembly). 안내로 금액·권리·의무를 확정하지 않는다.
+    normative_gap: dict[str, Any] | None = None
     requested_strategy: str = "raw"
     effective_strategy: str = "raw"
     retriever_config_id: str = RETRIEVER_CONFIG_ID
@@ -155,6 +159,28 @@ class RetrievalService:
                 **base,
             )
 
+        # 규범 공백(T-17): 이 날짜 기준에 맞는 가장 가까운 규범을 판본 후보 전체에서 본다
+        # (안내가 더 가까워도).
+        normative = [h for h in hints if h.document_role == "normative"]
+        target = next((h for h in normative if _basis_matches(h.application_basis, request.date_basis)), None)
+        if target is None and request.date_basis in EVENT_BASES:
+            other = next((h.application_basis for h in normative if h.application_basis in EVENT_BASES), None)
+            if other is not None:
+                # 다른 사건 기준의 규범만 있다. 모델이 날짜 기준을 잘못 골랐을 수 있으니
+                # 안내로 답하지 않고 묻는다.
+                return RetrievalResult(
+                    "needs_clarification",
+                    as_of_date=None,
+                    clarification=_clarify("basis_mismatch", other, request.event_key),
+                    **base,
+                )
+        normative_gap = None
+        if target is not None and not await self._knowledge.normative_covers(
+            actor, snapshot_id, target.document_key, as_of_date=as_of, knowledge_as_of=knowledge_as_of
+        ):
+            # 문서 키·제목은 내보내지 않는다(이 사용자에게 보이는 문서지만 결과에 필요 없는 값).
+            normative_gap = {"reason": "normative_gap", "safe_message": _GAP_MESSAGE}
+
         hits = await self._knowledge.search(
             actor,
             snapshot_id,
@@ -174,6 +200,7 @@ class RetrievalService:
             prospective=as_of > today,
             groups=tuple(groups),
             date_evidence=evidence,
+            normative_gap=normative_gap,
             **base,
         )
 
@@ -197,12 +224,26 @@ class RetrievalService:
 
 def _basis_fits(passage: Passage, date_basis: str) -> bool:
     """규범의 적용 기준과 질문의 날짜 기준이 맞는가. 안내·일반 기준 규범은 날짜 기준과 무관하게 쓸 수 있다."""
-    if passage.document_role != "normative" or passage.application_basis in (
-        "general_reference",
-        "per_claim",
-    ):
+    if passage.document_role != "normative":
         return True
-    return date_basis in APPLICATION_BASIS[passage.application_basis]
+    return _basis_fits_hint(passage.application_basis, date_basis)
+
+
+def _basis_fits_hint(application_basis: str, date_basis: str) -> bool:
+    if application_basis in ("general_reference", "per_claim"):
+        return True
+    return date_basis in APPLICATION_BASIS[application_basis]
+
+
+def _basis_matches(application_basis: str, date_basis: str) -> bool:
+    """공백 판정 대상: 대응표상 이 날짜 기준의 규범(per_claim은 부모만으로 날짜를 확정하지 않아 제외)."""
+    return application_basis != "per_claim" and date_basis in APPLICATION_BASIS[application_basis]
+
+
+_GAP_MESSAGE = (
+    "그 날짜에 적용되는 규정 판본이 없어 금액·조건을 확정할 수 없습니다. "
+    "안내 문서는 절차 확인용으로만 참고해 주세요."
+)
 
 
 _EVENT_NAMES = {

@@ -289,6 +289,7 @@ def search_view(result: RetrievalResult, ordinal: int) -> dict[str, Any]:
         "corpus_snapshot_id": result.corpus_snapshot_id,
         "clarification": result.clarification,
         "unsupported": result.unsupported,
+        "normative_gap": result.normative_gap,
         "groups": [],
     }
     counter = 0
@@ -304,6 +305,7 @@ def search_view(result: RetrievalResult, ordinal: int) -> dict[str, Any]:
                     "source_file_id": passage.source_file_id,
                     "title": passage.title,
                     "version": passage.version,
+                    "document_type": passage.document_type,
                     "document_role": passage.document_role,
                     "edition_state": passage.edition_state,
                     "effective_from": passage.effective_from.isoformat() if passage.effective_from else None,

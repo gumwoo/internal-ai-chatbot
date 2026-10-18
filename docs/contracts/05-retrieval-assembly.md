@@ -6,7 +6,7 @@ knowledge_as_of에서 `available_from`을 통과한 안내 중 `guidance_valid_f
 
 과거 가이드 자체의 조회("그때 안내", "당시 알 수 있었던 기준"처럼 사용자가 과거 지식 시점을 명시한 경우)는 [사건 날짜 계약](02-business-dates.md)의 knowledge_date 경로로만 knowledge_as_of를 줄여 종전 가이드를 찾는다. 모델이 edition ID나 knowledge_as_of를 직접 지정하지 않는다. 현재 안내가 과거 사건을 설명하는 경우에는 현재 안내 판본 안의 해당 조건과 당시 원규정을 연결한다. 과거 사건이라고 안내의 발행일을 사건일로 필터링하지 않는다.
 
-적용 원규정 판본에 공백이 있으면 안내 문서는 절차/담당 확인을 보조할 수 있지만 금액·권리·의무 결론을 대신 확정하지 않는다. CT-10 insufficient_evidence와 규범 공백 원인을 기록한다. FAQ를 근거로 빈 규정 기간을 자동 메우지 않는다.
+적용 원규정 판본에 공백이 있으면 안내 문서는 절차/담당 확인을 보조할 수 있지만 금액·권리·의무 결론을 대신 확정하지 않는다. CT-10 insufficient_evidence와 규범 공백 원인을 기록한다. FAQ를 근거로 빈 규정 기간을 자동 메우지 않는다. 구현(2026-10-18, T-17): MOD-11이 LookupApplicableBasis 후보 전체에서 이 날짜 기준에 대응하는 가장 가까운 규범(per_claim 제외, 안내가 더 가까워도)을 골라 MOD-05 NormativeCovers로 그 날짜를 포함하는 공개 판본이 있는지 보고, 없으면 CT-14 `normative_gap`을 표시한다. 사건 기준 질문인데 그 기준의 규범은 없고 다른 사건 기준의 규범만 있으면 basis_mismatch로 되묻는다(안내로 답하지 않음). 결론 보류는 MOD-02가 사건 문맥(event_key·date_basis·as_of_date) 단위로 한다: 공백 사건의 원문을 인용했는데 그날 유효한 규범이 하나도 없거나, 공백 사건 말고는 인용이 없으면 answered·insufficient_evidence 모두 서버 문구로 바꾼다(인용한 안내는 절차 확인용으로 남김).
 
 ## 반대편 판본의 경과조항
 

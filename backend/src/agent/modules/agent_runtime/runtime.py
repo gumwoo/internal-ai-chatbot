@@ -74,6 +74,7 @@ _PASSAGE_VIEW_KEYS = (
     "citation_id",
     "title",
     "version",
+    "document_type",
     "document_role",
     "edition_state",
     "effective_from",
@@ -110,6 +111,9 @@ class _Run:
     required_group_missing: bool = False
     # 대표 그룹이 빠진 검색 호출의 citation 접두어(c{순번}). 그 호출의 결론은 기권 대상이다.
     missing_required_calls: set[str] = field(default_factory=set)
+    # 적용 원규정 판본이 없는 사건 문맥(event_key, date_basis, as_of_date)(T-17).
+    # 검색 호출이 아니라 사건 단위다.
+    normative_gap_contexts: set[tuple] = field(default_factory=set)
     # 이미 문맥에 넣은 (그룹, 사건, 날짜 기준, 날짜) → 그때 붙인 citation_id. 같은 사건의 같은 검색 반복만
     # 재사용한다. 사건·날짜가 다르면 근거 연결을 합치지 않는다(05-retrieval-assembly 3항).
     seen_groups: dict[tuple, list[str]] = field(default_factory=dict)
@@ -553,6 +557,7 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
             "resolution": data.get("resolution"),
             "clarification": data.get("clarification"),
             "unsupported": data.get("unsupported"),
+            "normative_gap": data.get("normative_gap"),
         }
     )
     limit = run.context.policy.final_context_token_limit
@@ -560,6 +565,8 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
     kept_groups: list[dict[str, Any]] = []
     dropped_ids: list[str] = []
     context_key = (data.get("event_key"), data.get("date_basis"), data.get("as_of_date"))
+    if data.get("normative_gap"):
+        run.normative_gap_contexts.add(context_key)
     for index, group in enumerate(groups):
         group_id = group.get("group_id")
         passages = group.get("passages", [])
@@ -618,6 +625,7 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
         "year_inferred": bool((data.get("date_evidence") or {}).get("year_inferred")),
         "clarification": data.get("clarification"),
         "unsupported": data.get("unsupported"),
+        "normative_gap": data.get("normative_gap"),
         "groups": kept_groups,
     }
     if dropped_ids:
@@ -628,11 +636,20 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
 def _server_outcome(run: _Run, final: FinalCandidate, citation_ids: list[str], training_ids: list[str]):
     """검색 결과에 맞지 않는 결론을 서버가 바로잡는다(CT-14 → CT-10 매핑). 바꿀 것이 없으면 None.
 
-    근거(인용·교육) 없이 answered로 끝냈을 때만 본다.
+    - 규범 공백 사건을 안내로 결론 냈으면(answered·insufficient_evidence의 모델 문장) 서버 문구로 보류한다.
+    아래는 근거(인용·교육) 없이 answered로 끝냈을 때만 본다.
     - 이번 실행의 검색이 모두 needs_clarification/unsupported였다면: 되묻기가 있으면 되묻기, 아니면 근거 부족.
     - 대표 근거 그룹이 예산 때문에 빠졌다면: 근거 부족(불완전한 조건으로 단정하지 않음).
     답 문장은 서버 문구로 바꾼다(모델이 근거 없이 쓴 금액·조건을 내보내지 않게).
     """
+    gap_message = _normative_gap_withhold(run, citation_ids)
+    if gap_message is not None and final.outcome in (Outcome.ANSWERED, Outcome.INSUFFICIENT_EVIDENCE):
+        logger.info(
+            "규범 공백으로 결론 보류 run_id=%s reason=normative_gap contexts=%d",
+            run.context.run_id,
+            len(run.normative_gap_contexts),
+        )
+        return Outcome.INSUFFICIENT_EVIDENCE, gap_message
     if final.outcome is not Outcome.ANSWERED or not run.search_results:
         return None
     # 대표 근거가 예산 때문에 빠진 검색이 있는데 그 검색의 원문을 하나도 인용하지 않았다면, 다른 근거를
@@ -649,6 +666,27 @@ def _server_outcome(run: _Run, final: FinalCandidate, citation_ids: list[str], t
             return Outcome.NEEDS_CLARIFICATION, clarification["prompt"]
         unsupported = next((r["unsupported"] for r in run.search_results if r["unsupported"]), None)
         return Outcome.INSUFFICIENT_EVIDENCE, (unsupported or {}).get("safe_message") or _BUDGET_ABSTAIN
+
+
+def _normative_gap_withhold(run: _Run, citation_ids: list[str]) -> str | None:
+    """규범 공백 사건의 결론을 보류할지(05-retrieval-assembly). 보류하면 서버 문구, 아니면 None.
+
+    공백 사건 문맥의 원문을 인용했는데 그중 그날 유효한 규범이 없으면(안내로 결론), 또는 공백 사건 말고는
+    인용이 없으면 보류한다. 같은 사건을 다른 질의로 검색해 받은 인용(재사용 ID 포함)도 사건 문맥으로 본다.
+    """
+    if not run.normative_gap_contexts:
+        return None
+    cited = [run.citations[c] for c in citation_ids]
+    in_gap = [p for p in cited if _citation_context(p) in run.normative_gap_contexts]
+    if any(p.get("document_role") == "normative" for p in in_gap):
+        return None
+    if in_gap or not cited:
+        return next(r["normative_gap"]["safe_message"] for r in run.search_results if r.get("normative_gap"))
+    return None
+
+
+def _citation_context(passage: dict[str, Any]) -> tuple:
+    return (passage.get("event_key"), passage.get("date_basis"), passage.get("as_of_date"))
 
 
 _BUDGET_ABSTAIN = (
