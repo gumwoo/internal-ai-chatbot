@@ -1,0 +1,193 @@
+{
+  "pages": [
+    {
+      "page_id": "bd7f90e6-4255-420b-a024-3933b369c5bc",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "summary: '적용 구간은 2026-10-01 이상 2026-10-01 미만'은 자기모순(빈 구간)이며 원문에 없음. title·summary의 '제2차 개정', '시행일 2026년 10월 1일'은 링크된 passage 어디에도 없음. claim C1~C15는 원문과 일치."
+    },
+    {
+      "page_id": "6baccecb-911c-4f46-aa9a-5f4e241feef3",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "summary: 문서번호 'GW-SEC-076', 'GW-SEC-077'이 passage에 없음(원문에는 'SEC-077'만 나옴). summary의 '대조 기준, 실패 처리, 재조회와 이력 보존 기준'은 링크된 passage에 없는 내용. C15: 'SEC-077(접근권한 정기점검 및 회수 절차)'로 문서명을 연결한 것은 원문에 없는 추론."
+    },
+    {
+      "page_id": "1b30e36d-7ece-4928-b896-b96ab01cf968",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "summary: 문서번호 'GW-CM-099', 'GW-SEC-076'이 passage에 없음. C5: 원문은 '소속 부서 변경만으로 모든 신규 부서 폴더와 기밀 자료에 자동 접근하지 않는다'인데 '모든'을 빼 '신규 부서 폴더에 자동 접근하지 않는다'로 범위를 바꿈. C6: 원문의 이관 대상은 '이동 전 개인 계정으로만 소유되는 공유 문서'인데 조건 없이 '문서 소유권·전결권 변경 시 소관 계정으로 이관'으로 일반화."
+    },
+    {
+      "page_id": "f510eb7a-20b3-40b1-ae9c-fac1f3223aea",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "summary: '2026.10.01 이상 2026.10.01 미만 적용 구간'은 자기모순이며 원문에 없음. '제1차 개정', '판본 미확인'도 passage에 없음. summary의 '보존 정지 사유, 폐기 승인 절차, 폐기대장'은 링크된 passage에 없는 내용. claim C1~C17은 원문과 일치."
+    },
+    {
+      "page_id": "843f6e00-0da2-42d7-931d-9a72d6d6cef7",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "C1: 원문의 100,000원 이하 팀장 승인은 '부서 예산에 포함된 소모성 지출' 중 'GA-087 간편 승인 요건을 만족할 때'로 한정되는데, 조건을 빼고 '일반 구매·지출 총액 100,000원 이하는 소속 팀장'으로 일반화. title·summary의 '제1차 개정', '2026년 10월 1일부터 시행'은 passage에 없음."
+    },
+    {
+      "page_id": "0d068c70-5a5c-441e-bf63-67c853bd6563",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터만] summary의 문서번호 'GW-IT-050', '문서판 1.2'가 passage에 없음. claim C1~C12는 원문과 일치."
+    },
+    {
+      "page_id": "a8427e28-334d-42ed-9d21-855e8d29aa33",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터만] summary의 'GW-ED-029, 시행 2026.10.01, 문서판 2.0'이 passage에 없음. claim C1~C14는 원문과 일치."
+    },
+    {
+      "page_id": "8dc16b01-fb78-4537-99bb-7f5aaa64ca52",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터만] summary의 '적용 구간 2026-10-01 이상 끝 미만', '시행일 2026년 10월 01일'이 passage에 없음. claim C1~C17은 원문과 일치."
+    },
+    {
+      "page_id": "ee6a8d9d-8452-4f50-8e69-dfefc8860ddf",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "cf25c189-a275-4712-b344-85b45a6bd715",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "C10·C14: 제9조는 2026년 10월 1일 이후 '정보자산 분류, AI 서비스 사용, 외부 인력 권한 재검토'에 개정 정책을 우선 적용한다고 한정하는데, 이 한정을 빼고 10월 1일 이후 사안 전반에 우선 적용된다고 일반화. C15: 원문은 종전 정책이 생성형 AI 승인 절차와 문서 접근권한 재점검을 '명문화하지 않았다'고 하는데, '종전 정책의 생성형 AI 승인 절차와 문서 접근권한 재점검 내용'이라고 해 종전 정책에 그런 내용이 있는 것처럼 표현."
+    },
+    {
+      "page_id": "3a3408a8-3c93-45ab-ad3e-5253b92a8838",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "9dfde5d0-0ef6-4f92-a0d0-de3540f8ef14",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "6499ee4e-8f63-4569-974d-28ffcb0b2d16",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "summary의 'GW-ED-027, 판본 1.1'이 passage에 없음. summary의 '실제 배정과 일정은 근무형태와 부서에 따라 달라질 수 있다'도 원문에 없는 내용. (C10은 원문 '월말 입사나 긴급한 근무 변동'을 '중도 입사나 근무 변동'으로 바꿔 표현했으나 절 제목 범위 안이라 경미)"
+    },
+    {
+      "page_id": "cf7c96ea-7ab9-4b43-8461-68cd7f36d2bc",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터만] summary의 'GW-IT-054, 문서판 1.2'가 passage에 없음. claim C1~C13은 원문과 일치."
+    },
+    {
+      "page_id": "742ca70b-c126-4f3a-8e4c-b40608268714",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터만] title·summary의 '제1차 개정'이 passage에 없음(시행일 2026.07.01은 부칙 passage로 확인됨). claim C1~C15는 원문과 일치."
+    },
+    {
+      "page_id": "88a2f578-f9e1-41f1-ad98-ce3abee18acf",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "C12: 표 1의 첫 시점은 '입사 확정~전일'(입사 확정부터 입사 전일까지)인데 '입사 확정 전일부터'로 읽어 시점을 바꿈. 나머지 claim은 원문과 일치."
+    },
+    {
+      "page_id": "1a1a3a27-3ea7-45b2-b9e8-ecaf2580be2d",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터만] summary의 '문서판 1.1, 시행 2026.03.01'이 passage에 없음. claim C1~C12는 원문과 일치."
+    },
+    {
+      "page_id": "6ee1ecf7-1409-4729-97a4-8a78a59b3321",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터만] summary의 'GW-IT-048, 문서판 1.5, 시행일 2026.07.01, IT지원팀 관리'가 passage에 없음. claim C1~C10은 원문과 일치."
+    },
+    {
+      "page_id": "49ba5bee-5c76-42a3-ab86-f60f9f8090e7",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터만] summary의 'GW-IT-047, 문서판 1.2'가 passage에 없음. claim C1~C13은 원문과 일치."
+    },
+    {
+      "page_id": "3a178995-506b-4301-a2c8-677554688cc5",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "5c563541-dbdd-4309-a171-652f1d5d5631",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "5fe84276-5857-441d-a0b8-cb334f72d82d",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "summary: '최종 기준은 교육 운영 규정과 과정 공지이며, 화면명은 개편 시 바뀔 수 있다'는 링크된 passage에 없는 내용. C2: 원문 1.2는 로그인 실패 시 비밀번호 반복 입력 주의만 말하고 IT지원팀 접수 대상은 '다중인증 실패 또는 계정 비활성화'로 한정하는데, '로그인이 실패하거나'까지 IT지원팀 접수 대상으로 넓힘."
+    },
+    {
+      "page_id": "8fad6215-3e8d-4cd7-a895-788a3f3f3f2e",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "summary: '법정 수료기준이나 개인별 승인 결과는 이 문서만으로 확정할 수 없다'는 원문에 없는 내용(원문은 대체교육 날짜를 PDF로 확정할 수 없다고만 함). C8: 원문 '5영업일 이내 담당자 확정이 이뤄질 수 있다'를 '확정 과정을 거치며'로 단정했고, 이의신청 조건 '결과 통지 후에도 오류가 있으면'을 뺌."
+    },
+    {
+      "page_id": "a1d6b2a2-7b03-4736-b332-563b31ad13fa",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "summary: '문의 창구와 확인 순서 표도 함께 제공한다' 중 문의 창구 표는 링크된 passage에 없음(붙임 1은 확인 순서 표뿐). claim C1~C15는 원문과 일치."
+    },
+    {
+      "page_id": "613320b7-f091-444a-a452-2f5327ce4bc6",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "C13: 원문은 '휴일근로수당 여부'를 '실제 근로와 법령·근태 기준'에 따라 인사팀이 판단한다고 하는데, 대상을 '휴일근로 여부'로 바꾸고 판단 기준에서 '법령'을 뺌. C11: 원문의 '자동 인정되지 않는다'를 빼고 '원칙적으로 사전 승인 원칙의 예외'로 재구성(경미)."
+    },
+    {
+      "page_id": "cd802a43-1b1c-4eb2-981d-7d95e7273f30",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": "summary: '재택근무 운영지침(제1차 개정 2026.07.01)'의 개정차수·일자가 passage에 없음. summary의 재택근무 '승인 변경'은 링크된 passage에 없는 내용(제1~4·6·7조만 링크). claim C1~C16은 원문과 일치."
+    },
+    {
+      "page_id": "553a3058-fe1b-429f-88d9-38f840995552",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-2",
+      "reviewer_kind": "model",
+      "notes": ""
+    }
+  ]
+}

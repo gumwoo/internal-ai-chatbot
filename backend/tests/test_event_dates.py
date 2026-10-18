@@ -40,7 +40,6 @@ def test_quote_is_normalized_by_server(quote, message, expected, inferred):
         ("10월 16일", "외부교육 한도", "missing_date", "quote_not_in_user_message"),  # 모델이 오늘을 지어냄
         ("교육", "교육 한도 교육", "missing_date", "quote_not_in_user_message"),  # 두 번 나와 구간을 못 정함
         ("시작한", "시작한 교육 한도", "missing_date", "no_date_in_quote"),
-        ("12월 1일", "12월 1일 출장비", "ambiguous_date", "tense_unclear"),  # 지난해 12/1인지 올해 12/1인지
         ("2월 30일에 시작한", "2월 30일에 시작한 교육", "ambiguous_date", "invalid_date"),  # 보정 안 함
     ],
 )
@@ -103,11 +102,6 @@ async def test_citation_carries_server_normalized_date_and_year_flag(published, 
     [
         ("2026년 11월 3일 출장", "2026년 11월 3일 출장 숙박비?", None),  # 날짜가 사건 명사를 꾸밈
         ("오늘 출장", "오늘 출장 일비?", None),
-        ("11월 3일 출장", "11월 3일 출장 숙박비?", "tense_unclear"),  # 명사만으로는 시제를 모른다
-        # 사건 동사가 아닌 일반 표지("갔다")로는 연도를 정하지 않는다(O-13 임시 목록의 보수적 선택).
-        ("11월 3일 출장 갔다", "11월 3일 출장 갔다 왔어요", "tense_unclear"),
-        # 날짜 앞의 "출발한"은 다른 일정의 시제다(역할·시제는 날짜 뒤에서만).
-        ("출발한 일정 말고 11월 3일 출장", "출발한 일정 말고 11월 3일 출장 숙박비?", "tense_unclear"),
         ("어제 신청한 출장", "어제 신청한 출장 숙박비", "other_event_verb"),  # 어제는 신청일
         ("11월 2일 출장을 신청했", "11월 2일 출장을 신청했어요", "other_event_verb"),
     ],
@@ -231,13 +225,6 @@ def test_supported_trip_and_training_expressions(quote, message, today, expected
             "tense_unclear",
         ),  # "가는"은 예정 아님
         ("9월 29일 출발 예정이었던", "9월 29일 출발 예정이었던 출장", TODAY, None, "tense_unclear"),  # 섞임
-        (
-            "신청한 11월 2일 출발",
-            "신청한 11월 2일 출발 출장",
-            TODAY,
-            "trip_start",
-            "tense_unclear",
-        ),  # 날짜 앞 시제
         ("9월 30일까지", "9월 30일까지 시작한 교육", TODAY, None, "range_not_supported"),
         ("10월 1일", "10월 1일부터 11월 30일까지 근무", TODAY, None, "range_not_supported"),
         # 예정인데 90일 안에 그 날짜가 없다(02-business-dates)
@@ -396,3 +383,107 @@ async def test_same_group_for_different_events_gets_its_own_citation_dates(publi
     first, second = model.tool_payloads()
     ids_b = [p["citation_id"] for g in second["data"]["groups"] for p in g["passages"]]
     assert ids_b and all(i.startswith("c2-") for i in ids_b)  # 다른 사건이라 새 인용 ID
+
+
+# --- D-56 표지 v5: dev50 실측으로 보강한 자연 표현 ---
+
+
+@pytest.mark.parametrize(
+    ("quote", "message", "basis", "expected"),
+    [
+        # 시제 없음: 오늘 ±90일 창 안의 후보가 하나뿐이면 그 날짜(다른 후보는 1년 가까이 떨어짐)
+        ("12월 1일", "12월 1일 출장비", None, date(2026, 12, 1)),
+        ("11월 3일 출장", "11월 3일 출장 숙박비?", "trip_start", date(2026, 11, 3)),
+        # "있"(존재)은 과거 어미가 아니다
+        ("11월 3일 출장", "11월 3일 출장 숙박비 한도가 있나요?", "trip_start", date(2026, 11, 3)),
+        # 날짜 앞의 "출발한"·"신청한"은 다른 일의 시제다. 날짜 뒤에는 시제가 없어 창 규칙으로 정한다.
+        (
+            "출발한 일정 말고 11월 3일 출장",
+            "출발한 일정 말고 11월 3일 출장 숙박비?",
+            "trip_start",
+            date(2026, 11, 3),
+        ),
+        ("신청한 11월 2일 출발", "신청한 11월 2일 출발 출장", "trip_start", date(2026, 11, 2)),
+        (
+            "11월 6일 결재 건",
+            "11월 6일 결재 건인데 제가 대결로 승인해도 되나요?",
+            "approval_date",
+            date(2026, 11, 6),
+        ),
+        # 출장 완료 표지 "갔": 올해 11월 3일은 아직 안 왔으니 지난해
+        ("11월 3일 출장 갔다", "11월 3일 출장 갔다 왔어요", "trip_start", date(2025, 11, 3)),
+        ("11월 3일에 출장 가요", "11월 3일에 출장 가요. 숙박비?", "trip_start", date(2026, 11, 3)),
+        # 시작 기준의 "M월 D일부터"는 시작일이다(뒤의 기간·끝 날짜는 쓰지 않는다).
+        (
+            "11월 12일부터 1박 2일로 대전 출장을 가는",
+            "11월 12일부터 1박 2일로 대전 출장을 가는데 숙박비 청구되나요?",
+            "trip_start",
+            date(2026, 11, 12),
+        ),
+        (
+            "9월 28일부터 10월 2일까지 부산으로 출장을 다녀왔",
+            "9월 28일부터 10월 2일까지 부산으로 출장을 다녀왔어요. 숙박비는?",
+            "trip_start",
+            date(2026, 9, 28),
+        ),
+        # 과거 어미("냈어요")가 있으면 지난 후보만 본다. 지난 후보가 창 안이면 그 날짜다.
+        (
+            "10월 12일부터 이틀간 광주 출장",
+            "10월 12일부터 이틀간 광주 출장에서 저녁은 법인카드로 냈어요. 청구하나요?",
+            "trip_start",
+            date(2026, 10, 12),
+        ),
+        # 교육 시제 표지와 "끝까지"(범위 아님)
+        ("11월 18일 열리는 교육", "11월 18일 열리는 교육 지원 한도?", "training_start", date(2026, 11, 18)),
+        (
+            "10월 5일에 시작한 온라인 동영상 교육",
+            "10월 5일에 시작한 온라인 동영상 교육을 영상 끝까지 틀어 두었어요. 수료되나요?",
+            "training_start",
+            date(2026, 10, 5),
+        ),
+        # 처리일 명사
+        (
+            "11월 9일자로",
+            "11월 9일자로 개발팀으로 발령이 납니다. 권한은?",
+            "processing_date",
+            date(2026, 11, 9),
+        ),
+    ],
+)
+def test_v5_markers_resolve_natural_phrasing(quote, message, basis, expected):
+    origin = verify_event_date(quote, None, message, (), TODAY, date_basis=basis)
+    assert origin.verified, origin.evidence
+    assert origin.value == expected
+    assert origin.evidence["markers"] == "tense-ko-v5"
+
+
+@pytest.mark.parametrize(
+    ("quote", "message", "basis", "problem"),
+    [
+        # 사건 동사가 아닌 과거 어미가 있으면 창 규칙을 쓰지 않는다(올해 11월 3일을 고르면 틀린다).
+        ("11월 3일 교육 참가는", "11월 3일 교육 참가는 했는데", None, "tense_unclear"),
+        ("11월 3일", "11월 3일 회의는 끝났어요", None, "tense_unclear"),
+        # 완료·예정이 섞이면 창 규칙도 쓰지 않는다
+        ("9월 29일 출발 예정이었던", "9월 29일 출발 예정이었던 출장", None, "tense_unclear"),
+        # 시작 기준이 아니면 "부터"는 여전히 범위다
+        (
+            "12월 14일부터 2주간 휴가",
+            "팀장님이 12월 14일부터 2주간 휴가예요",
+            "approval_date",
+            "range_not_supported",
+        ),
+        # 시작 기준이라도 "부터"가 날짜 바로 뒤가 아니면 두 날짜를 받지 않는다
+        (
+            "10월 1일 신청하고 10월 20일 출발",
+            "10월 1일 신청하고 10월 20일 출발할 출장",
+            "trip_start",
+            "multiple_dates_in_quote",
+        ),
+        # 창 밖(90일 넘게 남은) 날짜는 시제가 없으면 정하지 않는다
+        ("3월 2일 출장", "3월 2일 출장 숙박비?", "trip_start", "tense_unclear"),
+    ],
+)
+def test_v5_window_rule_still_asks_when_unsafe(quote, message, basis, problem):
+    origin = verify_event_date(quote, None, message, (), TODAY, date_basis=basis)
+    assert not origin.verified and origin.value is None
+    assert origin.evidence["problem"] == problem

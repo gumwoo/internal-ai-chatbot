@@ -1,0 +1,186 @@
+{
+  "pages": [
+    {
+      "page_id": "f251b88e-e9c7-4ff4-a231-c7f479edfca9",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "e66637f6-0b95-4c1d-8399-3f1a91266ce2",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": "C9: 원문 제2조의 신청 주체는 '계약 소관부서'인데 claim은 '계약 책임자'로 주체를 바꿈. 또한 summary의 '비밀번호, 다중인증, 복구 절차'는 링크된 passage(제9조 인증수단 분실만 있음)로 뒷받침되지 않고, C8의 시행일 passage가 어느 문서의 것인지 passage만으로 확인되지 않음."
+    },
+    {
+      "page_id": "7fa36f3c-8c5a-43b7-870c-2af55bc82de5",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "04de3e1f-b4b7-4a37-8e13-9a3c34dbda7f",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "03884a1c-e7bb-4b97-9867-5ee05b4a2bab",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": "C13: '비밀번호 제출 금지'는 표 1의 '공용함 접근' 행에만 붙은 유의사항인데 claim은 장애 접수 자료 전체에 적용되는 규칙으로 일반화함(대상 조건 왜곡)."
+    },
+    {
+      "page_id": "4f81d6c6-e95f-4ba1-b41f-01c04b061494",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": "C2: 원문은 '이미 부서 예산에 편성된 100,000원 이하의 소모품·경미 지출은 GA-087에 따른 간편 승인 대상이 될 수 있다'인데 claim은 예산 편성·소모품/경미 지출 조건과 '될 수 있다'를 빼고 100,000원 이하 전체를 '간편 신청' 구간으로 단정함(조건 누락·왜곡, '별도 품목 정책 우선'도 빠짐). C17: GA-087 참조는 링크된 passage(4.2 교육·출장비)에 없음."
+    },
+    {
+      "page_id": "6a6bb5da-0d22-43ed-b305-6bbbc8e4f3c6",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "ba881930-806a-42b0-85fb-d2c8bfc9ca68",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "407a2a46-756f-4fb1-9f36-4d70ac3d0d14",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "d7b1a49d-76c3-4f07-b73f-a971027cff36",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": "C2: '긴급도(상·중·하) 판단 기준이 제3조부터 제5조에 있다'고 하지만 링크된 passage는 제3조(정의)·제4조(영향도)뿐이라 제5조와 긴급도 상·중·하 기준이 뒷받침되지 않음."
+    },
+    {
+      "page_id": "00a8006d-e040-4f4e-9352-89b48f0fabad",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": "C14: 원문 제12조는 '회사가 정한 신청 서식 또는 절차에 명시되지 않은 사안'인데 claim은 '규정에 명시되지 않은 사안'으로 적용 조건을 바꿈(그 결과 '이 규정에 따라 처리'와도 모순됨)."
+    },
+    {
+      "page_id": "1b892f65-76b2-4d53-bf49-025a4ce9568d",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "e227d3b7-b135-438c-9a73-59f1344c88ab",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": "summary: '이 교육 분류·기한은 회사 내부 정책이며 모든 사업장에 동일하게 적용되는 법정 요건이 아니라는 점을 원문이 명시한다'는 내용이 링크된 어떤 passage에도 없음(1.2는 '회사 내부 기한'만 언급)."
+    },
+    {
+      "page_id": "9e876777-b4f7-4a91-963a-dcc8587bde3f",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "f2bf072c-406e-45f7-9b43-ae266b850d45",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": "summary: '직접 채용 신규 직원', '계정 장애 시의 처리 위치', '교육 단계 표와 확인표(붙임 1)로 완료 확인 주체', '실제 배정과 일정은 입사일·근무형태·부서별 직무교육에 따라 달라질 수 있다'가 링크된 passage로 뒷받침되지 않음(원문에 없는 사실·규칙)."
+    },
+    {
+      "page_id": "86cadb3d-5942-4610-9e34-c62381d8ffaf",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "22f355ed-941b-44fe-a97b-24ef50433607",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "754d0fa9-158d-400f-9b07-a79a91a71904",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "36de289a-7004-4f02-930f-17fc135fd8c3",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": "C11: 원문은 '개인정보 관련 사안'인데 claim은 '고객정보가 포함된 개인정보 사안'으로 대상을 좁힘. C15: '3.2 대체 기기' passage를 보안사고 신고 및 초기 대응 절차 문서의 것으로 귀속했으나 passage만으로 확인되지 않고 내용상 기기 분실 대응 문서일 가능성이 큼(문서 귀속 불확실). summary의 '세 문서 모두 정보보안팀 관리·2026.10.01 시행 1.0판'도 passage로 뒷받침되지 않음."
+    },
+    {
+      "page_id": "4f67dd6c-a20a-4238-b72f-455ea4127ba1",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "3a816e25-1145-4a89-b097-c520a2d35357",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "08f4dd30-f2ec-4a9a-bafa-36c0ee2f1a2b",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "1d1bb8d3-4087-4462-8dcc-dcbe0812f045",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": "summary: 원문 제2조는 '2025년 1월 1일부터 2026년 9월 30일까지 시작한 출장'에 적용하는데 summary는 '국내출장에 적용되는'으로 적용 대상을 좁힘(애매하여 반려)."
+    },
+    {
+      "page_id": "4b64aea9-bb6b-4d41-b889-bbb8c9ae9de9",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": "C3: 원문은 '직원 1인 지원연도별 합산 최대 2,000,000원'인데 claim은 '연도별 합산 최대 2,000,000원'으로 '직원 1인' 대상 한정을 빠뜨려 연간 한도의 적용 단위가 모호해짐(애매하여 반려)."
+    },
+    {
+      "page_id": "f9bc2825-861c-417d-b13d-f1b7e55362d9",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "c2a6647b-6e05-4134-b38e-4288faa7d922",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-3",
+      "reviewer_kind": "model",
+      "notes": ""
+    }
+  ]
+}

@@ -1,0 +1,193 @@
+{
+  "pages": [
+    {
+      "page_id": "68663a0c-5f6e-431c-b56f-c3e95f4e3fc2",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터] summary의 문서번호·판본(GW-IT-043 v1.2, GW-IT-044 v2.0), \"IT지원팀이 작성·관리\", \"2026.10.01부터 시행\"이 링크된 passage_text 어디에도 없음(segment_key도 *~*). C15: \"비밀번호 가이드(P7 등)\"의 \"P7\"은 원문에 없는 표기."
+    },
+    {
+      "page_id": "e39ffa0b-2e09-469a-aca6-0d28eaf97b79",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터] title·summary의 \"제2차 개정\"이 passage_text에 없음(시행일 2026.10.01은 segment_key로만 뒷받침, 개정차수 근거 passage 미링크). claim C1~C14는 원문과 일치."
+    },
+    {
+      "page_id": "0d723f17-426f-4ee1-b8df-b780085b8540",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "C6: \"기존 권한 회수는 IT지원팀에 요청\"의 주체를 기존 부서장으로 서술했으나, 링크된 passage(3.1)에서는 \"신규 부서는 필요한 접근권한을 별도로 신청하고, 기존 권한 회수를 IT지원팀에 요청한다\"로 주체가 신규 부서임(표 1은 기존 부서로 적혀 있어 원문 내부도 엇갈리나 C6에는 표가 링크되지 않음). 주체 불일치."
+    },
+    {
+      "page_id": "03fabdae-ad45-4272-b3db-22687d491a64",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터] summary의 문서번호 GW-CM-094·GW-CM-100이 passage_text에 없음(CM-100은 다른 문서 참조로만 등장). C17: \"CM-095, SEC-063, SEC-064, SEC-072 참조\"는 이 claim의 링크(CM-093·CM-096 passage)로 뒷받침되지 않고, 어느 passage가 공지 기준 문서인지도 링크로 확인 불가. C15: 단일 passage(af84a24e)를 근거로 \"규정 지침과 공지 기준이 모두\" 명시한다고 귀속해 애매."
+    },
+    {
+      "page_id": "dc96d807-6285-4d4a-a8cb-71f29888e8e5",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "4dd5e144-a546-4bdc-a22c-2876e134aa32",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터] summary의 \"GW-IT-051, 문서판 1.3\"이 passage_text에 없음. C9: 원문(3.1)은 확인 항목을 나열할 뿐인데 claim은 \"순서대로 확인한다\"로 원문에 없는 순서 조건을 추가."
+    },
+    {
+      "page_id": "22764f68-e220-4731-a8e5-848955692cce",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "C12: 원문 제11조는 \"담당 부서에 정규 구매 절차 또는 보완을 안내한다\"(담당 부서가 안내를 받는 쪽)인데 claim은 \"담당 부서가 ... 안내하며\"로 주체·대상을 뒤바꿈. 나머지 claim과 title·summary는 원문과 일치."
+    },
+    {
+      "page_id": "13c5a1b9-c839-47bd-bc03-873cb90b753b",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터] summary의 문서번호 GW-SEC-070(및 GW-SEC-067 표기)이 passage_text에 없음(passage에는 \"SEC-067 검토\" 참조만 있음). claim C1~C15는 원문과 일치."
+    },
+    {
+      "page_id": "a24c3d16-c797-4d5b-89a7-031b98bea0cb",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "ff4ee1b7-1e77-49a5-95c3-6a0cdecaeb5a",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "1c56e069-5f72-4acd-80fd-391eacea2d1a",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터] summary의 \"문서번호 GW-IT-060, 문서판 2.0, 시행일 2026.10.06\"이 passage_text에 없음(segment_key k:2026-10-05와도 불일치). summary의 \"Q1~Q12\"는 링크된 passage가 Q1~Q6뿐이라 확인 불가. summary의 \"권한 부여·비용 승인·인사 판단은 헬프데스크의 기술 응대 권한과 분리되어 있다\"는 링크된 원문에 없는 규칙. claim C1~C14는 원문과 일치."
+    },
+    {
+      "page_id": "885d432a-af18-4844-974a-94f2335550f0",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터] title의 \"GW-HR-007 v1.2\"가 passage_text에 없음. claim C1~C15는 원문과 일치."
+    },
+    {
+      "page_id": "2212ceaf-1987-4179-a4ef-cf00265b3b5a",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "C2: 원문 제2조는 \"회사 지정 필수교육을 모두 법정의무교육이라고 표시해서는 안 된다\"인데 claim은 \"모두\"를 빠뜨려 \"회사 지정 필수교육을 법정의무교육으로 표시해서는 안 된다\"로 의미를 바꿈(일부 표시 금지 -> 전면 금지). [메타데이터] title의 \"제1차 개정\"이 passage_text에 없음(시행일은 segment_key로만 뒷받침)."
+    },
+    {
+      "page_id": "c05acc8b-7e67-4124-971d-87d4e36e18c9",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터] summary의 \"문서판 2.1\"이 passage_text에 없음. C9: 원문(3.2)의 조건 \"업무상 사유 또는 정당한 부재로\"를 빼고 \"기한을 지키기 어려우면\"으로 일반화."
+    },
+    {
+      "page_id": "6e9eda4b-e75e-43c5-a1c3-face9c630fa7",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터] title·summary의 \"제1차 개정\"이 passage_text에 없음(시행일 2026.07.01은 부칙 passage로 확인됨). claim C1~C12는 원문과 일치."
+    },
+    {
+      "page_id": "c6b34b35-e867-49f8-b214-dcf0438dda25",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터] summary의 \"문서판 1.5, 시행일 2026.08.01\"이 passage_text에 없음(segment_key k:2026-07-31로도 확인 불가). claim C1~C12는 원문과 일치."
+    },
+    {
+      "page_id": "cb708ed7-46b4-467f-bb03-f308377adae1",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "C15: GW-IT-058의 작성·관리가 원문 메타데이터 passage에 \"IT지원팀 / 인사팀\"으로 되어 있는데 claim은 두 문서를 \"모두 IT지원팀이 관리\"한다고 서술해 공동 관리 주체(인사팀)를 누락. C1: \"업무용 PC 지급 절차 문서(GW-IT-039)\"의 문서번호는 C1에 링크된 passage(1.1 신규 지급)에 없음."
+    },
+    {
+      "page_id": "17e4b297-5e86-47f4-a1dc-64df722da70a",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "d39a5887-700e-4fd1-8bb0-c0e610d52bfd",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터] title의 \"GW-IT-045 v2.0\"과 summary의 \"문서판 2.0\"이 passage_text에 없음(시행일 2026.10.01은 원문 확인됨). claim C1~C13은 원문과 일치."
+    },
+    {
+      "page_id": "b1488a07-efc3-4d8a-9acd-35b035139319",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터] summary의 \"문서번호 GW-SEC-079, 시행일 2026.10.01, 문서판 1.0\"이 passage_text에 없음(원문에는 \"2026년 10월 시행 일반 과정\" 기준만 있음). claim C1~C11은 원문과 일치."
+    },
+    {
+      "page_id": "0bbaad58-e3cf-47e1-a1a4-f4026506903f",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터] summary의 \"GW-IT-056, 문서판 2.0, 시행일 2026.10.01\"이 passage_text에 없음. claim C1~C13은 원문과 일치."
+    },
+    {
+      "page_id": "3babdf2c-4a05-4ce1-b837-fe8a504b8a7a",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "5826e9b9-df44-4adb-992b-602d09336058",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터] summary의 \"GW-ED-032, 문서판 2.0\"이 passage_text에 없음(2026.10.01 적용 기준은 원문 확인됨). C4: 원문의 한정어 \"과정에서 허용하지 않는\"(대리응시·답안 공유·타인 계정 사용)을 빼고 무조건 금지로 서술."
+    },
+    {
+      "page_id": "82b1f427-d059-409d-a306-7ffa6fb37cab",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "[메타데이터] summary의 \"문서번호 GW-GA-083, 문서판 2.0\"이 passage_text에 없음. claim C1~C17은 원문과 일치."
+    },
+    {
+      "page_id": "dc2284c6-006c-4fca-843c-18774d999171",
+      "decision": "approved",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": ""
+    },
+    {
+      "page_id": "f7bbaa21-629e-4422-b4d1-0bc0ab3797b9",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "summary의 \"적용 구간은 2025-01-01 이상 2026-07-01 미만\"이 원문과 충돌: passage에는 \"적용종료 2026.09.30.\", \"2026년 9월 30일까지 발생한 사안의 기준 확인에 사용\", \"2026년 10월 1일 이후의 근무에는 개정 지침 적용\"으로 되어 있음. claim C1~C15는 원문과 일치."
+    },
+    {
+      "page_id": "3a5b3a19-50a2-43ab-91df-35b3750ff770",
+      "decision": "rejected",
+      "reviewer": "model:subagent-wiki-review-1",
+      "reviewer_kind": "model",
+      "notes": "C1: 원문(1.1)은 \"장거리 이동에 수반되는 근로시간 해당 여부\"를 업무 지시·실제 근로 사실·법령으로 확인한다고 한정하는데, claim은 \"장거리 이동에 수반되는\"을 빼고 출장 일반의 근로시간 판단 기준처럼 일반화."
+    }
+  ]
+}

@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Any
 
-TENSE_MARKERS_VERSION = "tense-ko-provisional-v4"  # O-13 확정 전 임시
+TENSE_MARKERS_VERSION = "tense-ko-v5"  # D-56: dev50 실측으로 보강(시작 기준 "부터", 시제 표지, 90일 창)
 PLANNED_HORIZON_DAYS = 90  # 02-business-dates: 예정 표현은 이후 90일 이내
 
 _FULL = re.compile(r"(?<!\d)(\d{4})\s*[년.\-/]\s*(\d{1,2})\s*[월.\-/]\s*(\d{1,2})\s*일?")
@@ -47,7 +47,8 @@ _RELATIVE = re.compile(
     r"(?<![가-힣])(내일모레|그저께|그제|어제|오늘|내일|모레)(?=$|[^가-힣]|[은는이가에의도만](?![가-힣]))"
 )
 _YEAR_MARKERS = re.compile(r"재작년|작년|지난해|올해|금년|내년|다음 해|후년|\d{4}\s*년")
-_RANGE = re.compile(r"부터|까지|~|∼")
+# 날짜·시각 바로 뒤의 "부터·까지"와 "~"만 범위로 본다("영상 끝까지"는 범위가 아니다, D-56).
+_RANGE = re.compile(r"(\d\s*(일|시|분)?\s*(부터|까지))|~|∼|(오늘|내일|모레|어제|그제)\s*(부터|까지)")
 _HYPOTHETICAL = re.compile(r"다면|라면|한다는|는다는")
 _STEMS = "시작|출발|신청|상신|처리|결재|승인|근무|출근|참석|수료|종료|접수|제출|요청|개강"
 # 완료·예정 표지. "시작한다"는 완료가 아니라 예정이다.
@@ -56,6 +57,11 @@ _COMPLETED = re.compile(
 )
 _PLANNED = re.compile(rf"({_STEMS})(하는|할|될|한다|된다)|다녀올|떠날|떠나는|예정|받을")
 # "9월 29일에 출발해서 10월 2일에 돌아온"처럼 연결형이면 시제는 문장 뒤쪽 서술어에서 본다.
+# 사건 동사가 아니어도 과거 어미("참가는 했는데", "끝났어요")가 있으면 90일 창 규칙으로 정하지 않는다(D-56).
+# 받침 ㅆ인 음절을 과거 어미로 본다. "있"(존재)은 뺀다.
+_PAST_ENDING = re.compile(
+    "[" + "".join(chr(c) for c in range(0xAC00, 0xD7A4) if (c - 0xAC00) % 28 == 20 and chr(c) != "있") + "]"
+)
 _DEFERRED = re.compile(rf"(({_STEMS})(해서|하고|하여)|다녀와서|떠나서)\s*$")
 
 
@@ -83,12 +89,17 @@ def _role(verbs: str, nouns: str | None, completed_extra: str = "", planned_extr
 
 _ROLES = {
     "trip_start": _role(
-        "출발|떠나|떠난|떠날|떠났|다녀", "출장", "떠난|떠났|다녀온|다녀왔", "떠날|떠나는|다녀올|출장 ?예정"
+        "출발|떠나|떠난|떠날|떠났|다녀",
+        "출장",
+        "떠난|떠났|다녀온|다녀왔|갔|간 출장",
+        "떠날|떠나는|다녀올|출장 ?예정|가는|가요|갑니다|갈|가려",
     ),
-    "training_start": _role("시작|개강", "교육|과정|연수", "", "교육 ?예정"),
+    "training_start": _role(
+        "시작|개강", "교육|과정|연수", "들었|받았|열린|열렸", "교육 ?예정|열리는|열릴|듣는|들을|받을"
+    ),
     "request_date": _role("신청|상신|요청|접수|제출", None),  # 상신 → 신청일(D-40)
     "approval_date": _role("결재|승인", None, "결재 ?받은|결재 ?받았", "결재 ?받을"),
-    "processing_date": _role("처리", None),
+    "processing_date": _role("처리", "발령|부서 ?이동|퇴사|입사|자로"),
     "work_date": _role("근무|출근", None),
 }
 # 다른 사건의 동사. 날짜 뒤에 이것만 있으면("어제 신청한 출장") 그 날짜는 이 사건의 날짜가 아니다.
@@ -150,7 +161,10 @@ def verify_event_date(
     found = _find_dates(quote, today)
     if not found:
         return _fail("missing_date", "no_date_in_quote")
-    if len(found) > 1:
+    # D-56: 시작 기준(출장·교육 시작일)에서 "M월 D일부터"는 그 날짜가 시작일이다.
+    # 뒤의 기간·끝 날짜는 쓰지 않는다.
+    start_range = date_basis in _START_BASES and quote[found[0].end :].lstrip().startswith("부터")
+    if len(found) > 1 and not start_range:
         return _fail("basis_mismatch", "multiple_dates_in_quote")
     item = found[0]
     if item.kind != "month_day" and item.value is None:
@@ -158,9 +172,11 @@ def verify_event_date(
     if item.kind == "relative" and source != "current_message":
         # 이력 메시지의 "어제"는 그 메시지를 보낸 날 기준인데 그 시각을 모른다.
         return _fail("ambiguous_date", "relative_date_in_history")
-    if _RANGE.search(sentence):
+    if _RANGE.search(sentence) and not start_range:
         return _fail("ambiguous_date", "range_not_supported")
-    if item.kind in ("month_day", "relative") and _YEAR_MARKERS.search(sentence):
+    if item.kind in ("month_day", "relative") and _YEAR_MARKERS.search(
+        sentence.replace(quote, "", 1) + quote
+    ):
         return _fail("ambiguous_date", "year_marker_not_supported")
     if item.kind in ("full", "year_md") and len(_YEAR_MARKERS.findall(sentence)) > 1:
         return _fail("ambiguous_date", "year_marker_not_supported")
@@ -174,13 +190,19 @@ def verify_event_date(
             return _fail("basis_mismatch", "role_not_after_date")
         if not own_verb and _ANY_EVENT_VERB.search(tail):
             return _fail("basis_mismatch", "other_event_verb")
-    if date_basis in _START_BASES and _END_ROLE.search(tail):
+    if date_basis in _START_BASES and _END_ROLE.search(tail.split("까지")[0] if start_range else tail):
         return _fail("basis_mismatch", "end_event_for_start_basis")
     if item.kind == "month_day":
         if not any(_safe(year, item.month, item.day) for year in range(today.year - 1, today.year + 4)):
             return _fail("ambiguous_date", "invalid_date")
         completed, planned = (role.completed, role.planned) if role else (_COMPLETED, _PLANNED)
-        value = _infer_year(item.month, item.day, today, *_tense(tail, after, completed, planned))
+        value = _infer_year(
+            item.month,
+            item.day,
+            today,
+            *_tense(tail, after, completed, planned),
+            past_ending=bool(_PAST_ENDING.search(tail + after)),
+        )
         if value is None:
             return _fail("ambiguous_date", "tense_unclear")
     else:
@@ -285,7 +307,9 @@ def _tense(tail: str, after: str, completed: re.Pattern[str], planned: re.Patter
     return found
 
 
-def _infer_year(month: int, day: int, today: date, completed: bool, planned: bool) -> date | None:
+def _infer_year(
+    month: int, day: int, today: date, completed: bool, planned: bool, *, past_ending: bool = False
+) -> date | None:
     past = next((d for d in (_safe(today.year - k, month, day) for k in (0, 1)) if d and d <= today), None)
     future = next((d for d in (_safe(today.year + k, month, day) for k in (0, 1)) if d and d >= today), None)
     if future is not None and future > today + timedelta(days=PLANNED_HORIZON_DAYS):
@@ -298,6 +322,18 @@ def _infer_year(month: int, day: int, today: date, completed: bool, planned: boo
         return past
     if planned and not completed:
         return future
+    # D-56: 시제 표지가 없을 때 오늘 ±90일 창 안의 후보가 하나뿐이면 그 날짜다
+    # (다른 후보는 1년 가까이 떨어져 있다).
+    if completed or planned:
+        return None  # 시제가 섞였으면 되묻는다
+    # 사건 동사 밖의 과거 어미가 있으면 지난 날짜 후보만 본다("교육 참가는 했는데"에 올해 11월을 고르지 않게).
+    near = [
+        d
+        for d in ((past,) if past_ending else (past, future))
+        if d is not None and abs((d - today).days) <= PLANNED_HORIZON_DAYS
+    ]
+    if len(set(near)) == 1:
+        return near[0]
     return None
 
 
