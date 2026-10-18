@@ -285,7 +285,10 @@ def test_empty_messages_are_not_sent():
 
 
 def test_strict_tool_schemas_fit_provider_grammar_limits_for_a_full_employee():
-    """2026-10-18 실측 400: 6개 도구를 다 받는 직원 계정에서 선택 인자 26개(한도 24)·union 22개(한도 16)."""
+    """2026-10-18 실측 400: 6개 도구를 다 받는 직원 계정에서 선택 인자 26개(한도 24)·union 22개(한도 16).
+
+    스키마 내용은 그대로 두고, 선택 인자가 가장 많은 도구(티켓 초안)의 strict만 끈다.
+    """
     from agent.modules.model_integration.anthropic_chat import _count, _is_union
     from agent.modules.tool_execution import executor as ex
 
@@ -298,12 +301,15 @@ def test_strict_tool_schemas_fit_provider_grammar_limits_for_a_full_employee():
         timeout_s=5.0,
         model_config=ModelConfig("m", 100, "v"),
     )
+    sent = AnthropicChatModel.build_params(request)["tools"]
     raw = [provider_schema(t.input_schema) for t in tools]
-    assert (
-        sum(_count(s, None) for s in raw) > 24 and sum(_count(s, _is_union) for s in raw) > 16
-    )  # 원래는 초과
-    sent = [t["input_schema"] for t in AnthropicChatModel.build_params(request)["tools"]]
-    assert len(sent) == 6
-    assert sum(_count(s, None) for s in sent) <= 22 and sum(_count(s, _is_union) for s in sent) <= 14
-    # 이름·설명·검증 의미는 그대로다: 같은 속성 집합을 보낸다.
-    assert [set(s["properties"]) for s in sent] == [set(s["properties"]) for s in raw]
+    assert [t["input_schema"] for t in sent] == raw  # 스키마 내용은 바꾸지 않는다(top_k 등 선택 인자 유지)
+    strict = [t for t in sent if t["strict"]]
+    assert sum(_count(t["input_schema"], None) for t in strict) <= 22
+    assert sum(_count(t["input_schema"], _is_union) for t in strict) <= 14
+    assert [t["name"] for t in sent if not t["strict"]] == ["prepare_it_ticket"]
+    # 도구가 적은 계정(문서 검색만)은 모두 strict다.
+    only_docs = ModelRequest(
+        **{**request.__dict__, "tools": tuple(t for t in tools if t.name == "search_documents")}
+    )
+    assert all(t["strict"] for t in AnthropicChatModel.build_params(only_docs)["tools"])
