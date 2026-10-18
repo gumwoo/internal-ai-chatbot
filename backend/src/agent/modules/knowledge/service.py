@@ -836,6 +836,8 @@ def _passage(row: Any, snapshot_id: str | None) -> Passage:
         page_spans=tuple(row["spans"] or ()),
         token_estimate=row["token_estimate"],
         acl_revision=row["acl_revision"],
+        # 그룹 안 원문 순서(전체 문맥 기준선이 support_group을 다시 조회하지 않고 순서대로 묶을 때 쓴다).
+        extra={"ordinal": row["ordinal"]},
     )
 
 
@@ -863,7 +865,7 @@ _ACL_CLAUSE = """
 """
 
 _COLUMNS = """
-  c.passage_id, c.artifact_id, c.support_group, c.kind, c.heading, c.section_path, c.text, c.spans,
+  c.passage_id, c.artifact_id, c.support_group, c.ordinal, c.kind, c.heading, c.section_path, c.text, c.spans,
   c.token_estimate, e.edition_id, e.document_key, e.source_file_id, e.title, e.version, e.document_type,
   e.document_role, e.application_basis, e.edition_state, e.available_from, e.effective_from, e.effective_to,
   a.policy, a.revision AS acl_revision

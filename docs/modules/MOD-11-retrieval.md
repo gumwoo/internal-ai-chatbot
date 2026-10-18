@@ -57,3 +57,5 @@ guidance의 유효 안내 판본 선택→기본 규범→검수 경과조항 �
 - 진단: `RetrievalResult.trace()`(요청/실제 전략·이유·Wiki 후보 ID와 거리·snapshot·retriever_config_id)를 MOD-03이 `ToolResult.trace`로 넘기고 MOD-01이 `tool_calls.retrieval_trace`에 저장한다. 모델이 보는 도구 결과 형식은 A/B가 같다.
 
 - 진단 보강(독립 검증 반영): trace에 resolution·date_basis·as_of_date·knowledge_as_of·패킹 전 후보(그룹 ID·순위·대표 거리·passage ID, Recall@pool)를 넣고, 운영 fallback이면 실제로 실행한 `raw-exact-cosine-v1`을 retriever_config_id로 남긴다. 예산 안에 실제로 들어간 passage(Recall@budget)는 MOD-02가 run 단위로 `agent_runs.evidence_trace`에 남긴다.
+- 전체 문맥 기준선(D-50): `strategy=full_context_reference`는 eval_fixture actor만 쓴다(그 밖은 RETRIEVAL_NOT_READY, 대화 생성도 INVALID_REQUEST). 날짜 검증·되묻기·규범 공백·경과조항·우선관계는 A와 같고, 후보 단계에서 같은 검색 SQL을 LIMIT 100,000으로 불러 그 사건 날짜에 허용된 passage 전체를 넣는다. support_group은 다시 조회하지 않고 passage의 ordinal로 묶는다. retriever_config_id `full-context-reference-v1`.
+

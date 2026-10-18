@@ -6,8 +6,9 @@ A/B 라벨·검색 경로·Wiki 흔적·모델 이름·시간/비용은 넣지 �
 무료 티어 한도로 판정이 끊기면 그 문항은 실패로 남기고 일부 표본만으로 결론을 내지 않는다.
 """
 
+import hashlib
 import random
-import uuid
+from datetime import datetime
 from typing import Any
 
 from agent.modules.model_integration.ports import (
@@ -17,6 +18,7 @@ from agent.modules.model_integration.ports import (
     ModelMessage,
     ModelRequest,
 )
+from agent.shared.clock import KST
 
 JUDGE_PROMPT_VERSION = "judge-v1"
 
@@ -62,27 +64,49 @@ JUDGE_SCHEMA: dict[str, Any] = {
 
 
 def judge_text(case: dict[str, Any], answer: str, cited_quotes: list[str], gold_quotes: list[str]) -> str:
-    lines = [f"질문: {' / '.join(case['turns'])}", "", "[답변]", answer or "(빈 답변)", "", "[gold 사실]"]
-    lines += [f"{i}. {f}" for i, f in enumerate(case["required_facts"], 1)] or ["(없음)"]
-    lines += ["", "[gold 예외·조건]"]
-    lines += [f"{i}. {f}" for i, f in enumerate(case.get("required_exceptions") or [], 1)] or ["(없음)"]
-    lines += ["", "[금지 주장]"] + [f"- {f}" for f in case["forbidden_claims"]]
-    lines += ["", "[gold 근거 원문]"] + [f"- {q}" for q in gold_quotes] or ["(없음)"]
-    lines += ["", "[시스템이 인용한 원문]"] + ([f"- {q}" for q in cited_quotes] or ["(없음)"])
+    def listed(items: list[str], numbered: bool = False) -> list[str]:
+        if not items:
+            return ["(없음)"]
+        return [f"{i}. {x}" if numbered else f"- {x}" for i, x in enumerate(items, 1)]
+
+    lines = [f"질문: {' / '.join(case['turns'])}", "", "[답변]", answer or "(빈 답변)", ""]
+    lines += ["[gold 사실]", *listed(case["required_facts"], True), ""]
+    lines += ["[gold 예외·조건]", *listed(case.get("required_exceptions") or [], True), ""]
+    lines += ["[금지 주장]", *listed(case["forbidden_claims"]), ""]
+    lines += ["[gold 근거 원문]", *listed(gold_quotes), ""]
+    lines += ["[시스템이 인용한 원문]", *listed(cited_quotes)]
     return "\n".join(lines)
 
 
+def answer_id(case_id: str, label: str, answer_text: str, seed: int) -> str:
+    """익명 answer ID는 내용(문항·설정·판정 입력)과 seed로 정한다. 실행 순서·파일 순서가 바뀌어도 같은 답은
+    같은 ID이고, 다른 답은 다른 ID다(이어하기·다른 split 판정이 엉뚱한 문항에 붙지 않게)."""
+    digest = hashlib.sha256(f"{seed}|{case_id}|{label}|{answer_text}".encode()).hexdigest()
+    return digest[:32]
+
+
 def blind_order(items: list[dict[str, Any]], seed: int) -> list[dict[str, Any]]:
-    """판정 순서를 섞고 익명 answer ID를 붙인다(매핑은 호출자가 따로 저장)."""
-    shuffled = list(items)
-    random.Random(seed).shuffle(shuffled)  # noqa: S311 - 재현 가능한 순서 섞기(보안 용도 아님)
-    return [
-        {**item, "answer_id": uuid.UUID(int=random.Random(seed + i).getrandbits(128)).hex}  # noqa: S311
-        for i, item in enumerate(shuffled)
+    """판정 순서를 섞고 내용 기반 익명 answer ID를 붙인다(매핑은 호출자가 따로 저장)."""
+    tagged = [
+        {**item, "answer_id": answer_id(item["case_id"], item["label"], item["text"], seed)} for item in items
     ]
+    tagged.sort(key=lambda item: item["answer_id"])  # 입력 순서와 무관한 기준 순서
+    random.Random(seed).shuffle(tagged)  # noqa: S311 - 재현 가능한 순서 섞기(보안 용도 아님)
+    return tagged
 
 
-async def judge_one(chat: ChatModel, config: ModelConfig, text: str) -> dict[str, Any]:
+def valid_verdict(candidate: dict[str, Any], case: dict[str, Any]) -> bool:
+    """judge 응답 형식 검사: 필수 키, 사실·예외 판정 수가 gold 수와 같은지."""
+    if any(key not in candidate for key in JUDGE_SCHEMA["required"]):
+        return False
+    return len(candidate["facts"]) == len(case["required_facts"]) and len(candidate["exceptions"]) == len(
+        case.get("required_exceptions") or []
+    )
+
+
+async def judge_one(
+    chat: ChatModel, config: ModelConfig, text: str, case: dict[str, Any] | None = None
+) -> dict[str, Any]:
     request = ModelRequest(
         purpose="eval_judge",
         messages=(ModelMessage(role="user", text=text),),
@@ -92,13 +116,18 @@ async def judge_one(chat: ChatModel, config: ModelConfig, text: str) -> dict[str
         model_config=config,
         system=JUDGE_SYSTEM,
     )
+    judged_at = datetime.now(KST).isoformat()
     try:
         response = await chat.complete_once(request)
     except ModelCallError as error:
-        return {"judge_error": error.kind.value}
+        return {"judge_error": error.kind.value, "judged_at": judged_at}
+    candidate = response.final_candidate or {}
+    if case is not None and not valid_verdict(candidate, case):
+        return {"judge_error": "schema_mismatch", "judged_at": judged_at, "judge_model": response.model_id}
     return {
-        **(response.final_candidate or {}),
+        **candidate,
         "judge_model": response.model_id,
+        "judged_at": judged_at,
         "judge_usage": {
             "input_tokens": response.usage.input_tokens,
             "output_tokens": response.usage.output_tokens,

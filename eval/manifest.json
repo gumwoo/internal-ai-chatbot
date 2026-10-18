@@ -22,5 +22,7 @@
   "EV-R-004: date_basis work_date -> explicit_date",
   "EV-R-013: date_basis work_date -> explicit_date",
   "EV-R-014: date_basis processing_date -> explicit_date"
- ]
+ ],
+ "parser_revision": "pdfplumber-0.11-blocks-v1",
+ "chunk_config": "units-v1-max1500"
 }

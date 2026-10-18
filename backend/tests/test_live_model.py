@@ -59,6 +59,8 @@ class RawRecordingClient:
         self.calls.append(
             {
                 "stop_reason": response.stop_reason,
+                # D-41: 빈 첫 답 재호출이면 {"type": "any"}로 도구 호출을 강제한다(측정용 기록).
+                "tool_choice": params.get("tool_choice"),
                 "content": blocks,
                 "usage": {"in": response.usage.input_tokens, "out": response.usage.output_tokens},
             }
@@ -122,6 +124,7 @@ async def _run(engine, settings, scenario: str, message: str, snapshot: Conversa
         "training_codes": [r.get("code") for r in result.training_refs],
         "answer": result.answer,
         "model_attempts": usage.model_attempts,
+        "empty_answer_retries": usage.empty_answer_retries,
         "input_tokens": usage.input_tokens,
         "output_tokens": usage.output_tokens,
         "usage_complete": usage.complete,

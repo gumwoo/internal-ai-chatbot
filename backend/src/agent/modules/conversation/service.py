@@ -196,7 +196,10 @@ class ConversationService:
         평가 포트(APP-04)만 raw/wiki_assisted와 엄격 모드를 고른다."""
         now = self._clock.now()
         options = server_options or ServerOptions()
-        if options.strategy not in ("raw", "wiki_assisted"):
+        if options.strategy not in ("raw", "wiki_assisted", "full_context_reference"):
+            raise AppError(ErrorCode.INVALID_REQUEST, details={"field_names": ["strategy"]})
+        if options.strategy == "full_context_reference" and actor.source != "eval_fixture":
+            # 전체 문맥 기준선은 평가 포트(APP-04)만 지정한다(CT-13, 운영 설정에서는 비활성).
             raise AppError(ErrorCode.INVALID_REQUEST, details={"field_names": ["strategy"]})
         row = {
             "id": uuid.uuid4(),
@@ -449,7 +452,7 @@ class ConversationService:
                 if active is not None:
                     raise AppError(ErrorCode.CONVERSATION_BUSY)
 
-                searchable = conv.retrieval_strategy in ("raw", "wiki_assisted")
+                searchable = conv.retrieval_strategy in ("raw", "wiki_assisted", "full_context_reference")
                 knowledge = RetrievalContext(
                     knowledge_enabled=(
                         searchable and snapshot_id is not None and "knowledge.search" in actor.capabilities

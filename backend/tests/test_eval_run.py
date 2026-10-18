@@ -124,3 +124,30 @@ async def test_runner_results_can_be_scored_against_db_passages(org, migrated, t
     scored = score_case(case, result, passages, sources)
     assert scored["recall_pool"] == 1.0 and scored["recall_budget"] == 1.0, scored
     assert scored["rule_correct"] and not scored["leaked_source_files"]
+
+
+async def test_one_failing_case_is_recorded_and_the_run_continues(org, migrated, tmp_path):
+    await _published_wiki(org)
+    model = Capturing([tool_turn(_search()), final("종전 기준입니다.", citations=["c1-1"])])
+    broken = {**CASES[0], "case_id": "EV-T-BAD", "actor": "nobody"}
+    out = tmp_path / "x.jsonl"
+    results = await run_cases(
+        [broken, CASES[0]],
+        settings=make_settings(database_url=migrated, allowed_origins=ORIGIN),
+        clock=FixedClock(),
+        strategy="raw",
+        strict=True,
+        out=out,
+        chat_model=model,
+        embedding_model=BigramEmbedder(),
+        run_meta={"eval_version": "test"},
+    )
+    assert [r["case_id"] for r in results] == ["EV-T-BAD", "EV-T-001"]
+    assert results[0]["error"].startswith("run_exception") and results[1]["turns"][0]["status"] == 200
+    assert results[1]["config"] == {
+        "budget": 4000,
+        "strict": True,
+        "chat_model": "claude-haiku-5-5",
+        "eval_version": "test",
+    }
+    assert len(out.read_text(encoding="utf-8").splitlines()) == 2

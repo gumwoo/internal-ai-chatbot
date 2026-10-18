@@ -49,7 +49,9 @@ EVENT_BASES = DATE_BASES - {"current", "explicit_date"}
 HORIZON_DAYS = 90
 RETRIEVER_CONFIG_ID = "raw-exact-cosine-v1"
 WIKI_RETRIEVER_CONFIG_ID = "wiki-exact-cosine-v1"  # Wiki 후보 5 → 링크 확장 → 공통 원문 거리 20
-STRATEGIES = frozenset({"raw", "wiki_assisted"})
+STRATEGIES = frozenset({"raw", "wiki_assisted", "full_context_reference"})
+FULL_CONTEXT_CONFIG_ID = "full-context-reference-v1"  # 허용 원문 전체, 같은 원문 거리 순(D-22, docs/13)
+FULL_CONTEXT_LIMIT = 100_000  # passage 수 상한(검색 SQL LIMIT). corpus 전체 1,545개보다 크다
 RAW_CANDIDATE_LIMIT = 20
 WIKI_CANDIDATE_LIMIT = 5
 EXPANDED_PASSAGE_LIMIT = 20
@@ -173,6 +175,9 @@ class RetrievalService:
             raise AppError(ErrorCode.RETRIEVAL_NOT_READY)
         if strategy not in STRATEGIES:
             raise AppError(ErrorCode.RETRIEVAL_NOT_READY)
+        if strategy == "full_context_reference" and actor.source != "eval_fixture":
+            # 평가 대조군은 평가 포트만 쓴다(CT-13). 운영 경로에서는 비활성이다.
+            raise AppError(ErrorCode.RETRIEVAL_NOT_READY)
         if request.date_basis not in DATE_BASES:
             raise AppError(ErrorCode.TOOL_ARGUMENT_INVALID, details={"field_names": ["date_basis"]})
         today = knowledge_as_of.astimezone(KST).date()
@@ -183,9 +188,10 @@ class RetrievalService:
             "event_key": request.event_key,
             "requested_strategy": strategy,
             "effective_strategy": strategy,
-            "retriever_config_id": WIKI_RETRIEVER_CONFIG_ID
-            if strategy == "wiki_assisted"
-            else RETRIEVER_CONFIG_ID,
+            "retriever_config_id": {
+                "wiki_assisted": WIKI_RETRIEVER_CONFIG_ID,
+                "full_context_reference": FULL_CONTEXT_CONFIG_ID,
+            }.get(strategy, RETRIEVER_CONFIG_ID),
             "wiki_snapshot_id": wiki_snapshot_id if strategy == "wiki_assisted" else None,
         }
         if request.date_basis == "current":
@@ -260,6 +266,17 @@ class RetrievalService:
             hits, route = await self._wiki_hits(
                 actor, vector, snapshot_id, wiki_snapshot_id, as_of, knowledge_as_of, request, strict
             )
+        if strategy == "full_context_reference":
+            # 대조군: 검색 대신 이 사건 날짜에 허용된 passage 전체(필터는 A와 같다).
+            everything = await self._knowledge.search(
+                actor,
+                snapshot_id,
+                vector,
+                knowledge_as_of=knowledge_as_of,
+                as_of_date=as_of,
+                limit=FULL_CONTEXT_LIMIT,
+            )
+            hits = [h for h in everything if _basis_fits(h, request.date_basis)]
         if hits is None:
             hits = await self._knowledge.search(
                 actor,
@@ -277,7 +294,10 @@ class RetrievalService:
             return RetrievalResult(
                 "resolved", as_of_date=as_of, prospective=as_of > today, date_evidence=evidence, **base
             )
-        groups = await self._groups(actor, hits)
+        if strategy == "full_context_reference":
+            groups = _whole_groups(hits)
+        else:
+            groups = await self._groups(actor, hits)
         events = dict(request.verified_events)
         if request.date_basis in EVENT_BASES:
             events[request.date_basis] = as_of
@@ -446,6 +466,20 @@ class RetrievalService:
             )
         groups.sort(key=lambda g: (g.distance, g.passages[0].passage_id))
         return groups
+
+
+def _whole_groups(hits: list[Passage]) -> list[SupportGroup]:
+    """passage가 모두 있을 때 support_group을 다시 조회하지 않고 묶는다(그룹 거리 = 가장 가까운 passage)."""
+    members: dict[str, list[Passage]] = {}
+    for hit in hits:
+        members.setdefault(f"{hit.artifact_id}:{hit.support_group}", []).append(hit)
+    groups = []
+    for group_id, passages in members.items():
+        ordered = sorted(passages, key=lambda p: (p.extra.get("ordinal", 0), p.passage_id))
+        distance = min(p.distance or 0.0 for p in passages)
+        groups.append(SupportGroup(group_id, 0, distance, tuple(ordered)))
+    groups.sort(key=lambda g: (g.distance, g.passages[0].passage_id))
+    return [replace(g, rank=i) for i, g in enumerate(groups, start=1)]
 
 
 def _transition_prompt(event_type: str, event_key: str | None) -> dict[str, Any]:

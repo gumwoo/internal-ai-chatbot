@@ -59,7 +59,18 @@ async def run_cases(
     policy: ExecutionPolicy | None = None,
     chat_model=None,
     embedding_model=None,
+    run_meta: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
+    """문항마다 결과 한 줄을 out에 이어 쓴다. 한 문항이 실패해도 그 실패를 기록하고 다음 문항으로 간다.
+
+    결과 행의 config에 예산·엄격 모드·평가 버전 등 실행 설정을 남긴다(설정별 집계·재현용).
+    """
+    config = {
+        "budget": (policy or ExecutionPolicy()).final_context_token_limit,
+        "strict": strict,
+        "chat_model": settings.chat_model,
+        **(run_meta or {}),
+    }
     current = EvalActor()
     app = create_app(
         settings,
@@ -77,7 +88,22 @@ async def run_cases(
         async with httpx.AsyncClient(transport=transport, base_url="http://eval", timeout=180.0) as client:
             with out.open("a", encoding="utf-8") as sink:
                 for case in cases:
-                    result = await _run_case(app, client, current, case, strategy, strict, origin)
+                    try:
+                        result = await _run_case(app, client, current, case, strategy, strict, origin)
+                    except Exception as exc:  # noqa: BLE001 - 실패를 기록하고 계속한다(분모에서 빼지 않음)
+                        result = {
+                            "case_id": case["case_id"],
+                            "split": case["split"],
+                            "category": case["category"],
+                            "strategy": strategy,
+                            "strict": strict,
+                            "actor": case["actor"],
+                            "error": f"run_exception:{type(exc).__name__}",
+                            "turns": [],
+                            "runs": [],
+                            "tools": [],
+                        }
+                    result["config"] = config
                     sink.write(json.dumps(result, ensure_ascii=False, default=str) + "\n")
                     sink.flush()
                     results.append(result)
