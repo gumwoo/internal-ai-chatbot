@@ -34,6 +34,9 @@ class FinalCandidate(BaseModel):
     selected_training_id: str | None
     # 답에 쓴 원문 근거의 citation_id. 이번 실행에서 모델 문맥에 실제로 들어간 근거만 허용한다(T-07).
     citation_ids: list[str] = Field(default_factory=list, max_length=30)
+    # M5: 답에서 언급한 티켓 ID(이번 실행의 조회 결과에 있던 것만)와 사용자에게 확인을 요청할 draft action ID.
+    ticket_ids: list[str] = Field(default_factory=list, max_length=20)
+    action_id: str | None = None
 
 
 # output_config에 넣을 JSON 스키마. 모든 필드를 required로 둬 생략과 null을 구분한다.
@@ -41,13 +44,23 @@ FINAL_OUTPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "answer": {"type": "string"},
-        # action_pending은 확인 대기 도구가 생기는 M5부터 연다(지금은 서버가 거절하는 값이다).
-        "outcome": {"type": "string", "enum": [o.value for o in Outcome if o is not Outcome.ACTION_PENDING]},
+        # action_pending은 M5에서 연다. 서버가 이번 실행에서 실제로 준비한 draft인지 대조한다.
+        "outcome": {"type": "string", "enum": [o.value for o in Outcome]},
         "training_ids": {"type": "array", "items": {"type": "string"}},
         "selected_training_id": {"anyOf": [{"type": "string"}, {"type": "null"}]},
         "citation_ids": {"type": "array", "items": {"type": "string"}},
+        "ticket_ids": {"type": "array", "items": {"type": "string"}},
+        "action_id": {"anyOf": [{"type": "string"}, {"type": "null"}]},
     },
-    "required": ["answer", "outcome", "training_ids", "selected_training_id", "citation_ids"],
+    "required": [
+        "answer",
+        "outcome",
+        "training_ids",
+        "selected_training_id",
+        "citation_ids",
+        "ticket_ids",
+        "action_id",
+    ],
     "additionalProperties": False,
 }
 
@@ -56,6 +69,8 @@ FINAL_OUTPUT_SCHEMA: dict[str, Any] = {
 class HistoryMessage:
     role: Literal["user", "assistant"]
     text: str
+    # MOD-01 메시지 ID. 티켓 준비의 user_quote 출처(source_message_id)로 쓴다(04-field-origins).
+    message_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -103,3 +118,5 @@ class ExecutionResult:
     answer_source: Literal["model", "server_fallback", "server_mapping"] = "model"
     # 모델 문맥에 들어간 원문 문서 키(인용 여부와 무관). 이력·최종 응답 가림의 기준이다(CT-03).
     document_keys: tuple[str, ...] = ()
+    # 모델 문맥에 들어간 티켓 ID(답에서 언급했는지와 무관). 권한이 바뀌면 이 답도 가린다(CP-05).
+    ticket_dependency_ids: tuple[str, ...] = ()

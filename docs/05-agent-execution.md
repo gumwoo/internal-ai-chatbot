@@ -50,7 +50,7 @@ prepare의 자유문장은 CT-06 origin_candidates로 근원을 제안하고 MOD
 
 - 원문이 없으면 규정 내용을 추정하지 않는다.
 - 선택 후보가 여러 개면 되묻는다. 대화 B가 A의 선택을 가져오지 않는다.
-- action_pending은 확인 대기다. “등록했습니다”라고 응답하지 않는다.
+- action_pending은 확인 대기다. “등록했습니다”라고 응답하지 않는다. 구현(M5): action_id는 이번 run에서 실제로 준비한 draft여야 하고(아니면 무효 출력), ticket_ids는 이번 run의 조회 결과에 있던 티켓만이다. MOD-01은 그 draft를 action_preview로 저장해 공개한다(D-42).
 - 필수 기록 저장 실패·deadline·상한·무효 출력은 failed이며 상태 후보를 적용하지 않는다.
 - MOD-01이 최종 권한·활성 run을 재검사한 뒤 commit한다. commit 전 결과는 사용자용 확정 완료가 아니다.
 

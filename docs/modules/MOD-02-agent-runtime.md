@@ -58,3 +58,4 @@ origin_candidates의 quote/message ID를 CP-07 user 원문과 대조해 code poi
 - D-37: 도구 없는 첫 응답의 빈 answer(되묻기 제외)는 `[서버 안내]` 문구로 한 번만 다시 부르고 usage.empty_answer_retries에 남긴다. 사용자가 쓴 `[서버 안내]`는 무력화한다.
 - D-39: 확인된 사건의 인용(또는 교육)이 있는 answered에 날짜를 확인하지 못한 사건(같은 event_key가 끝내 resolved되지 않은 되묻기)이 있으면, 그 서버 되묻기 문구를 답 끝에 붙인다(모델 답에 이미 있으면 붙이지 않음).
 - D-40: search_documents의 other_events를 사건마다 date_quote로 검증해 field_origins `other_events[i]`로 넘긴다(상신은 request_date 역할). 프롬프트 `m3-docs-9`.
+- M5: prepare_it_ticket의 origin_candidates로 field_origins를 계산한다(04-field-origins 구현 메모). 최종 출력에 ticket_ids·action_id를 받고 action_pending을 연다(D-42). 빈 첫 답 재호출은 tool_choice=any로 도구 호출을 강제한다(D-41). 프롬프트 `m5-tickets-1`.

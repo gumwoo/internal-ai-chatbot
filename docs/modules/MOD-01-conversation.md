@@ -55,3 +55,4 @@ CP-07 ConversationEvidenceReader 구현을 소유한다. ReadUserEvidence는 본
 - 답변의 dependency_ids에는 이번 문맥의 교육 ID·문서 키(`doc:키`)와, 이력으로 다시 넣은 assistant 메시지의 의존 합집합을 함께 저장한다(CT-03). 권한을 잃으면 그 답과 그 답을 이어받은 답이 함께 가려진다.
 - 최종 응답(JSON·SSE·재전송) 직전에 MOD-09 ReloadActor로 actor를 다시 읽는다. 세션 회수·비활성이면 가린다.
 - 사용자 입력의 서버 표시 문자열("[대화 자료]", "[사용자 질문]")은 모델 문맥에 넣을 때 괄호를 바꿔 서버 블록과 섞이지 않게 한다(MOD-02).
+- M5(2026-10-18): 메시지에 action_preview(채택한 root draft)와 ticket_refs를 저장한다. 의존 자원에 `ticket:{id}`(모델 문맥에 들어간 티켓)를 넣고, 이력·응답 직전에 MOD-12 CheckTicketVisibility(CP-05)로 다시 판정해 볼 수 없으면 가린다. CP-06 `DbRunEligibility`(check_prepare: 본인 running·deadline 전, adopted: completed이고 그 답의 action_preview가 root draft)와 CP-07 `read_user_messages`(본인 대화·그 run의 질문과 이력 창의 user 메시지만)를 MOD-12에 주입한다. HistoryMessage·ExecutionContext에 message ID를 싣는다.

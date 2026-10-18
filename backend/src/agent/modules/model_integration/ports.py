@@ -51,6 +51,8 @@ class ModelRequest:
     timeout_s: float
     model_config: ModelConfig
     system: str | None = None
+    # auto=모델이 도구·최종 답을 고른다. any=도구 하나를 반드시 호출한다(D-41: 빈 첫 답 재호출 때만).
+    tool_choice: Literal["auto", "any"] = "auto"
 
 
 @dataclass(frozen=True)

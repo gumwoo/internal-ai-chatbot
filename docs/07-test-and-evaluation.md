@@ -79,3 +79,5 @@ T-15: 복귀일이 먼저 나오는 문장에서도 출장 시작일 선택, 작
 T-31/32: code point 출처·닫힌 template/normalization, 복수 root 준비의 직접 원본/밀려난 head 이중 관계, 최초 head row 삽입 경쟁, cancel 후 ID/revision. T-17/29: IT-045/046 안내 판본, 원규정 공백 시 결론 보류, 반대편 판본 경과조항의 조건·현재 ACL.
 
 T-27/35:5개 초과 gold 보존, 공통 token 예산·다중 사건 병합, Wiki 주제/프롬프트 holdout 전 동결·judge 블라인딩. dev 예산 스윕 곡선과 동결 근거 기록, Recall@pool/Recall@budget·evidence-in-context·hard_negative 오답 보고, 재정렬·전체 문맥 기준선은 별도 비교 ID로만 실행. 정적 시안 결과는 서버/실제 RAG 검증과 구분한다.
+
+구현 메모(M5, 2026-10-18): T-30~33은 `backend/tests/test_tickets.py`(HTTP·DB 경쟁·원자성·출처·CP-05/06/07), 정규화는 `test_ticket_origins.py`, 실제 모델은 `test_live_tickets.py`(live_model).

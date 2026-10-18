@@ -14,7 +14,14 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 from agent.modules.conversation.progress import RunProgress
-from agent.modules.conversation.tables import agent_runs, tool_calls, tool_result_receipts
+from agent.modules.conversation.tables import (
+    agent_runs,
+    conversations,
+    messages,
+    tool_calls,
+    tool_result_receipts,
+)
+from agent.shared.clock import Clock
 from agent.shared.contracts import (
     ProgressStage,
     RequiredRecordError,
@@ -66,10 +73,49 @@ class DbExecutionObserver:
 
 
 class DbConversationEvidence:
-    """CP-07 ConversationEvidenceReader의 MOD-01 구현(앱이 MOD-02에 주입, P-12 B)."""
+    """CP-07 ConversationEvidenceReader의 MOD-01 구현(앱이 MOD-02·MOD-12에 주입, P-12 B)."""
 
-    def __init__(self, engine: AsyncEngine) -> None:
+    def __init__(self, engine: AsyncEngine, history_messages: int = 12) -> None:
         self._engine = engine
+        self._history = history_messages
+
+    async def read_user_messages(
+        self, actor_id: str, conversation_id: str, run_id: str, message_ids: set[str]
+    ) -> dict[str, str]:
+        """ReadUserEvidence: 본인 대화의 그 run 문맥 user 원문만(수락한 질문 + 모델에 보낸 이력 창).
+
+        assistant·다른 대화·창 밖 메시지·모르는 ID는 돌려주지 않는다(04-field-origins).
+        """
+        try:
+            ids = {UUID(m) for m in message_ids}
+            conversation, run = UUID(conversation_id), UUID(run_id)
+        except ValueError:
+            return {}
+        async with self._engine.connect() as conn:
+            owner = await conn.scalar(
+                select(conversations.c.owner_user_id).where(conversations.c.id == conversation)
+            )
+            run_row = (
+                await conn.execute(
+                    select(agent_runs.c.user_message_id).where(
+                        agent_runs.c.id == run, agent_runs.c.conversation_id == conversation
+                    )
+                )
+            ).first()
+            if owner != actor_id or run_row is None:
+                return {}
+            current_seq = await conn.scalar(
+                select(messages.c.seq).where(messages.c.id == run_row.user_message_id)
+            )
+            window = (
+                await conn.execute(
+                    select(messages.c.id, messages.c.role, messages.c.content)
+                    .where(messages.c.conversation_id == conversation, messages.c.seq <= current_seq)
+                    .order_by(messages.c.seq.desc())
+                    .limit(self._history + 1)
+                )
+            ).all()
+        return {str(r.id): r.content for r in window if r.role == "user" and r.id in ids}
 
     async def verified_training_pairs(self, conversation_id: str) -> set[tuple[str, str]]:
         async with self._engine.connect() as conn:
@@ -94,3 +140,42 @@ def verified_cache(state: dict[str, Any], pairs: set[tuple[str, str]]) -> dict[s
         for training_id, summary in cache.items()
         if (training_id, str(summary.get("starts_at"))) in pairs
     }
+
+
+class DbRunEligibility:
+    """CP-06 RunEligibility의 MOD-01 구현(앱이 MOD-12에 주입). run 자격만 답한다."""
+
+    def __init__(self, engine: AsyncEngine, clock: Clock) -> None:
+        self._engine = engine
+        self._clock = clock
+
+    async def _run(self, conn: AsyncConnection, actor_id: str, conversation_id: str, run_id: str) -> Any:
+        try:
+            conversation, run = UUID(conversation_id), UUID(run_id)
+        except ValueError:
+            return None
+        row = (
+            await conn.execute(
+                select(agent_runs, conversations.c.owner_user_id)
+                .join(conversations, conversations.c.id == agent_runs.c.conversation_id)
+                .where(agent_runs.c.id == run, agent_runs.c.conversation_id == conversation)
+            )
+        ).first()
+        return row if row is not None and row.owner_user_id == actor_id else None
+
+    async def check_prepare(self, actor_id: str, conversation_id: str, run_id: str) -> bool:
+        """CheckPrepare: 아직 실행 중이고 deadline 전인 본인 run(실패·만료 run은 준비할 수 없다)."""
+        async with self._engine.connect() as conn:
+            row = await self._run(conn, actor_id, conversation_id, run_id)
+        return row is not None and row.status == "running" and row.deadline_at > self._clock.now()
+
+    async def adopted(self, actor_id: str, conversation_id: str, run_id: str, action_id: str) -> bool:
+        """원본 run이 completed이고 그 답이 이 root draft를 채택했는가(MOD-01이 결과에 채택한 뒤에만 공개)."""
+        async with self._engine.connect() as conn:
+            row = await self._run(conn, actor_id, conversation_id, run_id)
+            if row is None or row.status != "completed" or row.assistant_message_id is None:
+                return False
+            preview = await conn.scalar(
+                select(messages.c.action_preview).where(messages.c.id == row.assistant_message_id)
+            )
+        return bool(preview) and preview.get("action_id") == action_id

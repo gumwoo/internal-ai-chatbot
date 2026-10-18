@@ -37,3 +37,5 @@ T-09 미등록/무효/권한 위조 인자, T-10 분배·인용 ID·단일 시�
 MOD-04의 실제 결과를 CT-11 RecordTrainingResult로 저장한 뒤 모델에 전달한다. receipt는 run/ordinal/training ID/starts_at/hash이며 기록 실패는 실행 실패다. prepare_it_ticket은 draft만 반환한다.
 
 CT-06 origin_candidates는 비신뢰 제안으로 분리해 MOD-02의 구간 계산→MOD-12의 CP-07 재검증에 전달한다. 닫힌 오류 사전의 모듈 오류와 외곽 HTTP status를 혼동하지 않는다.
+
+- M5(2026-10-18): list_it_tickets·get_it_ticket(ticket.read_own)·prepare_it_ticket(ticket.prepare)을 등록한다. 결과 자원 ID는 `ticket:{id}`·`action:{id}`. prepare는 MOD-02가 계산한 field_origins(`ticket_fields`)만 MOD-12에 넘기고 origin_candidates 원본은 업무 필드에서 뺀다.

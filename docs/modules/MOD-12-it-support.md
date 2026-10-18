@@ -42,3 +42,11 @@ IT-037의 요청 유형·대상 서비스·발생 시각·영향·긴급 여부�
 APP-02가 MOD-01의 ConversationEvidenceReader 어댑터를 주입한다. PrepareTicket은 ReadUserEvidence로 본인/run 문맥 user 원문 구간과 field_origins를 대조한다. CP-06만으로 원문 검증을 대신하지 않는다. draft의 expected_head_id와 head 직렬화, superseded 응답은 [티켓 계약](../14-ticket-workflow.md)이 기준이다.
 
 독립 root draft 여러 개·대화별 head 하나다. prepared_from_action_id와 displaced_head_id를 분리하고 conversation_id UNIQUE/head_revision으로 최초 생성 경쟁까지 처리한다. cancel 후 head ID를 유지한다. 자세한 검사 순서와 오류 details는 티켓/오류 계약을 따른다.
+
+## 구현 메모(M5, 2026-10-18)
+
+- 패키지 `agent/modules/it_support`(tables·contracts·service), 마이그레이션 0008. HTTP는 `agent/app/tickets.py`.
+- revise·confirm·cancel은 `ticket_action_heads`(conversation_id PK) 행을 INSERT … ON CONFLICT DO NOTHING 뒤 SELECT … FOR UPDATE로 잠근 트랜잭션에서 상태 검사·새 action·head 교체·감사·멱등 기록을 함께 commit한다. 같은 키 동시 요청의 유일키 충돌은 먼저 commit된 결과로 replay한다.
+- 조회 범위: 본인(ticket.read_own) ∪ 지원 범위 부서 요청자(ticket.read_support_scope + support_scopes) ∪ 전사(ticket.read_all). 티켓에는 확인 시점의 요청자 부서를 저장한다. 미존재·불허는 같은 404.
+- 만료는 lazy(TTL 5분, 같은 clock). head_revision은 성공한 revise·confirm·현재 pending cancel마다만 증가.
+- 필수 필드·지원 범위·회신 수단·출처 정규화는 D-42([P-20](../15-policy-options.md#p-20)).

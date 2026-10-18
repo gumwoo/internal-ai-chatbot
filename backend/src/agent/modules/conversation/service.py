@@ -16,7 +16,7 @@ import uuid
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Protocol
 from uuid import UUID
 
 from sqlalchemy import func, select, update
@@ -47,9 +47,17 @@ from agent.shared.errors import AppError, ErrorCode
 
 logger = logging.getLogger(__name__)
 
+
+class TicketVisibility(Protocol):
+    """CP-05의 티켓 쪽(MOD-12 CheckTicketVisibility). 이력·최종 응답의 티켓 참조를 지금 볼 수 있는가."""
+
+    async def visible_ticket_ids(self, actor: ActorContext, ids: set[str]) -> set[str]: ...
+
+
 # 대화 생성 시 서버가 고정하는 검색 전략. 검색 서비스가 조립되면 raw, 아니면 disabled(M1~M2와 같음).
 RETRIEVAL_STRATEGY = "disabled"
 _DOC_PREFIX = "doc:"
+_TICKET_PREFIX = "ticket:"
 _REDACTED_TEXT = "이 답변은 현재 권한으로 볼 수 없어 가렸습니다."
 # 동시 수락 경쟁에서만 나는 제약 위반: 대화당 running 하나, 같은 키 receipt 하나.
 _BUSY_CONSTRAINTS = frozenset({"ux_agent_runs_one_running", "message_receipts_pkey"})
@@ -98,15 +106,31 @@ def _doc_keys(message: Any) -> set[str]:
     return {d[len(_DOC_PREFIX) :] for d in message.dependency_ids or [] if str(d).startswith(_DOC_PREFIX)}
 
 
-def _can_view(actor: ActorContext, message: Any, visible_docs: set[str] | None = None) -> bool:
+def _ticket_ids(message: Any) -> set[str]:
+    return {
+        d[len(_TICKET_PREFIX) :] for d in message.dependency_ids or [] if str(d).startswith(_TICKET_PREFIX)
+    }
+
+
+def _can_view(
+    actor: ActorContext,
+    message: Any,
+    visible_docs: set[str] | None = None,
+    visible_tickets: set[str] | None = None,
+) -> bool:
     """답변을 지금 보여 줘도 되는가. 답에 적힌 참조가 아니라 모델 문맥에 들어간 의존 자원 전체로 판정한다.
 
     모델이 인용을 생략해도 접근 검사를 피하지 못하게 하려는 것이다(CT-03).
     """
     if message.visibility != "visible":
         return False
-    trainings = [d for d in message.dependency_ids or [] if not str(d).startswith(_DOC_PREFIX)]
+    trainings = [
+        d for d in message.dependency_ids or [] if not str(d).startswith((_DOC_PREFIX, _TICKET_PREFIX))
+    ]
     if trainings and not _can_view_trainings(actor):
+        return False
+    # 티켓 의존: 답이 기댄 티켓을 지금 볼 수 있어야 한다(CP-05, T-30). 권한이 바뀌면 이력도 가린다.
+    if not _ticket_ids(message) <= (visible_tickets or set()):
         return False
     # 문서 의존: 모델 문맥에 들어간 원문 문서를 지금 모두 볼 수 있어야 한다(CP-05, T-04).
     return _doc_keys(message) <= (visible_docs or set())
@@ -125,6 +149,7 @@ class ConversationService:
         heartbeat_s: float = 15.0,
         retrieval: RetrievalService | None = None,
         identity: IdentityService | None = None,
+        tickets: TicketVisibility | None = None,
     ) -> None:
         self._engine = engine
         self._clock = clock
@@ -137,6 +162,7 @@ class ConversationService:
         self._heartbeat_s = heartbeat_s
         self._retrieval = retrieval
         self._identity = identity
+        self._tickets = tickets
 
     async def _visible_docs(self, actor: ActorContext, rows: list[Any]) -> set[str]:
         """메시지들이 의존한 문서 중 지금 actor가 볼 수 있는 키(한 번에 조회)."""
@@ -144,6 +170,12 @@ class ConversationService:
         if not keys or self._retrieval is None:
             return set()
         return await self._retrieval.visible_document_keys(actor, keys)
+
+    async def _visible_tickets(self, actor: ActorContext, rows: list[Any]) -> set[str]:
+        ids = set().union(*(_ticket_ids(r) for r in rows)) if rows else set()
+        if not ids or self._tickets is None:
+            return set()
+        return await self._tickets.visible_ticket_ids(actor, ids)
 
     # --- 대화 ---
 
@@ -220,9 +252,11 @@ class ConversationService:
                 )
             ).all()
         items = []
-        visible_docs = await self._visible_docs(actor, [r for r in rows if r.role == "assistant"])
+        assistants = [r for r in rows if r.role == "assistant"]
+        visible_docs = await self._visible_docs(actor, assistants)
+        visible_tickets = await self._visible_tickets(actor, assistants)
         for r in rows:
-            visible = r.role == "user" or _can_view(actor, r, visible_docs)
+            visible = r.role == "user" or _can_view(actor, r, visible_docs, visible_tickets)
             items.append(
                 {
                     "id": str(r.id),
@@ -233,6 +267,8 @@ class ConversationService:
                     "outcome": r.outcome if visible else None,
                     "training_refs": r.training_refs if visible else [],
                     "citations": (r.citations or []) if visible else [],
+                    "ticket_refs": (r.ticket_refs or []) if visible else [],
+                    "action_preview": r.action_preview if visible else None,
                     "run_id": str(r.run_id) if r.run_id else None,
                     "created_at": _iso(r.created_at),
                 }
@@ -482,6 +518,7 @@ class ConversationService:
                 deadline_at=accepted.accepted_at + timedelta(seconds=self._policy.run_timeout_s),
                 policy=self._policy,
                 retrieval_context=accepted.retrieval,
+                user_message_id=str(accepted.user_message_id),
             )
             result = await self._runtime.execute(
                 context, snapshot, content, DbExecutionObserver(self._engine, self._progress)
@@ -516,12 +553,18 @@ class ConversationService:
                 select(conversations.c.business_state).where(conversations.c.id == conversation_id)
             )
             pairs = await verified_training_pairs(conn, conversation_id)
-        visible_docs = await self._visible_docs(actor, [r for r in rows if r.role == "assistant"])
-        kept = [r for r in reversed(rows) if r.role == "user" or _can_view(actor, r, visible_docs)]
+        assistants = [r for r in rows if r.role == "assistant"]
+        visible_docs = await self._visible_docs(actor, assistants)
+        visible_tickets = await self._visible_tickets(actor, assistants)
+        kept = [
+            r
+            for r in reversed(rows)
+            if r.role == "user" or _can_view(actor, r, visible_docs, visible_tickets)
+        ]
         # 창이 잘리거나 답이 가려져 첫 메시지가 assistant가 되면 그 앞을 버린다(대화는 user로 시작한다).
         while kept and kept[0].role == "assistant":
             kept.pop(0)
-        history = [HistoryMessage(r.role, r.content) for r in kept]
+        history = [HistoryMessage(r.role, r.content, str(r.id)) for r in kept]
         inherited = {str(d) for r in kept if r.role == "assistant" for d in (r.dependency_ids or [])}
         state = state or {}
         # receipt로 검증한 사본도 지금 볼 수 없는 자원이면 모델 문맥에 넣지 않는다(CT-03 현재 권한 재검증).
@@ -608,6 +651,9 @@ class ConversationService:
                 outcome=result.outcome.value if result.outcome else None,
                 training_refs=refs,
                 citations=list(result.citations),
+                # 이 run이 채택한 root draft(UI 공개·수정 자격의 기준)와 티켓 참조.
+                action_preview=result.action_preview,
+                ticket_refs=list(result.ticket_refs),
                 # 모델 문맥에 들어간 교육(답에서 가리킨 것 + 이번 결과)의 ID와 원문 문서 키.
                 # 이력·재전송에서 접근을 다시 검사하는 대상이다.
                 dependency_ids=sorted(
@@ -615,6 +661,7 @@ class ConversationService:
                         *(r["id"] for r in refs),
                         *(result.context_candidate or {}).get("training_cache", {}),
                         *(f"{_DOC_PREFIX}{key}" for key in result.document_keys),
+                        *(f"{_TICKET_PREFIX}{tid}" for tid in result.ticket_dependency_ids),
                         *inherited,
                     }
                 ),
@@ -692,7 +739,10 @@ class ConversationService:
         # 내보내기 직전의 actor로 다시 판정한다(CT-01).
         current = await self._identity.reload_actor(actor) if self._identity is not None else actor
         visible = current is not None and _can_view(
-            current, message, await self._visible_docs(current, [message])
+            current,
+            message,
+            await self._visible_docs(current, [message]),
+            await self._visible_tickets(current, [message]),
         )
         return MessageResponse(
             200,
@@ -705,9 +755,9 @@ class ConversationService:
                 "outcome": message.outcome if visible else "insufficient_evidence",
                 "answer": message.content if visible else _REDACTED_TEXT,
                 "training_refs": message.training_refs if visible else [],
-                "ticket_refs": [],
+                "ticket_refs": (message.ticket_refs or []) if visible else [],
                 "citations": (message.citations or []) if visible else [],
-                "action_preview": None,
+                "action_preview": message.action_preview if visible else None,
                 "error": None,
             },
         )

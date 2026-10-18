@@ -335,7 +335,8 @@ async def test_search_tool_absent_without_snapshot_or_capability(seeded_engine, 
         await _ask(client, "규정 알려줘")  # 게시본 없음
     async with api_client(_app(migrated, FakeModelClient([final("답")]), actor=trainee)) as client:
         await _ask(client, "규정 알려줘")
-    assert [t.name for t in model.requests[0].tools] == ["list_trainings", "get_training"]
+    names = [t.name for t in model.requests[0].tools]
+    assert "search_documents" not in names and names[:2] == ["list_trainings", "get_training"]
     assert "search_documents" not in model.requests[0].system
 
 
@@ -363,7 +364,8 @@ async def test_injected_instructions_in_passages_stay_data(published, migrated):
     # 원문은 system이 아니라 도구 결과로만 들어간다(구조상 system에는 원문이 들어갈 자리가 없다).
     assert injected not in second.system and injected not in (second.messages[0].text or "")
     assert any(injected in r.content for m in second.messages for r in m.tool_results)
-    assert [t.name for t in second.tools] == ["list_trainings", "get_training", "search_documents"]
+    names = [t.name for t in second.tools]
+    assert names[:3] == ["list_trainings", "get_training", "search_documents"] and "delete_all" not in names
     rejected = model.tool_payloads()[-1]
     assert rejected["ok"] is False and rejected["error"]["code"] == "TOOL_NOT_REGISTERED"
     first_payload = json.dumps(model.tool_payloads()[0], ensure_ascii=False)

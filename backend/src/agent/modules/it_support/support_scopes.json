@@ -1,0 +1,7 @@
+{
+  "_comment": "데모 IT 지원 담당 범위(D-42, 2026-10-18 추천안 채택). 지원 담당자가 볼 수 있는 요청자 부서. 전사 조회(ticket.read_all)와 다르며 빈 목록은 거부다.",
+  "version": 1,
+  "scopes": [
+    {"user_id": "it-support", "department_ids": ["dept-hr", "dept-it", "dept-sec", "dept-mgmt", "dept-fin", "dept-ga", "dept-sales", "dept-dev"]}
+  ]
+}

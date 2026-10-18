@@ -191,6 +191,8 @@ async def test_prompt_carries_server_time_and_only_allowed_tools(seeded_engine, 
         "training_ids",
         "selected_training_id",
         "citation_ids",
+        "ticket_ids",
+        "action_id",
     ]
 
 
@@ -468,10 +470,30 @@ async def test_model_limit_cuts_hanging_model_even_with_long_deadline(seeded_eng
     assert asyncio.get_running_loop().time() - started < 3
 
 
-def test_output_schema_does_not_offer_action_pending():
+async def test_action_pending_needs_a_draft_prepared_in_this_run(seeded_engine, clock):
+    """M5에서 action_pending을 연다. 단, 이번 실행에서 실제로 준비한 draft를 가리켜야 한다."""
     from agent.modules.agent_runtime.contracts import FINAL_OUTPUT_SCHEMA
 
-    assert "action_pending" not in FINAL_OUTPUT_SCHEMA["properties"]["outcome"]["enum"]
+    assert "action_pending" in FINAL_OUTPUT_SCHEMA["properties"]["outcome"]["enum"]
+    forged = ModelResponse(
+        (),
+        {
+            "answer": "확인해 주세요",
+            "outcome": "action_pending",
+            "training_ids": [],
+            "selected_training_id": None,
+            "citation_ids": [],
+            "ticket_ids": [],
+            "action_id": "33333333-3333-4333-8333-333333333301",
+        },
+        "fake",
+        "agent_answer",
+        "test",
+        USAGE,
+    )
+    runtime, _ = _runtime([forged], seeded_engine, clock)
+    result = await _run(runtime, clock)
+    assert result.status == "failed" and result.error.code is ErrorCode.MODEL_OUTPUT_INVALID
 
 
 # --- TS-19: 되묻기에서 질문을 비운 모델 출력 ---
@@ -510,7 +532,7 @@ def test_prompt_requires_question_text_for_clarification():
     from agent.shared.clock import FIXTURE_NOW
 
     prompt = system_prompt(FIXTURE_NOW)
-    assert PROMPT_VERSION == "m3-docs-9"
+    assert PROMPT_VERSION == "m5-tickets-2"
     assert "되묻는 경우에도 answer에는 사용자에게 할 질문을 한국어 문장으로 쓴다" in prompt
     assert "어떤 outcome이든 비워 두지 않는다" in prompt
 
@@ -599,6 +621,8 @@ async def test_empty_first_answer_is_retried_once_with_server_note(seeded_engine
     assert result.usage.empty_answer_retries == 1 and result.usage.model_attempts == 3
     retry = model.requests[1].messages
     assert retry[-1].role == "user" and retry[-1].text == EMPTY_ANSWER_RETRY
+    # D-41: 다시 부를 때만 도구 호출을 강제하고, 그다음 호출은 다시 auto다.
+    assert [r.tool_choice for r in model.requests] == ["auto", "any", "auto"]
 
 
 @pytest.mark.parametrize("second", ["empty_again", "after_tool"])

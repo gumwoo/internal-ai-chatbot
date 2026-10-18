@@ -159,6 +159,14 @@ class IdentityService:
 
     # --- actor·인가 ---
 
+    async def reply_channel(self, user_id: str) -> str | None:
+        """현재 프로필의 사내 회신 수단(티켓 준비·확인의 서버 값). 비활성 계정이면 None."""
+        async with self._engine.connect() as conn:
+            row = (
+                await conn.execute(select(users.c.reply_channel, users.c.active).where(users.c.id == user_id))
+            ).first()
+        return row.reply_channel if row is not None and row.active else None
+
     async def reload_actor(self, actor: ActorContext) -> ActorContext | None:
         """ReloadActor: 현재 부서·역할·revision. 비활성·삭제 계정이나 회수·만료된 세션이면 None.
 
@@ -379,6 +387,7 @@ async def load_demo_org(engine: AsyncEngine, now: datetime, path: Path = DEMO_OR
                         active=True,
                         auth_revision=1,
                         created_at=now,
+                        reply_channel=user.get("reply_channel"),
                     )
                 )
                 changed = True
@@ -394,6 +403,7 @@ async def load_demo_org(engine: AsyncEngine, now: datetime, path: Path = DEMO_OR
                         password_hash=password_hash,
                         web_login=user["web_login"],
                         auth_revision=existing.auth_revision + 1 if changed else existing.auth_revision,
+                        reply_channel=user.get("reply_channel"),
                     )
                 )
                 if password_hash != existing.password_hash or user["web_login"] != existing.web_login:

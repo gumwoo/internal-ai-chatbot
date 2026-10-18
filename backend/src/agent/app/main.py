@@ -12,14 +12,16 @@ from agent.app.conversations import router as conversations_router
 from agent.app.evidence import router as evidence_router
 from agent.app.health import router as health_router
 from agent.app.session import router as session_router
+from agent.app.tickets import router as tickets_router
 from agent.app.trainings import router as trainings_router
 from agent.modules.agent_runtime.prompt import PROMPT_VERSION
 from agent.modules.agent_runtime.runtime import AgentRuntime
-from agent.modules.conversation.records import DbConversationEvidence
+from agent.modules.conversation.records import DbConversationEvidence, DbRunEligibility
 from agent.modules.conversation.service import ConversationService
 from agent.modules.identity_access.service import IdentityService
 from agent.modules.identity_access.session_actor import SessionCurrentActor
 from agent.modules.identity_access.test_stub import TestStubCurrentActor
+from agent.modules.it_support.service import TicketService
 from agent.modules.knowledge.service import KnowledgeService
 from agent.modules.model_integration.anthropic_chat import AnthropicChatModel
 from agent.modules.model_integration.gemini_embedding import GeminiEmbeddingModel
@@ -29,6 +31,7 @@ from agent.modules.tool_execution.executor import ToolExecutor
 from agent.modules.training.service import TrainingService
 from agent.shared.actor import CurrentActor
 from agent.shared.clock import Clock, SystemClock
+from agent.shared.contracts import ExecutionPolicy
 from agent.shared.db import make_engine, make_session_factory
 from agent.shared.origin import OriginCheckMiddleware
 from agent.shared.request_id import RequestIdMiddleware
@@ -87,12 +90,17 @@ def create_app(
         )
         app.state.knowledge = knowledge
         retrieval = RetrievalService(knowledge)
+        # CP-07 창은 MOD-02가 모델에 보내는 이력 창과 같아야 한다(출처 계산과 재검증이 같은 메시지를 본다).
+        evidence = DbConversationEvidence(engine, ExecutionPolicy().history_messages)
+        # MOD-12: CP-06(run 자격)·CP-07(사용자 원문)은 MOD-01 구현을 앱이 주입한다(모듈 import 아님).
+        tickets = TicketService(engine, clock, app.state.identity, DbRunEligibility(engine, clock), evidence)
+        app.state.tickets = tickets
         runtime = AgentRuntime(
             chat,
-            ToolExecutor(trainings, clock, retrieval),
+            ToolExecutor(trainings, clock, retrieval, tickets),
             clock,
             model,
-            evidence_reader=DbConversationEvidence(engine),
+            evidence_reader=evidence,
         )
         service = ConversationService(
             engine,
@@ -102,6 +110,7 @@ def create_app(
             prompt_version=PROMPT_VERSION,
             retrieval=retrieval,
             identity=app.state.identity,
+            tickets=tickets,
         )
         app.state.conversations = service
         # 시작 시 deadline 지난 running을 회수한다(01-run-lifecycle). DB 접속을 기다리느라 시작이 막히지 않게
@@ -136,6 +145,7 @@ def create_app(
     app.include_router(trainings_router, prefix=API_PREFIX)
     app.include_router(conversations_router, prefix=API_PREFIX)
     app.include_router(evidence_router, prefix=API_PREFIX)
+    app.include_router(tickets_router, prefix=API_PREFIX)
 
     # 바깥부터 RequestId → Origin 순서로 실행된다.
     app.add_middleware(OriginCheckMiddleware, allowed_origins=settings.allowed_origin_set)

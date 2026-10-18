@@ -1,31 +1,191 @@
 {
-  "_comment": "가상 데모 조직(D-30, 2026-10-17 사용자 확인). 실제 회사·인물·비밀번호가 아니다. 비밀번호는 데모 시험용이며 적재 시 scrypt 해시만 DB에 저장한다.",
-  "version": 1,
+  "_comment": "가상 데모 조직(D-30, 2026-10-17 사용자 확인). 실제 회사·인물·비밀번호가 아니다. 비밀번호는 데모 시험용이며 적재 시 scrypt 해시만 DB에 저장한다. v2(2026-10-18, D-42): 직원 역할에 티켓 준비·제출(ticket.prepare·ticket.submit), 계정별 사내 회신 수단.",
+  "version": 2,
   "departments": [
-    {"id": "dept-hr", "name": "인사팀"},
-    {"id": "dept-it", "name": "IT지원팀"},
-    {"id": "dept-sec", "name": "정보보안팀"},
-    {"id": "dept-mgmt", "name": "경영지원팀"},
-    {"id": "dept-fin", "name": "재무팀"},
-    {"id": "dept-ga", "name": "총무팀"},
-    {"id": "dept-sales", "name": "영업팀"},
-    {"id": "dept-dev", "name": "개발팀"}
+    {
+      "id": "dept-hr",
+      "name": "인사팀"
+    },
+    {
+      "id": "dept-it",
+      "name": "IT지원팀"
+    },
+    {
+      "id": "dept-sec",
+      "name": "정보보안팀"
+    },
+    {
+      "id": "dept-mgmt",
+      "name": "경영지원팀"
+    },
+    {
+      "id": "dept-fin",
+      "name": "재무팀"
+    },
+    {
+      "id": "dept-ga",
+      "name": "총무팀"
+    },
+    {
+      "id": "dept-sales",
+      "name": "영업팀"
+    },
+    {
+      "id": "dept-dev",
+      "name": "개발팀"
+    }
   ],
   "roles": [
-    {"id": "employee", "name": "직원", "capabilities": ["training.read", "knowledge.search", "ticket.read_own"]},
-    {"id": "dept_head", "name": "부서장", "capabilities": ["training.read", "knowledge.search", "ticket.read_own"]},
-    {"id": "hr_staff", "name": "인사 담당자", "capabilities": ["training.read", "knowledge.search", "ticket.read_own"]},
-    {"id": "approver", "name": "결재 담당자", "capabilities": ["training.read", "knowledge.search", "ticket.read_own"]},
-    {"id": "auditor", "name": "감사 담당자", "capabilities": ["training.read", "knowledge.search", "ticket.read_own"]},
-    {"id": "it_support", "name": "IT 지원 담당자", "capabilities": ["training.read", "knowledge.search", "ticket.read_own", "ticket.read_support_scope"]},
-    {"id": "operator", "name": "운영자(CLI 전용)", "capabilities": ["ops.corpus_ingest", "ops.corpus_publish", "ops.wiki_build", "ops.access_admin", "ops.membership_admin"]}
+    {
+      "id": "employee",
+      "name": "직원",
+      "capabilities": [
+        "training.read",
+        "knowledge.search",
+        "ticket.read_own",
+        "ticket.prepare",
+        "ticket.submit"
+      ]
+    },
+    {
+      "id": "dept_head",
+      "name": "부서장",
+      "capabilities": [
+        "training.read",
+        "knowledge.search",
+        "ticket.read_own"
+      ]
+    },
+    {
+      "id": "hr_staff",
+      "name": "인사 담당자",
+      "capabilities": [
+        "training.read",
+        "knowledge.search",
+        "ticket.read_own"
+      ]
+    },
+    {
+      "id": "approver",
+      "name": "결재 담당자",
+      "capabilities": [
+        "training.read",
+        "knowledge.search",
+        "ticket.read_own"
+      ]
+    },
+    {
+      "id": "auditor",
+      "name": "감사 담당자",
+      "capabilities": [
+        "training.read",
+        "knowledge.search",
+        "ticket.read_own"
+      ]
+    },
+    {
+      "id": "it_support",
+      "name": "IT 지원 담당자",
+      "capabilities": [
+        "training.read",
+        "knowledge.search",
+        "ticket.read_own",
+        "ticket.read_support_scope"
+      ]
+    },
+    {
+      "id": "operator",
+      "name": "운영자(CLI 전용)",
+      "capabilities": [
+        "ops.corpus_ingest",
+        "ops.corpus_publish",
+        "ops.wiki_build",
+        "ops.access_admin",
+        "ops.membership_admin"
+      ]
+    }
   ],
   "users": [
-    {"id": "emp-sales", "display_name": "영업팀 직원", "departments": ["dept-sales"], "roles": ["employee"], "web_login": true, "password": "demo-emp-sales-1017"},
-    {"id": "emp-dev", "display_name": "개발팀 직원", "departments": ["dept-dev"], "roles": ["employee"], "web_login": true, "password": "demo-emp-dev-1017"},
-    {"id": "head-sales", "display_name": "영업팀 부서장", "departments": ["dept-sales"], "roles": ["employee", "dept_head"], "web_login": true, "password": "demo-head-sales-1017"},
-    {"id": "hr-staff", "display_name": "인사팀 담당자", "departments": ["dept-hr"], "roles": ["employee", "hr_staff"], "web_login": true, "password": "demo-hr-staff-1017"},
-    {"id": "it-support", "display_name": "IT지원팀 담당자", "departments": ["dept-it"], "roles": ["employee", "it_support"], "web_login": true, "password": "demo-it-support-1017"},
-    {"id": "ops-admin", "display_name": "운영자", "departments": ["dept-mgmt"], "roles": ["operator"], "web_login": false, "password": null}
+    {
+      "id": "emp-sales",
+      "display_name": "영업팀 직원",
+      "departments": [
+        "dept-sales"
+      ],
+      "roles": [
+        "employee"
+      ],
+      "web_login": true,
+      "password": "demo-emp-sales-1017",
+      "reply_channel": "사내 메신저 영업팀 직원"
+    },
+    {
+      "id": "emp-dev",
+      "display_name": "개발팀 직원",
+      "departments": [
+        "dept-dev"
+      ],
+      "roles": [
+        "employee"
+      ],
+      "web_login": true,
+      "password": "demo-emp-dev-1017",
+      "reply_channel": "사내 메신저 개발팀 직원"
+    },
+    {
+      "id": "head-sales",
+      "display_name": "영업팀 부서장",
+      "departments": [
+        "dept-sales"
+      ],
+      "roles": [
+        "employee",
+        "dept_head"
+      ],
+      "web_login": true,
+      "password": "demo-head-sales-1017",
+      "reply_channel": "사내 메신저 영업팀 부서장"
+    },
+    {
+      "id": "hr-staff",
+      "display_name": "인사팀 담당자",
+      "departments": [
+        "dept-hr"
+      ],
+      "roles": [
+        "employee",
+        "hr_staff"
+      ],
+      "web_login": true,
+      "password": "demo-hr-staff-1017",
+      "reply_channel": "사내 메신저 인사팀 담당자"
+    },
+    {
+      "id": "it-support",
+      "display_name": "IT지원팀 담당자",
+      "departments": [
+        "dept-it"
+      ],
+      "roles": [
+        "employee",
+        "it_support"
+      ],
+      "web_login": true,
+      "password": "demo-it-support-1017",
+      "reply_channel": "사내 메신저 IT지원팀 담당자"
+    },
+    {
+      "id": "ops-admin",
+      "display_name": "운영자",
+      "departments": [
+        "dept-mgmt"
+      ],
+      "roles": [
+        "operator"
+      ],
+      "web_login": false,
+      "password": null,
+      "reply_channel": null
+    }
   ]
 }

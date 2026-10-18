@@ -28,3 +28,5 @@ MOD-02(Agent), MOD-05(온라인 검색 임베딩), MOD-06(색인), MOD-10(Wiki �
 이 문서는 모듈 수준의 책임·공개 계약·협력까지 정의한다. 클래스·SQL·파일 배치·세부 알고리즘은 별도 구현 결정이다. 공통 타입은 [계약](../contracts/00-shared-contracts.md), 의존 방향은 [모듈 지도](../architecture/04-module-map.md), 검증 ID는 [테스트](../07-test-and-evaluation.md)를 따른다.
 
 prepare의 공급자 도구 arguments 안 origin_candidates는 CT-06.origin_candidates로 분리하고 업무 arguments와 구분한다. 값은 검증된 출처가 아닌 비신뢰 제안이며 MOD-02/12가 출처 계약대로 검증한다.
+
+- M5(2026-10-18, D-41): ModelRequest.tool_choice(auto/any). any면 Anthropic `tool_choice={type: any}`로 보내고 최종 JSON 형식(output_config)은 붙이지 않는다(응답이 tool_use뿐). 빈 첫 답 재호출에서만 쓴다.

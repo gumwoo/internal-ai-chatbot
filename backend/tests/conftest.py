@@ -115,7 +115,9 @@ async def seeded_engine(migrated: str) -> AsyncIterator[AsyncEngine]:
                 " role_capabilities, roles, departments,"
                 " corpus_pointer, snapshot_members, corpus_snapshots, chunk_embeddings, chunks,"
                 " document_pages, parsed_artifacts, document_editions, source_files, acl_audit,"
-                " resource_acl, logical_documents"
+                " resource_acl, logical_documents,"
+                " tickets, ticket_audit, idempotency_records, ticket_prepare_receipts, ticket_action_heads,"
+                " ticket_actions, support_scopes"
             )
         )
     await load_demo_trainings(

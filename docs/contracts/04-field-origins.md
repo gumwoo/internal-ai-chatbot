@@ -16,4 +16,6 @@ UI revise는 세션/CSRF/소유권을 통과한 직접 입력을 `kind=user_inpu
 
 ## 검증 사례
 
-이모지 앞/뒤 한국어 quote의 code point offset, repeated quote 거절, 다른 대화 message_id 거절, 허용 밖 normalization/template 거절, 검색 원문 복사 거절, UI 직접 입력 감사. T-31 범위이며 아직 서버 검증을 구현한 것은 아니다.
+이모지 앞/뒤 한국어 quote의 code point offset, repeated quote 거절, 다른 대화 message_id 거절, 허용 밖 normalization/template 거절, 검색 원문 복사 거절, UI 직접 입력 감사. T-31 범위다.
+
+구현(M5, 2026-10-18): 모델은 prepare_it_ticket 인자 안의 origin_candidates `{field, quote?|template_id?}`만 낸다(message_id·구간은 받지 않음). MOD-02가 수락한 질문 → 모델에 보낸 이력 창 순서로 본인 user 메시지에서 quote를 찾아(현재 질문에 있으면 그것, 아니면 이력 전체에서 정확히 한 곳) source_message_id·code point 구간·normalization을 정한다. MOD-12는 CP-07 ReadUserEvidence(본인 대화·그 run 문맥의 user 메시지만)로 원문을 다시 읽어 구간·정규화 결과가 필드 값과 같은지 확인하고, 확인하지 못한 필드는 저장하지 않고 비운 뒤 rejected_fields로 알린다(D-43, 남는 출처는 무시). 자유문장 값이 인용 구간 안에 정확히 한 번 있으면 MOD-02가 구간을 그 값으로 좁힌다(여전히 사용자 원문). 정규화 규칙은 `agent/shared/ticket_origins.py`(D-42).

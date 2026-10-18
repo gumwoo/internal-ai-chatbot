@@ -3,6 +3,8 @@
 - 등록된 이름만 실행하고 정의되지 않은 인자 필드는 거절한다(user_id·admin·approved 위조 포함).
 - 한 번만 시도한다. 재시도 판단은 MOD-02가 한다.
 - 교육 결과는 모델에 넘기기 전에 observer로 receipt를 남긴다(CT-11). 그 기록이 실패하면 RequiredRecordError.
+- 티켓 도구(M5): list_it_tickets·get_it_ticket은 현재 허용 범위만, prepare_it_ticket은 draft만 만든다
+  (확인·수정·취소는 화면 HTTP). 자유문장 출처(field_origins)는 MOD-02가 계산한 값만 MOD-12에 넘긴다.
 - search_documents는 지식 기능이 켜진 run(corpus snapshot 고정)에서만 등록한다. 결과의 각 원문 passage에
   실행 내 고유 citation_id(c{호출 순번}-{n})를 붙인다(CT-08 RegisteredEvidence). 제목·페이지는 서버 값이다.
 """
@@ -18,6 +20,8 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
+from agent.modules.it_support.contracts import Category, RequestType
+from agent.modules.it_support.service import TicketService
 from agent.modules.retrieval.service import RetrievalResult, RetrievalService, SearchRequest
 from agent.modules.training.models import TrainingPage, TrainingSearchInput
 from agent.modules.training.service import TrainingService
@@ -81,6 +85,60 @@ class SearchDocumentsArgs(BaseModel):
     other_events: list[OtherEvent] = Field(default_factory=list, max_length=3)
 
 
+class ListTicketsArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["open"] | None = None
+    limit: int = Field(default=10, ge=1, le=20)
+    offset: int = Field(default=0, ge=0)
+
+
+class GetTicketArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ticket_id: UUID
+
+
+TicketField = Literal[
+    "subject",
+    "description",
+    "request_type",
+    "category",
+    "target_service",
+    "occurred_at",
+    "impact_scope",
+    "urgent_work",
+    "urgency_reason",
+    "asset_identifier",
+]
+
+
+class OriginCandidate(BaseModel):
+    """비신뢰 출처 제안(04-field-origins). 서버가 사용자 원문과 대조해 구간을 계산한다."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    field: TicketField
+    quote: str | None = Field(default=None, min_length=1, max_length=4000)
+    template_id: str | None = Field(default=None, max_length=60)
+
+
+class PrepareTicketArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    subject: str | None = Field(default=None, min_length=1, max_length=120)
+    description: str | None = Field(default=None, min_length=1, max_length=4000)
+    request_type: RequestType | None = None
+    category: Category | None = None
+    target_service: str | None = Field(default=None, min_length=1, max_length=120)
+    occurred_at: str | None = Field(default=None, max_length=40)
+    impact_scope: str | None = Field(default=None, min_length=1, max_length=500)
+    urgent_work: bool | None = None
+    urgency_reason: str | None = Field(default=None, min_length=1, max_length=500)
+    asset_identifier: str | None = Field(default=None, min_length=1, max_length=120)
+    origin_candidates: list[OriginCandidate] = Field(default_factory=list, max_length=10)
+
+
 @dataclass(frozen=True)
 class _Tool:
     name: str
@@ -130,7 +188,55 @@ _TOOLS: dict[str, _Tool] = {
         args_model=SearchDocumentsArgs,
         capability="knowledge.search",
     ),
+    "list_it_tickets": _Tool(
+        name="list_it_tickets",
+        description=(
+            "내가 볼 수 있는 IT 지원 티켓 목록을 조회한다(본인 티켓, 지원 담당자는 담당 범위). "
+            "status는 open만 받는다. limit 1~20(기본 10), offset 0 이상. 결과 값만 답에 쓴다."
+        ),
+        args_model=ListTicketsArgs,
+        capability="ticket.read_own",
+    ),
+    "get_it_ticket": _Tool(
+        name="get_it_ticket",
+        description="IT 지원 티켓 한 건을 ticket_id(UUID)로 조회한다. 이전 조회 결과에 있던 ID만 쓴다.",
+        args_model=GetTicketArgs,
+        capability="ticket.read_own",
+    ),
+    "prepare_it_ticket": _Tool(
+        name="prepare_it_ticket",
+        description=(
+            "IT 지원 접수 초안(draft)을 만든다. 티켓을 등록하지 않는다. 사용자가 화면에서 내용을 확인·수정한 "
+            "뒤 직접 확인해야 등록된다. 필드: subject(제목 1~120자), description(현상 1~4000자), "
+            "request_type(incident=장애/service_request=요청/inquiry=문의), "
+            "category(account/network/device/software/other), target_service(서비스명), "
+            "occurred_at(장애 발생 시각 ISO8601 +09:00), impact_scope(확인된 영향 범위), "
+            "urgent_work(긴급 업무 여부), urgency_reason(긴급 사유), asset_identifier(자산번호). "
+            "사용자가 말한 값만 넣고 말하지 않은 필드는 비운다(추정 금지, 빈 필드는 서버가 missing_fields로 "
+            "돌려준다). 넣은 필드마다 origin_candidates에 {field, quote}를 넣는다. "
+            "출처를 확인하지 못한 필드는 서버가 비우고 rejected_fields로 알려 준다"
+            "(그 값은 사용자에게 다시 묻는다). "
+            "quote는 그 값을 말한 사용자 문장 부분을 고치지 말고 그대로 쓴다. "
+            "제목을 사용자가 말하지 않았으면 subject='IT 지원 요청', "
+            "template_id='ticket.subject.generic.v1'을 쓸 수 있다. 검색한 문서 내용·내 답변을 옮겨 적지 "
+            "않는다. 비밀번호·인증코드는 받지 않는다."
+        ),
+        args_model=PrepareTicketArgs,
+        capability="ticket.prepare",
+    ),
 }
+_TICKET_FIELDS = (
+    "subject",
+    "description",
+    "request_type",
+    "category",
+    "target_service",
+    "occurred_at",
+    "impact_scope",
+    "urgent_work",
+    "urgency_reason",
+    "asset_identifier",
+)
 
 
 # 질의 임베딩(MOD-07)·검색 준비 실패의 닫힌 오류 코드. MOD-03은 MOD-07 타입을 import하지 않고 코드로 판정한다.
@@ -172,15 +278,22 @@ def _input_schema(tool: _Tool) -> dict[str, Any]:
 
 class ToolExecutor:
     def __init__(
-        self, trainings: TrainingService, clock: Clock, retrieval: RetrievalService | None = None
+        self,
+        trainings: TrainingService,
+        clock: Clock,
+        retrieval: RetrievalService | None = None,
+        tickets: TicketService | None = None,
     ) -> None:
         self._trainings = trainings
         self._clock = clock
         self._retrieval = retrieval
+        self._tickets = tickets
 
     def _available(self, tool: _Tool, context: ExecutionContext) -> bool:
         if tool.capability not in context.actor.capabilities:
             return False
+        if tool.name in ("list_it_tickets", "get_it_ticket", "prepare_it_ticket"):
+            return self._tickets is not None
         if tool.name == "search_documents":
             # 지식 기능이 꺼진 run(M1~M2, snapshot 없음)에는 등록하지 않는다(CT-13).
             knowledge = context.retrieval_context
@@ -217,6 +330,8 @@ class ToolExecutor:
             return ToolResult.failure(AppError(ErrorCode.TOOL_TIMEOUT))
         if tool.name == "search_documents":
             return await self._search(context, call, args, timeout)
+        if tool.name in ("list_it_tickets", "get_it_ticket", "prepare_it_ticket"):
+            return await self._ticket_tool(context, call, tool.name, args, timeout)
         handler = self._list if tool.name == "list_trainings" else self._get
         try:
             # 시간 제한은 MOD-04 조회에만 건다. 필수 기록(receipt)은 아래에서 따로 한다.
@@ -243,6 +358,38 @@ class ToolExecutor:
     async def _get(self, context: ExecutionContext, args: Any) -> tuple[ToolResult, list[Any]]:
         detail = await self._trainings.get_training(args.training_id)
         return ToolResult.success(detail.model_dump(mode="json"), (str(detail.id),)), [detail]
+
+    async def _ticket_tool(
+        self, context: ExecutionContext, call: ToolExecutionInput, name: str, args: Any, limit_s: float
+    ) -> ToolResult:
+        assert self._tickets is not None  # noqa: S101 - _available이 확인
+        try:
+            async with asyncio.timeout(limit_s):
+                if name == "list_it_tickets":
+                    page = await self._tickets.list_tickets(
+                        context.actor, status=args.status, limit=args.limit, offset=args.offset
+                    )
+                    return ToolResult.success(page, tuple(f"ticket:{t['id']}" for t in page["items"]))
+                if name == "get_it_ticket":
+                    ticket = await self._tickets.get_ticket(context.actor, str(args.ticket_id))
+                    return ToolResult.success(ticket, (f"ticket:{ticket['id']}",))
+                fields = {k: v for k, v in args.model_dump().items() if k in _TICKET_FIELDS and v is not None}
+                origins = (call.field_origins or {}).get("ticket_fields") or []
+                preview = await self._tickets.prepare(
+                    context.actor,
+                    conversation_id=context.conversation_id,
+                    run_id=context.run_id,
+                    ordinal=call.call_ordinal,
+                    fields=fields,
+                    field_origins=origins,
+                )
+                return ToolResult.success(preview, (f"action:{preview['action_id']}",))
+        except TimeoutError:
+            return ToolResult.failure(AppError(ErrorCode.TOOL_TIMEOUT, retryable=True))
+        except AppError as exc:
+            return ToolResult.failure(exc)
+        except (SQLAlchemyError, OSError):
+            return ToolResult.failure(AppError(ErrorCode.TOOL_EXECUTION_FAILED, retryable=True))
 
     async def _search(
         self, context: ExecutionContext, call: ToolExecutionInput, args: SearchDocumentsArgs, limit_s: float

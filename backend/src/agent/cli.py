@@ -82,6 +82,9 @@ async def _seed_identity(args: argparse.Namespace) -> None:
     engine = make_engine(settings.database_url, settings.db_connect_timeout_s)
     try:
         report = await load_demo_org(engine, SystemClock().now())
+        from agent.modules.it_support.service import load_support_scopes
+
+        report["support_scopes"] = await load_support_scopes(engine)  # D-42 데모 지원 범위
     finally:
         await engine.dispose()
     print(json.dumps(report, ensure_ascii=False))

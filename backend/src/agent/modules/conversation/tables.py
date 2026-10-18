@@ -48,6 +48,9 @@ messages = Table(
     Column("dependency_ids", JSONB, nullable=False),
     # 서버가 근거 원장으로 만든 인용 DTO(04-api-spec). 가린 답변에서는 내보내지 않는다.
     Column("citations", JSONB, nullable=False, server_default="[]"),
+    # M5: 이 run이 채택한 root draft 미리보기(CP-06 채택 판정의 기준)와 티켓 참조(id/subject/status).
+    Column("action_preview", JSONB),
+    Column("ticket_refs", JSONB, nullable=False, server_default="[]"),
     Column("visibility", Text, nullable=False),
     Column("created_at", DateTime(timezone=True), nullable=False),
 )

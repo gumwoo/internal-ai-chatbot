@@ -17,11 +17,13 @@ from agent.shared.clock import KST
 # m3-docs-7: date_quote는 날짜 하나 + 바로 뒤 사건 동사(역할·시제는 날짜 뒤에서만 본다, TS-26).
 # m3-docs-8: 안내는 규정을 바꾸지 못함, 우선관계 없는 규정 충돌은 양쪽 인용, normative_gap 보류(T-17).
 # m3-docs-9: authority_relations·경과조항(source_role)·other_events(D-40).
+# m5-tickets-1: IT 티켓 도구·규칙, 최종 출력 ticket_ids·action_id·action_pending(M5).
+# m5-tickets-2: rejected_fields(D-43) 안내.
 # m3-docs-5: evidence_budget_exceeded 해석 규칙, 사용자 입력의 서버 표시 문자열 무력화(검증 반영).
 # m3-docs-4: 대화 자료가 없을 때도 "없음" 블록을 넣는다(교육 smoke 회귀 대응, TS-24).
 # m3-docs-3: m3-docs-2로도 문서 smoke가 대부분 도구 없이 빈 답을 냈다. 진단(문구 3개, 변형 4개, 25회)에서
 #   질문 분류 규칙을 교육 규칙 앞에 둔 변형이 가장 나아(15회 중 7회 검색) 그 변형 C를 넣었다(TS-24).
-PROMPT_VERSION = "m3-docs-9"
+PROMPT_VERSION = "m5-tickets-2"
 
 _CACHE_FIELDS = ("id", "code", "title", "starts_at", "ends_at", "location", "status")
 
@@ -54,6 +56,9 @@ _TEMPLATE = """\
 - training_ids: 답변에서 언급한 교육의 id 목록(도구 결과나 대화 자료의 id 그대로)
 - selected_training_id: 답변이 교육 하나만 가리키면 그 id, 아니면 null
 - citation_ids: 답에 쓴 규정·안내 원문의 citation_id 목록(검색 결과에 있던 값 그대로). 원문을 쓰지 않았으면 빈 목록
+- ticket_ids: 답에서 언급한 IT 티켓 id 목록(조회 결과의 id 그대로). 없으면 빈 목록
+- action_id: 이번에 만든 접수 초안을 사용자에게 확인받을 때 그 action_id, 아니면 null
+- outcome에는 action_pending(접수 초안 확인 대기)도 있다
 """
 
 _ROUTING = """질문 종류부터 정한다:
@@ -74,6 +79,18 @@ _DOCUMENT_RULES = """
 11. 서로 다른 사건(예: 교육과 출장)은 event_key를 달리해 따로 검색한다. 결과의 as_of_date·판본(version)을 답에 밝힌다. prospective가 true면 "현재 공개된 규정 기준이며 이후 개정 시 달라질 수 있음"을 덧붙인다. year_inferred가 true면 "2026년으로 보고 답합니다"처럼 서버가 정한 연도를 밝힌다.
 """
 
+
+_TICKET_ROUTING = """- IT 문제(계정·VPN·기기·소프트웨어)를 접수하거나 도움을 요청하면 prepare_it_ticket으로 접수 초안을 만든다. 접수 "방법"만 묻는 질문은 규정·안내 검색이다. 내 티켓 현황은 list_it_tickets·get_it_ticket으로 조회한다.
+
+"""
+
+_TICKET_RULES = """
+IT 지원 규칙(prepare_it_ticket·list_it_tickets·get_it_ticket):
+14. prepare_it_ticket은 초안(draft)만 만든다. 티켓 등록은 사용자가 화면에서 내용을 확인하고 직접 확인 버튼을 눌러야 된다. "등록했습니다", "접수했습니다"라고 답하지 않는다.
+15. 초안에는 사용자가 말한 값만 넣는다. 말하지 않은 발생 시각·영향 범위·긴급 여부·자산번호는 비워 둔다(추정 금지). 넣은 필드마다 origin_candidates에 {field, quote}를 넣고, quote는 그 값을 말한 사용자 문장 부분을 고치지 말고 그대로 쓴다. description은 사용자 문장 그대로다. 검색한 문서 내용이나 내 답변을 옮겨 적지 않는다. 비밀번호·인증 코드를 묻거나 받지 않는다.
+16. 초안을 만들면 outcome=action_pending, action_id에 결과의 action_id를 넣는다. answer에는 내용을 확인하고 수정·확인해 달라고 쓴다. 결과의 missing_fields가 있으면 그 정보(예: 장애 발생 날짜와 시각, 긴급 사유)를 물어본다. rejected_fields는 사용자 문장에서 확인하지 못해 서버가 비운 필드다. 같은 값을 다시 넣으려 하지 말고, 필요하면 사용자에게 물어본다.
+17. 답에서 언급한 티켓의 id를 ticket_ids에 넣는다(조회 결과에 있던 값 그대로). 확인·수정·취소는 화면에서만 할 수 있다고 안내한다.
+"""
 
 _NO_DATA = "[대화 자료] 없음(이 대화에서 아직 조회한 교육이 없다).\n[대화 자료 끝]"
 
@@ -129,14 +146,18 @@ def user_turn(message: str, data: str | None) -> str:  # data는 conversation_da
     return f"{data}\n\n[사용자 질문]\n{message}"
 
 
-def system_prompt(now: datetime, *, documents: bool = False) -> str:
+def system_prompt(now: datetime, *, documents: bool = False, tickets: bool = False) -> str:
     """규칙만 담는다(자료는 넣지 않는다, P-13 B)."""
     local = now.astimezone(KST)
-    features = "사내 교육 일정 조회" + (", 사내 규정·안내 문서 검색" if documents else "")
+    features = (
+        "사내 교육 일정 조회"
+        + (", 사내 규정·안내 문서 검색" if documents else "")
+        + (", IT 지원 티켓 조회·접수 초안" if tickets else "")
+    )
     return _TEMPLATE.format(
         now=local.isoformat(timespec="minutes"),
         weekday=_WEEKDAYS[local.weekday()],
         features=features,
-        document_rules=_DOCUMENT_RULES if documents else "",
-        routing=_ROUTING if documents else "",
+        document_rules=(_DOCUMENT_RULES if documents else "") + (_TICKET_RULES if tickets else ""),
+        routing=(_ROUTING if documents else "") + (_TICKET_ROUTING if tickets else ""),
     )

@@ -145,7 +145,14 @@ async def test_login_sets_httponly_strict_cookie_and_session_view(org_engine, mi
     body = response.json()
     assert set(body) == {"user_id", "display_name", "capabilities", "expires_at", "csrf_token"}
     assert body["user_id"] == "emp-sales"
-    assert body["capabilities"] == ["knowledge.search", "ticket.read_own", "training.read"]
+    # D-42: 직원은 티켓 준비·제출(M5)까지. 운영 권한은 웹 세션에 없다.
+    assert body["capabilities"] == [
+        "knowledge.search",
+        "ticket.prepare",
+        "ticket.read_own",
+        "ticket.submit",
+        "training.read",
+    ]
     assert response.headers["cache-control"] == "private, no-store"
     # 응답에 세션 토큰·해시가 없다.
     token = client.cookies.get("agent_session")

@@ -90,6 +90,8 @@ class ExecutionContext:
     timezone: str = "Asia/Seoul"
     # 영속 deadline(서버 시각). 프로세스 재시작 뒤 회수의 기준이다. MOD-01이 수락 때 고정한다.
     deadline_at: datetime | None = None
+    # 이번 run이 수락한 user 메시지 ID(티켓 준비 입력 출처 계산용, M5).
+    user_message_id: str | None = None
 
 
 @dataclass(frozen=True)

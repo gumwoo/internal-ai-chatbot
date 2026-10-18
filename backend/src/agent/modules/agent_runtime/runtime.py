@@ -58,6 +58,7 @@ from agent.shared.contracts import (
     ToolResult,
 )
 from agent.shared.errors import AppError, ErrorCode
+from agent.shared.ticket_origins import FREE_TEXT_FIELDS, locate
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,9 @@ _TOOL_STAGES = {
     "list_trainings": ProgressStage.TRAINING_LOOKUP,
     "get_training": ProgressStage.TRAINING_LOOKUP,
     "search_documents": ProgressStage.DOCUMENT_SEARCH,
+    "list_it_tickets": ProgressStage.TICKET_LOOKUP,
+    "get_it_ticket": ProgressStage.TICKET_LOOKUP,
+    "prepare_it_ticket": ProgressStage.TICKET_PREPARE,
 }
 # 모델에 보여 줄 원문 passage 필드. 서버 내부 값(passage_id·token_estimate·snapshot)은 넣지 않는다.
 _PASSAGE_VIEW_KEYS = (
@@ -94,6 +98,9 @@ class _Run:
     observer: ExecutionObserver
     model_attempts: int = 0
     empty_answer_retries: int = 0
+    # M5: 이번 run에서 조회한 티켓(답의 의존 자원)과 준비한 root draft 미리보기(action_id → preview).
+    ticket_refs: dict[str, dict[str, Any]] = field(default_factory=dict)
+    prepared: dict[str, dict[str, Any]] = field(default_factory=dict)
     tool_proposals: int = 0
     ordinal: int = 0
     input_tokens: int = 0
@@ -334,19 +341,25 @@ class AgentRuntime:
         )
         messages.append(ModelMessage(role="user", text=user_turn(message, data)))
         tools = self._tools.describe_allowed_tools(run.context)
+        names = {tool.name for tool in tools}
         system = system_prompt(
-            run.context.current_time, documents=any(tool.name == "search_documents" for tool in tools)
+            run.context.current_time,
+            documents="search_documents" in names,
+            tickets=bool(names & {"prepare_it_ticket", "list_it_tickets"}),
         )
 
+        tool_choice = "auto"
         while True:
-            response = await self._call_model(run, tuple(messages), tools, system)
+            response = await self._call_model(run, tuple(messages), tools, system, tool_choice)
+            tool_choice = "auto"
             if not response.wants_tools and _empty_first_answer(run, response, tools):
                 # D-37(P-16 B): 아무 도구도 부르지 않은 첫 응답의 빈 답만 한 번 다시 부른다
-                # (모델 시도 상한 안).
+                # (모델 시도 상한 안). D-41: 다시 부를 때는 도구 호출을 강제한다.
                 run.empty_answer_retries += 1
                 logger.info("빈 첫 답 재호출 run_id=%s", run.context.run_id)
                 messages.append(response.as_assistant_message())
                 messages.append(ModelMessage(role="user", text=EMPTY_ANSWER_RETRY))
+                tool_choice = "any"  # D-41: 다시 부를 때는 도구 호출을 강제한다(P-16 C의 일부)
                 continue
             if not response.wants_tools:
                 return await self._finish(run, response)
@@ -371,7 +384,7 @@ class AgentRuntime:
             messages.append(ModelMessage(role="tool_result", tool_results=tuple(results)))
 
     async def _call_model(
-        self, run: _Run, messages: tuple[ModelMessage, ...], tools, system: str
+        self, run: _Run, messages: tuple[ModelMessage, ...], tools, system: str, tool_choice: str = "auto"
     ) -> ModelResponse:
         policy = run.context.policy
         retries = 0
@@ -392,6 +405,7 @@ class AgentRuntime:
                 timeout_s=timeout,
                 model_config=self._model,
                 system=system,
+                tool_choice=tool_choice if tools else "auto",
             )
             try:
                 async with asyncio.timeout(timeout):
@@ -448,11 +462,25 @@ class AgentRuntime:
                 raise RequiredRecordError("도구 호출 기록 저장 실패") from exc
             run.records.append(record)
 
+            if result.ok and proposal.name in ("list_it_tickets", "get_it_ticket"):
+                items = result.data.get("items") if proposal.name == "list_it_tickets" else [result.data]
+                for ticket in items or []:
+                    run.ticket_refs[ticket["id"]] = {
+                        "id": ticket["id"],
+                        "subject": ticket["subject"],
+                        "status": ticket["status"],
+                    }
+            if result.ok and proposal.name == "prepare_it_ticket":
+                run.prepared[result.data["action_id"]] = dict(result.data)
             if result.ok:
-                for summary in _summaries(result):
+                # 교육 원장은 교육 도구 결과로만 채운다(티켓·문서 결과의 id를 교육으로 보지 않는다).
+                for summary in (
+                    _summaries(result) if proposal.name in ("list_trainings", "get_training") else []
+                ):
                     run.ledger.pop(summary["id"], None)  # 다시 조회한 교육은 가장 최근 위치로 옮긴다
                     run.ledger[summary["id"]] = summary
-                if proposal.name == "list_trainings":
+                if proposal.name in ("list_trainings", "list_it_tickets"):
+                    # 0건 답(no_results)의 근거가 되는 목록 조회(교육·티켓).
                     run.successful_list_lookups += 1
                 return result
             assert result.error is not None  # noqa: S101 - ToolResult 계약
@@ -472,9 +500,14 @@ class AgentRuntime:
         except ValidationError as exc:
             problems = sorted({f"{'.'.join(map(str, e['loc']))}:{e['type']}" for e in exc.errors()})
             raise _output_invalid(run, f"schema {problems}") from exc
-        if final.outcome is Outcome.ACTION_PENDING:
-            # 이 구간에는 준비 도구가 없어 확인 대기 상태가 있을 수 없다.
-            raise _output_invalid(run, "action_pending without action tool")
+        if final.action_id is not None and final.action_id not in run.prepared:
+            # 이번 실행에서 준비하지 않은 action을 가리키면 지어낸 것으로 본다.
+            raise _output_invalid(run, "action id not prepared in this run")
+        if final.outcome is Outcome.ACTION_PENDING and final.action_id is None:
+            raise _output_invalid(run, "action_pending without action id")
+        unknown_tickets = [t for t in final.ticket_ids if t not in run.ticket_refs]
+        if unknown_tickets:
+            raise _output_invalid(run, f"{len(unknown_tickets)} ticket id(s) not in ledger")
         allowed = run.allowed_trainings()
         training_ids = list(dict.fromkeys(final.training_ids))
         selected = final.selected_training_id
@@ -526,6 +559,10 @@ class AgentRuntime:
             answer_source=answer_source,
             citations=tuple(_citation_dto(run.citations[c]) for c in citation_ids),
             document_keys=tuple(sorted({c["document_key"] for c in run.citations.values()})),
+            ticket_refs=tuple(run.ticket_refs[t] for t in dict.fromkeys(final.ticket_ids)),
+            # 모델이 action_id로 가리킨 이번 실행의 draft만 채택한다(MOD-01이 저장하면 UI에 공개).
+            action_preview=run.prepared.get(final.action_id) if final.action_id else None,
+            ticket_dependency_ids=tuple(sorted(run.ticket_refs)),
         )
 
 
@@ -541,6 +578,8 @@ def _field_origins(run: _Run, proposal: ToolCallProposal) -> dict[str, Any] | No
     모델 인자의 as_of_date·date_quote는 후보일 뿐이다. 서버가 인용을 본인 메시지와 대조하고 날짜를 정규화한다.
     경과조항 조건용 other_events(D-40)도 사건마다 같은 규칙으로 검증한다(키 other_events[i]).
     """
+    if proposal.name == "prepare_it_ticket":
+        return {"ticket_fields": _ticket_origins(run, proposal)}
     if proposal.name != "search_documents":
         return None
     arguments = proposal.arguments if isinstance(proposal.arguments, dict) else {}
@@ -552,6 +591,69 @@ def _field_origins(run: _Run, proposal: ToolCallProposal) -> dict[str, Any] | No
         if isinstance(event, dict):
             origins[f"other_events[{index}]"] = _verify_event(run, event)
     return origins or None
+
+
+def _ticket_origins(run: _Run, proposal: ToolCallProposal) -> list[dict[str, Any]]:
+    """prepare_it_ticket의 origin_candidates → 정규 field_origins(04-field-origins).
+
+    quote는 이번 run 문맥의 본인 user 메시지(수락한 질문 먼저, 그다음 모델에 보낸 이력 창)에서 정확히 한 번
+    있어야 하고, 서버가 code point 구간을 계산한다. 모델의 message_id·구간은 받지 않는다. 찾지 못한 후보는
+    버린다(MOD-12가 출처 없는 필드로 거절한다). 템플릿은 서버 registry의 ID만 넘긴다.
+    """
+    arguments = proposal.arguments if isinstance(proposal.arguments, dict) else {}
+    candidates = arguments.get("origin_candidates")
+    sources: list[tuple[str, str]] = []
+    if run.context.user_message_id:
+        sources.append((run.context.user_message_id, run.message))
+    sources.extend(
+        (m.message_id, m.text) for m in reversed(_visible_history(run)) if m.role == "user" and m.message_id
+    )
+    out: list[dict[str, Any]] = []
+    for candidate in candidates if isinstance(candidates, list) else []:
+        if not isinstance(candidate, dict) or not isinstance(candidate.get("field"), str):
+            continue
+        name = candidate["field"]
+        if candidate.get("template_id"):
+            out.append({"field": name, "kind": "template", "template_id": str(candidate["template_id"])})
+            continue
+        quote = candidate.get("quote")
+        if not isinstance(quote, str) or not quote:
+            continue
+        hits = [(mid, text, at) for mid, text in sources if (at := locate(text, quote)) is not None]
+        current = [h for h in hits if h[0] == run.context.user_message_id]
+        chosen = current[0] if current else (hits[0] if len(hits) == 1 else None)
+        if chosen is None:
+            continue
+        mid, _, start = chosen
+        end = start + len(quote)
+        value = arguments.get(name)
+        if name in FREE_TEXT_FIELDS and isinstance(value, str) and value and value != quote.strip():
+            # 값이 인용 구간 안에 정확히 한 번 있으면 그 부분으로 구간을 좁힌다(여전히 사용자 원문 그대로).
+            inner = locate(quote, value)
+            if inner is not None:
+                start, end = start + inner, start + inner + len(value)
+                quote = value
+        out.append(
+            {
+                "field": name,
+                "kind": "user_quote",
+                "source_message_id": mid,
+                "span_start": start,
+                "span_end": end,
+                "normalization": _normalization_for(name, value, quote),
+            }
+        )
+    return out
+
+
+def _normalization_for(name: str, value: Any, quote: str) -> str:
+    if name == "occurred_at":
+        return "iso_kst_datetime"
+    if name in ("category", "request_type"):
+        return "canonical_category"
+    if name == "urgent_work":
+        return "user_boolean"
+    return "identity" if value == quote else "trim"
 
 
 def _verify_event(run: _Run, arguments: dict[str, Any]) -> dict[str, Any]:

@@ -41,3 +41,5 @@ T-22 로그인/세션/CSRF, T-23 default deny·역할 변경·서버 actor, T-04
 ## 2026-10-17 계약 보정
 
 CLI actor source는 operator_cli이며 서버 운영 계정/capability로만 만든다. 직원 요청이나 모델 입력은 이 source를 만들 수 없다. 데모 지원 역할도 명시된 department 범위만 허용한다.
+
+- M5(2026-10-18, D-42): users.reply_channel(사내 회신 수단, 서버 프로필 값)과 ReplyChannel 조회. 데모 조직 v2에서 직원 역할에 ticket.prepare·ticket.submit.

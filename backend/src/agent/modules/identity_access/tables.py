@@ -50,6 +50,8 @@ users = Table(
     # 부서·역할이 바뀔 때마다 증가한다. 요청 시작 때의 actor 사본이 오래됐는지 판정한다.
     Column("auth_revision", Integer, nullable=False),
     Column("created_at", DateTime(timezone=True), nullable=False),
+    # 사내 회신 수단(서버 프로필 값, M5). 티켓 requester/reply_channel은 모델이 정하지 않는다.
+    Column("reply_channel", Text),
 )
 
 user_departments = Table(

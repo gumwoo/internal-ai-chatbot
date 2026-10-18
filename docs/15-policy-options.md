@@ -297,3 +297,17 @@ API 명세는 길이(제목 1~100자, 메시지 1~4000자)만 정했다. 공백�
 추천은 B다(검수 전까지는 A로 둔다). 결정 전에는 바꾸지 않는다.
 
 구현(D-40, 2026-10-18): 관계 형식·검사·회수와 other_events를 구현했고, 값은 `review-manifest`가 원문으로 만들었다(우선관계 48건은 본문 명시 문장, 경과조항은 CM-092 제9조·IT-041 제13조 2건). 다른 경과 문구("제2조(적용관계)" 보관본 문구, ED-031 제8조, ED-021 제20조)는 사건 조건이 기본 판본 선택과 같거나 일반 원칙이라 넣지 않았다.
+
+<a id="p-20"></a>
+## P-20 M5 티켓 세부값(필수 필드·지원 범위·회신 수단·출처 정규화)
+
+상태: **A 확정(D-42, 2026-10-18, D-41 진행 규칙으로 추천안 채택)**. 명세가 "필수 입력"이라고만 하고 목록을 정하지 않은 값들이다.
+
+| 항목 | A(채택) | 다른 선택지와 trade-off |
+|---|---|---|
+| pending 필수 필드 | subject·description·request_type·category·target_service·urgent_work. 장애(incident)면 occurred_at, 긴급이면 urgency_reason도 필수. impact_scope·asset_identifier는 선택(미확인은 null) | B: 열 필드 모두 필수 → 영향 범위·자산번호를 모르는 사용자가 추정값을 넣게 된다(명세의 "추정 금지"와 충돌). C: 제목·설명만 → 담당자가 다시 물어야 한다 |
+| 데모 지원 범위 | it-support 계정이 8개 부서 요청자 티켓을 본다(support_scopes에 명시). 전사 조회(ticket.read_all)는 부여하지 않음 | B: ticket.read_all 부여 → 범위 검사 시험이 사라진다 |
+| 회신 수단 | 계정별 "사내 메신저 {표시 이름}"(demo_org.json, 서버 프로필) | B: 이메일 주소 → 가상 도메인을 지어내야 한다 |
+| 출처 정규화 | 자유문장은 identity/trim. category·request_type은 사용자 원문 구간 안의 낱말 목록으로 하나로 정해질 때만(예: VPN·네트워크→network, 안 돼·오류·장애→incident). urgent_work는 "긴급·급해·빨리"(true)/"급하지 않·천천히"(false). occurred_at은 원문에 날짜(YYYY년 M월 D일·M월 D일·오늘·어제·그제)와 시각(HH:MM·오전/오후 N시 M분)이 함께 있어야 하고, 오전/오후 없는 1~6시는 모호해 거절 | B: 모델이 분류를 정하고 서버는 기록만 → 사용자 원문과 무관한 분류가 들어갈 수 있다 |
+| 준비 오류 | 필드 형식 오류 TOOL_ARGUMENT_INVALID, 회신 수단 없음 ACTION_NOT_ALLOWED, 수정 입력 미완성 INVALID_REQUEST(field_names). 출처를 확인하지 못한 필드는 D-43으로 오류 대신 비우고 rejected_fields로 알린다 | 처음에는 TICKET_FIELD_ORIGIN_INVALID로 초안 전체를 거절했으나, 실제 모델 smoke(2026-10-18)에서 출처 하나가 틀리면 모델이 같은 값을 다시 보내 3회 연속 실패했다. 비우는 방식도 "사용자 입력만 저장"을 지킨다 |
+| draft 채택 | 최종 출력 action_id가 이번 run에서 준비한 draft를 가리킬 때만 MOD-01이 action_preview로 저장(UI 공개·CP-06 채택 판정의 기준). action_pending은 action_id 필수 | B: 마지막 준비 draft를 자동 채택 → 모델이 되묻기만 한 경우에도 초안이 공개된다 |

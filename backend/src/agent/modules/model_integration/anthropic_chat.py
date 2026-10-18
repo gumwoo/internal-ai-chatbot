@@ -200,7 +200,10 @@ class AnthropicChatModel:
                 }
                 for tool in request.tools
             ]
-        if request.output_contract is not None:
+        if request.tools and request.tool_choice == "any":
+            # 도구 호출을 강제하는 요청은 최종 JSON을 받지 않는다(응답이 tool_use뿐이다).
+            params["tool_choice"] = {"type": "any"}
+        elif request.output_contract is not None:
             params["output_config"] = {
                 "format": {"type": "json_schema", "schema": provider_schema(request.output_contract)}
             }
