@@ -26,6 +26,7 @@ from agent.modules.agent_runtime.contracts import (
 )
 from agent.modules.agent_runtime.dates import verify_event_date
 from agent.modules.agent_runtime.prompt import (
+    EMPTY_ANSWER_RETRY,
     PROMPT_VERSION,
     conversation_data,
     neutralize,
@@ -75,6 +76,7 @@ _PASSAGE_VIEW_KEYS = (
     "title",
     "version",
     "document_type",
+    "source_role",
     "document_role",
     "edition_state",
     "effective_from",
@@ -91,6 +93,7 @@ class _Run:
     snapshot: ConversationSnapshot
     observer: ExecutionObserver
     model_attempts: int = 0
+    empty_answer_retries: int = 0
     tool_proposals: int = 0
     ordinal: int = 0
     input_tokens: int = 0
@@ -129,7 +132,13 @@ class _Run:
             self.usage_complete = False
 
     def usage(self) -> RunUsage:
-        return RunUsage(self.input_tokens, self.output_tokens, self.usage_complete, self.model_attempts)
+        return RunUsage(
+            self.input_tokens,
+            self.output_tokens,
+            self.usage_complete,
+            self.model_attempts,
+            self.empty_answer_retries,
+        )
 
     def allowed_trainings(self) -> dict[str, dict[str, Any]]:
         return {**self.snapshot.training_cache, **self.ledger}
@@ -193,6 +202,17 @@ async def _stage(run: _Run, stage: ProgressStage) -> None:
 CLARIFICATION_FALLBACK = (
     "어떤 교육을 말씀하시는지 알려 주시겠어요? 교육 이름이나 기간을 알려 주시면 찾아보겠습니다."
 )
+
+
+def _empty_first_answer(run: _Run, response: ModelResponse, tools) -> bool:
+    """도구를 하나도 부르지 않은 첫 응답이 빈 answer인가(되묻기 빈 답은 서버 문구로 채우므로 제외)."""
+    candidate = response.final_candidate
+    if not tools or run.tool_proposals or run.empty_answer_retries or not isinstance(candidate, dict):
+        return False
+    answer = candidate.get("answer")
+    return (
+        isinstance(answer, str) and not answer.strip() and candidate.get("outcome") != "needs_clarification"
+    )
 
 
 def _fill_empty_clarification(run: _Run, candidate: dict[str, Any]) -> tuple[dict[str, Any], str]:
@@ -320,6 +340,14 @@ class AgentRuntime:
 
         while True:
             response = await self._call_model(run, tuple(messages), tools, system)
+            if not response.wants_tools and _empty_first_answer(run, response, tools):
+                # D-37(P-16 B): 아무 도구도 부르지 않은 첫 응답의 빈 답만 한 번 다시 부른다
+                # (모델 시도 상한 안).
+                run.empty_answer_retries += 1
+                logger.info("빈 첫 답 재호출 run_id=%s", run.context.run_id)
+                messages.append(response.as_assistant_message())
+                messages.append(ModelMessage(role="user", text=EMPTY_ANSWER_RETRY))
+                continue
             if not response.wants_tools:
                 return await self._finish(run, response)
             results: list[ToolResultContent] = []
@@ -511,12 +539,22 @@ def _field_origins(run: _Run, proposal: ToolCallProposal) -> dict[str, Any] | No
     """search_documents의 사건 날짜를 사용자 메시지 인용으로 검증한 정규 값(CT-06 field_origins).
 
     모델 인자의 as_of_date·date_quote는 후보일 뿐이다. 서버가 인용을 본인 메시지와 대조하고 날짜를 정규화한다.
+    경과조항 조건용 other_events(D-40)도 사건마다 같은 규칙으로 검증한다(키 other_events[i]).
     """
     if proposal.name != "search_documents":
         return None
     arguments = proposal.arguments if isinstance(proposal.arguments, dict) else {}
-    if arguments.get("date_basis", "current") == "current":
-        return None
+    origins: dict[str, Any] = {}
+    if arguments.get("date_basis", "current") != "current":
+        origins["as_of_date"] = _verify_event(run, arguments)
+    others = arguments.get("other_events")
+    for index, event in enumerate(others if isinstance(others, list) else []):
+        if isinstance(event, dict):
+            origins[f"other_events[{index}]"] = _verify_event(run, event)
+    return origins or None
+
+
+def _verify_event(run: _Run, arguments: dict[str, Any]) -> dict[str, Any]:
     raw_date = arguments.get("as_of_date")
     try:
         model_date = date.fromisoformat(raw_date) if isinstance(raw_date, str) else None
@@ -537,7 +575,7 @@ def _field_origins(run: _Run, proposal: ToolCallProposal) -> dict[str, Any] | No
             run.context.run_id,
             origin.evidence.get("problem"),
         )
-    return {"as_of_date": origin.as_field_origin()}
+    return origin.as_field_origin()
 
 
 def _search_view(run: _Run, result: ToolResult) -> ToolResult:
@@ -558,6 +596,9 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
             "clarification": data.get("clarification"),
             "unsupported": data.get("unsupported"),
             "normative_gap": data.get("normative_gap"),
+            "event_key": data.get("event_key"),
+            "date_basis": data.get("date_basis"),
+            "transition_pending": data.get("transition_pending"),
         }
     )
     limit = run.context.policy.final_context_token_limit
@@ -626,6 +667,8 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
         "clarification": data.get("clarification"),
         "unsupported": data.get("unsupported"),
         "normative_gap": data.get("normative_gap"),
+        "authority_relations": data.get("authority_relations") or [],
+        "transition_pending": data.get("transition_pending"),
         "groups": kept_groups,
     }
     if dropped_ids:
@@ -649,15 +692,19 @@ def _server_outcome(run: _Run, final: FinalCandidate, citation_ids: list[str], t
             run.context.run_id,
             len(run.normative_gap_contexts),
         )
-        return Outcome.INSUFFICIENT_EVIDENCE, gap_message
+        return Outcome.INSUFFICIENT_EVIDENCE, _with_pending(run, gap_message)
     if final.outcome is not Outcome.ANSWERED or not run.search_results:
         return None
     # 대표 근거가 예산 때문에 빠진 검색이 있는데 그 검색의 원문을 하나도 인용하지 않았다면, 다른 근거를
     # 인용했더라도 그 사건의 결론을 낼 수 없다(05-retrieval-assembly 6항).
     cited_calls = {c.split("-", 1)[0] for c in citation_ids}
     if run.missing_required_calls - cited_calls:
-        return Outcome.INSUFFICIENT_EVIDENCE, _BUDGET_ABSTAIN
+        return Outcome.INSUFFICIENT_EVIDENCE, _with_pending(run, _BUDGET_ABSTAIN)
     if citation_ids or training_ids:
+        # D-39(P-18 B): 확인된 사건은 답하고, 날짜를 확인하지 못한 사건의 되묻기 문구를 서버가 덧붙인다.
+        pending = [p for p in _pending_clarifications(run) if p not in final.answer]
+        if pending:
+            return Outcome.ANSWERED, "\n\n".join([final.answer, *pending])
         return None
     resolutions = [r["resolution"] for r in run.search_results]
     if all(r != "resolved" for r in resolutions):
@@ -683,6 +730,33 @@ def _normative_gap_withhold(run: _Run, citation_ids: list[str]) -> str | None:
     if in_gap or not cited:
         return next(r["normative_gap"]["safe_message"] for r in run.search_results if r.get("normative_gap"))
     return None
+
+
+def _pending_clarifications(run: _Run) -> list[str]:
+    """끝내 날짜를 확인하지 못한 사건의 되묻기 문구(중복 없이).
+
+    사건은 (event_key, date_basis)로 구분한다. event_key를 비우거나 같은 key로 current 검색을 해도 그 사건의
+    날짜가 확인된 것으로 보지 않는다. 경과조항 조건에 빠진 사건 날짜(transition_pending)도 포함한다.
+    """
+    resolved = {
+        (r.get("event_key"), r.get("date_basis")) for r in run.search_results if r["resolution"] == "resolved"
+    }
+    prompts: list[str] = []
+    for r in run.search_results:
+        clarification = r.get("clarification")
+        unresolved = (r.get("event_key"), r.get("date_basis")) not in resolved
+        for item in (
+            clarification if r["resolution"] == "needs_clarification" and unresolved else None,
+            r.get("transition_pending"),
+        ):
+            if item and item["prompt"] not in prompts:
+                prompts.append(item["prompt"])
+    return prompts
+
+
+def _with_pending(run: _Run, text: str) -> str:
+    pending = [p for p in _pending_clarifications(run) if p not in text]
+    return "\n\n".join([text, *pending])
 
 
 def _citation_context(passage: dict[str, Any]) -> tuple:
@@ -716,6 +790,7 @@ def _citation_dto(passage: dict[str, Any]) -> dict[str, Any]:
         "as_of_date": passage.get("as_of_date"),
         "date_basis": passage.get("date_basis"),
         "event_key": passage.get("event_key"),
+        "source_role": passage.get("source_role") or "base",
         "year_inferred": bool((passage.get("date_evidence") or {}).get("year_inferred")),
         "page_spans": spans,
         "quote": text if len(text) <= 300 else text[:300] + "…",

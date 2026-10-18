@@ -11,6 +11,7 @@ PDF 불변 원본, 논리 문서·업무 판본·파싱 artifact, 페이지/bloc
 |---|---|
 | StagePreparedEdition / PublishCorpus | CT-09 검증→준비 등록→원자적 snapshot 전환 |
 | LookupApplicableBasis | query·actor·knowledge_as_of·snapshot → 허용 메타데이터의 사건 종류/원규정 관계; 답변 passage 제외 |
+| EditionRelations / TransitionPassages / RelationTitles | ExpandTransitionEvidence의 구현 조각(2026-10-18): 판본의 검수 관계, 반대편 판본에서 clause_anchor 조항 단위 전체(게시·공개·철회·ACL 확인, 날짜 필터 없음), 우선관계 대상 중 보이는 문서의 제목. 사건 조건 판정은 MOD-11 |
 | NormativeCovers | actor·snapshot·document_key·as_of_date·knowledge_as_of → 그 날짜를 적용 구간에 포함하는 공개·게시·허용 규범 판본이 있는지(bool). 규범 공백 판정용, 원문 없음 |
 | SearchOriginal | query·현재 actor·knowledge_as_of·사건 as_of_date·고정 corpus·검색 설정→CT-08 목록 |
 | ExpandTransitionEvidence | actor·snapshot·knowledge_as_of·기본 edition·verified_events(사건 종류별 검증 날짜 목록)→검수 transition_relations의 경과조항과 참조 조항 CT-08 목록(source_role 포함). event_conditions의 모든 사건이 확인될 때만 반환 |

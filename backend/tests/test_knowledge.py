@@ -80,8 +80,8 @@ def test_full_draft_manifest_has_release_shape():
     report = validate_manifest(load_manifest(MANIFEST_PATH), pdf_root(), release=True)
     assert report.ok, report.errors
     assert (report.files, report.document_keys, report.superseded) == (100, 91, 9)
-    # 초안은 모두 미검수라 게시할 수 없다.
-    assert len(report.not_publishable) == 100
+    # D-36·D-40 검수본(review-manifest)이라 모두 게시 가능하다. 관계 형식 검사도 통과한다.
+    assert report.not_publishable == []
 
 
 @pytest.mark.parametrize(

@@ -1,8 +1,8 @@
 {
  "manifest_version": 1,
- "status": "draft",
+ "status": "reviewed",
  "generated_at": "2026-10-18T00:22:40.726557+09:00",
- "note": "MOD-06 초안. 원문·수령 목록에 근거가 있는 값만 채웠고 근거는 basis_evidence에 있다. available_from 등 원문으로 정할 수 없는 값은 비어 있으며 모든 항목이 needs_review다(O-02, P-15). ACL은 D-31 사용자 결정이다. 검수 전에는 게시하지 않는다.",
+ "note": "MOD-06 초안에 D-36(공개 시각=시행일 00:00 KST, 제안값 일괄 승인)과 D-40(원문 명시 관계)을 적용한 검수본이다. 근거는 basis_evidence·review_notes·관계별 quote/basis_evidence에 있다.",
  "input_root": "data/raw/pdfs",
  "files": [
   {
@@ -23,7 +23,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -39,11 +39,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "5786143fa99b0edaa95bd0f45b5208699320ce373bf0cd15def41ba32e60e81d"
   },
@@ -65,7 +66,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -81,11 +82,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "6bbd1e9b356b26d7005a2233e3355037ffa2b36c8e75ccdec1414f6f5d420844"
   },
@@ -113,7 +115,7 @@
      "quote": "적용종료 2026.09.30."
     }
    ],
-   "available_from": null,
+   "available_from": "2025-01-01T00:00:00+09:00",
    "effective_from": "2025-01-01",
    "effective_to": "2026-10-01",
    "guidance_valid_from": null,
@@ -129,12 +131,13 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
     "application_basis: 사건 기준 근거 없음, general_reference 제안",
-    "application_basis: 보정 문서에 '신청·처리일 또는 근무일, 질문 사건에 따라 확인'으로 적혀 있어 닫힌 값 하나로 정할 수 없음(검수 필요)"
+    "application_basis: 보정 문서에 '신청·처리일 또는 근무일, 질문 사건에 따라 확인'으로 적혀 있어 닫힌 값 하나로 정할 수 없음(검수 필요)",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "61e75897b1033740a65ce352e06f1ff8d7483e140e13144d8d0196b35b1050ae"
   },
@@ -156,7 +159,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -172,11 +175,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "f86430ae2a2e1cb2128387e9c07ad6b395c31a22c19513c3bdcaf6f635a730d9"
   },
@@ -204,7 +208,7 @@
      "quote": "적용종료 2026.09.30."
     }
    ],
-   "available_from": null,
+   "available_from": "2025-01-01T00:00:00+09:00",
    "effective_from": "2025-01-01",
    "effective_to": "2026-10-01",
    "guidance_valid_from": null,
@@ -220,12 +224,13 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
     "application_basis: 사건 기준 근거 없음, general_reference 제안",
-    "application_basis: 보정 문서에 '신청·처리일 또는 근무일, 질문 사건에 따라 확인'으로 적혀 있어 닫힌 값 하나로 정할 수 없음(검수 필요)"
+    "application_basis: 보정 문서에 '신청·처리일 또는 근무일, 질문 사건에 따라 확인'으로 적혀 있어 닫힌 값 하나로 정할 수 없음(검수 필요)",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "7077389b4d58281a9582b3bf63c2bc2390cfebf41f6545d50a8b9031719414bc"
   },
@@ -247,10 +252,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -263,11 +268,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "fc32689d02f4af41b63679cd1c7b6cfc230661f0226abd3e5839339915d68746"
   },
@@ -289,10 +295,10 @@
      "quote": "시행일 | 2026.04.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-04-01T00:00:00+09:00",
    "effective_from": "2026-04-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-04-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -305,11 +311,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "98ffe661467b8014ed4dbc11c9594d1b2a55f679c18a6c829d87f43fb905e6b6"
   },
@@ -331,7 +338,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 07월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-07-01T00:00:00+09:00",
    "effective_from": "2026-07-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -347,11 +354,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "1496d43baa7f55adcd12f73fbde73fba2854f6109ebb888eb70b8fa29b9088b3"
   },
@@ -373,10 +381,10 @@
      "quote": "시행일 | 2026.10.05"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-05T00:00:00+09:00",
    "effective_from": "2026-10-05",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-05T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -389,11 +397,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "ee9d43abaa9780185082b88214bc4528ffb28544f2612890c7d17779c95ab5e6"
   },
@@ -415,10 +424,10 @@
      "quote": "시행일 | 2026.07.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-07-01T00:00:00+09:00",
    "effective_from": "2026-07-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-07-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -431,11 +440,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "41a4ca19534dc2516bf1d8b0409624d4cf70f4314caea84c4104f34fd6e18fbe"
   },
@@ -457,10 +467,10 @@
      "quote": "시행일 | 2026.04.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-04-01T00:00:00+09:00",
    "effective_from": "2026-04-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-04-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -473,11 +483,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "f40b68e5ae0abe9d8aed790d4928209eb50de9427891b563d3c13bd5ef367083"
   },
@@ -499,7 +510,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 07월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-07-01T00:00:00+09:00",
    "effective_from": "2026-07-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -515,11 +526,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "66287fb77f3da3750a4185c7d7aac408ce904307dd607f4e35afba96bdde0e9a"
   },
@@ -541,10 +553,10 @@
      "quote": "시행일 | 2026.06.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-06-01T00:00:00+09:00",
    "effective_from": "2026-06-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-06-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -561,11 +573,12 @@
    "access_policy_source": "user_decision:D-31 (원문 열람 제한 표기)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "1c740f850a4df3c9e5f9bd85e2bc55c061d00e310d892e2a10e932197e9672f3"
   },
@@ -587,10 +600,10 @@
      "quote": "시행일 | 2026.03.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-03-01T00:00:00+09:00",
    "effective_from": "2026-03-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-03-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -607,11 +620,12 @@
    "access_policy_source": "user_decision:D-31 (원문 열람 제한 표기)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "96645ffa5ac3c70dfea745a4e0feadf1aef51d20b89e2f1646e9edd7d09e0969"
   },
@@ -633,10 +647,10 @@
      "quote": "시행일 | 2026.02.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-02-01T00:00:00+09:00",
    "effective_from": "2026-02-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-02-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -649,11 +663,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "e75ea47105dfe702375b2e4b565f17976a9f62dbab8e6452b3b19e45cf60c3dc"
   },
@@ -675,10 +690,10 @@
      "quote": "시행일 | 2026.05.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-05-01T00:00:00+09:00",
    "effective_from": "2026-05-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-05-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -691,11 +706,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "048d127512d89afa54aae047ea3f7492239ca52267360a0f39566fc24c05fcb0"
   },
@@ -717,10 +733,10 @@
      "quote": "시행일 | 2026.01.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-01-01T00:00:00+09:00",
    "effective_from": "2026-01-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-01-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -733,11 +749,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "fc5ebf8739fc0590fde909cfe6074d3bfc8c471d902b6250471d5a48c7595b77"
   },
@@ -759,10 +776,10 @@
      "quote": "시행일 | 2026.01.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-01-01T00:00:00+09:00",
    "effective_from": "2026-01-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-01-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -775,11 +792,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "5007a05db1e8394d03db09f90a6ba87eb104ae86c67a69f5d7c2e4e5a19372ee"
   },
@@ -801,10 +819,10 @@
      "quote": "시행일 | 2026.07.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-07-01T00:00:00+09:00",
    "effective_from": "2026-07-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-07-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -817,11 +835,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "6d8a265fe5133d768c776a9963146a6b16964a29b63137ccf545a453ec5088c9"
   },
@@ -843,10 +862,10 @@
      "quote": "시행일 | 2026.07.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-07-01T00:00:00+09:00",
    "effective_from": "2026-07-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-07-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -859,11 +878,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "dd7f7d501142927b7e38ddb9fb2d500dbf318a8a0c78af693841b034bc6ec2d3"
   },
@@ -890,7 +910,7 @@
      "note": "ED-021 제12/20조(교육회차 시작일)"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -906,10 +926,11 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
-    "document_role: 구조로 제안(부칙 시행일 조항)"
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "2a884f0d89894959eb2dfe3e1203cefbc3f87ae999e872cb172d04faa29d79b4"
   },
@@ -942,7 +963,7 @@
      "note": "ED-022(교육회차 시작일)"
     }
    ],
-   "available_from": null,
+   "available_from": "2025-01-01T00:00:00+09:00",
    "effective_from": "2025-01-01",
    "effective_to": "2026-10-01",
    "guidance_valid_from": null,
@@ -958,10 +979,11 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
-    "document_role: 구조로 제안(부칙 시행일 조항)"
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "38ef3c8b0d8e4b96956f05ec09854d86174679da14a0ff5710813831ea2f40fe"
   },
@@ -983,10 +1005,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -999,11 +1021,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "4a83fe833272e279ab2425631d64750fb3dd7d10e814511b7ad9d488d6b3c25c"
   },
@@ -1025,7 +1048,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -1041,11 +1064,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "d8477a7eb3b4fc191a586eadb1283804944a6a7654309898a1f316e388aa47f5"
   },
@@ -1067,10 +1091,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -1083,11 +1107,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "b0c4ab910a8cb302d1f28091970563221a4578513a426c500ab994cfb43d89c9"
   },
@@ -1109,10 +1134,10 @@
      "quote": "시행일 | 2026.09.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-09-01T00:00:00+09:00",
    "effective_from": "2026-09-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-09-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -1125,11 +1150,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "a3fa5e9e6017e7152192a74483086a45aa4d15f03dc14f31a797edb03b5f4e5b"
   },
@@ -1151,10 +1177,10 @@
      "quote": "시행일 | 2026.07.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-07-01T00:00:00+09:00",
    "effective_from": "2026-07-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-07-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -1167,11 +1193,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "cafcf860ffaef68937a0c6704a17fdde90e3313d269d02ee487bae432176ce0b"
   },
@@ -1193,7 +1220,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 08월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-08-01T00:00:00+09:00",
    "effective_from": "2026-08-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -1209,11 +1236,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "63ab5245cdb4e83f27c296ffc69f334bf716becf44c9c8cbad603a4c097bf4e5"
   },
@@ -1235,10 +1263,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -1251,11 +1279,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "b8ee48c33291bca6ce9d812e02ce72c29e31566f1006f8214d9f7c35da8390a0"
   },
@@ -1282,7 +1311,7 @@
      "note": "ED-030 제5조/유의사항(교육 시작일)"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -1298,10 +1327,11 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
-    "document_role: 구조로 제안(부칙 시행일 조항)"
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "03352d147c57f93ccf03f545af2b7d15bf579ff384226f3b7407275ea7cc0946"
   },
@@ -1334,7 +1364,7 @@
      "note": "ED-031 제3조(교육 시작일)"
     }
    ],
-   "available_from": null,
+   "available_from": "2025-01-01T00:00:00+09:00",
    "effective_from": "2025-01-01",
    "effective_to": "2026-10-01",
    "guidance_valid_from": null,
@@ -1350,10 +1380,11 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
-    "document_role: 구조로 제안(부칙 시행일 조항)"
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "d1daac58412ab1f682b4f81bc44803f9600dafc48c61cf613e422c06b884c0ad"
   },
@@ -1375,10 +1406,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -1391,11 +1422,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "e839ddf45550c536e08116c03570c8ed30d048445de898dceb2b4724887d04ea"
   },
@@ -1417,10 +1449,10 @@
      "quote": "시행일 | 2026.10.05"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-05T00:00:00+09:00",
    "effective_from": "2026-10-05",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-05T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -1433,11 +1465,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "1298e9ae323482cf5f389c7eb243d5b379c42e78ed5e83f68b4aab1b483de84b"
   },
@@ -1464,7 +1497,7 @@
      "note": "ED-034 제12조(교육회차 시작일)"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -1480,10 +1513,11 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
-    "document_role: 구조로 제안(부칙 시행일 조항)"
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "0e12328fa3ba6a6d0ff619c562220348accda0adb60335eba2b0e785622f712d"
   },
@@ -1505,10 +1539,10 @@
      "quote": "시행일 | 2026.10.06"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-06T00:00:00+09:00",
    "effective_from": "2026-10-06",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-06T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -1521,11 +1555,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "df7faff8e18a233f94092c587012c4be28a1303a9012a31e8445478ffa802e27"
   },
@@ -1547,10 +1582,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -1563,11 +1598,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "04513bace00303b9a5107a2ed8bcfc177d8354abc6883fe193cb4fd1d4d2870d"
   },
@@ -1589,10 +1625,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -1605,11 +1641,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "45b70657c6a5e858ea7404a99a700340e39dfdb5aec3d0e444fc7eb92388de5f"
   },
@@ -1631,7 +1668,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -1647,11 +1684,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "e3bfd46ade014d14f2ae7e88c5c1f3b98458ad2d0def93634f932e5259ad463a"
   },
@@ -1673,10 +1711,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -1689,11 +1727,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "6df2b99886cfb70d4c67ccedd87fcbc3edd87d9784f56e40e322c6763f2e5dea"
   },
@@ -1715,10 +1754,10 @@
      "quote": "시행일 | 2026.08.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-08-01T00:00:00+09:00",
    "effective_from": "2026-08-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-08-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -1731,11 +1770,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "3a92eaecb025cd50875d14a1c6c096f75b9f9ae0608f7dc6c1a8520fc35702ee"
   },
@@ -1762,7 +1802,7 @@
      "note": "IT-041(처리일)"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -1778,11 +1818,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "transition_relations: 원문 경과조항 있음(CM-092 제9조/IT-041 제13조), 사건 조건 매핑 미검수"
+    "transition_relations: 원문 경과조항 있음(CM-092 제9조/IT-041 제13조), 사건 조건 매핑 미검수",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "e8479e88a190b50675689185f03037b2a3d6938d9cbef6c4299d7a93ca078ba3"
   },
@@ -1815,12 +1856,28 @@
      "note": "IT-042(처리일)"
     }
    ],
-   "available_from": null,
+   "available_from": "2025-04-01T00:00:00+09:00",
    "effective_from": "2025-04-01",
    "effective_to": "2026-10-01",
    "guidance_valid_from": null,
    "guidance_valid_to": null,
-   "transition_relations": [],
+   "transition_relations": [
+    {
+     "from_source_file_id": "PDF-042",
+     "to_source_file_id": "PDF-041",
+     "clause_anchor": "제13조(종전 기준과의 관계)",
+     "application_basis": "processing_date",
+     "event_conditions": [
+      {
+       "event": "processing_date",
+       "compare": "before",
+       "date": "2026-10-01"
+      }
+     ],
+     "authority_relation": "past_reference_current_recheck",
+     "basis_evidence": "PDF-041 제13조: 2026년 9월 30일까지 처리된 계정 업무의 경과 확인에는 당시의 운영기준을 참고하되, 현재 활성 상태의 인증 및 접근통제는 현행 정책에 따라 재점검한다. 처리→processing_date(D-40)"
+    }
+   ],
    "supersedes_source_file_id": null,
    "edition_state": "superseded",
    "owning_department": null,
@@ -1831,10 +1888,11 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
-    "document_role: 구조로 제안(부칙 시행일 조항)"
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "6dc23122745fac101b00e5b0648be864def19cd0e2319395536614741451f092"
   },
@@ -1856,10 +1914,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -1872,11 +1930,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "6d0d71db4b5f2fa6e8fd0bf2f94ba543d6694ba01e325e0996a94ee88d28fd4c"
   },
@@ -1898,10 +1957,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -1914,11 +1973,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "6ff65d99df4ba2ae542b0823ad06d0b3defb7d58575e3c7116605db75b3f4156"
   },
@@ -1940,10 +2000,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": "PDF-046",
@@ -1956,11 +2016,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "3174f5c2ac36e792b71cf6979168afe81638e1a4d2fde494b7f82190a965eced"
   },
@@ -1982,11 +2043,11 @@
      "quote": "시행일 | 2025.04.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2025-04-01T00:00:00+09:00",
    "effective_from": "2025-04-01",
    "effective_to": null,
-   "guidance_valid_from": null,
-   "guidance_valid_to": null,
+   "guidance_valid_from": "2025-04-01T00:00:00+09:00",
+   "guidance_valid_to": "2026-10-01T00:00:00+09:00",
    "transition_relations": [],
    "supersedes_source_file_id": null,
    "edition_state": "superseded",
@@ -1998,12 +2059,13 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
     "application_basis: 사건 기준 근거 없음, general_reference 제안",
-    "적용 기간 표기 있음(2025.04.01.~2026.09.30.): guidance_valid 또는 effective 구간 검수 필요"
+    "적용 기간 표기 있음(2025.04.01.~2026.09.30.): guidance_valid 또는 effective 구간 검수 필요",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "c8da2a9c82a901ff62c0e9c895a5a8546fe60e573133ed6df6e66619faa11817"
   },
@@ -2025,10 +2087,10 @@
      "quote": "시행일 | 2026.10.05"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-05T00:00:00+09:00",
    "effective_from": "2026-10-05",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-05T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -2041,11 +2103,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "5e1744ce777de11101d95ca321c66ee63da978c11658c6a4e88260d2e0c1eb7f"
   },
@@ -2067,10 +2130,10 @@
      "quote": "시행일 | 2026.07.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-07-01T00:00:00+09:00",
    "effective_from": "2026-07-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-07-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -2083,11 +2146,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "8cf9b6e9d90092e01c7368498c7cb335d01dad768a2be23c7f18ab2bf9052223"
   },
@@ -2109,10 +2173,10 @@
      "quote": "시행일 | 2026.06.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-06-01T00:00:00+09:00",
    "effective_from": "2026-06-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-06-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -2125,11 +2189,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "793ec2eb14f1df52ad0b369ee803bf6e397e595a67438dbcf1c8e6381fcf1453"
   },
@@ -2151,10 +2216,10 @@
      "quote": "시행일 | 2026.09.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-09-01T00:00:00+09:00",
    "effective_from": "2026-09-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-09-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -2167,11 +2232,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "f7c4713bf0b142ec70eb27f690b50bdadfd0efdb7c70cee2bb4d53e045a327b9"
   },
@@ -2193,10 +2259,10 @@
      "quote": "시행일 | 2026.07.15"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-07-15T00:00:00+09:00",
    "effective_from": "2026-07-15",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-07-15T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -2209,11 +2275,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "1bdaf78316aa0a1a840a7da5f1b14f1b62ce05b1c68362d939fab70300ec0854"
   },
@@ -2235,10 +2302,10 @@
      "quote": "시행일 | 2026.05.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-05-01T00:00:00+09:00",
    "effective_from": "2026-05-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-05-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -2251,11 +2318,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "cc75dae07cc5dcdcb3bbd7cecaec9c8edab8782a4886df077df61fea7da02807"
   },
@@ -2277,10 +2345,10 @@
      "quote": "시행일 | 2026.09.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-09-01T00:00:00+09:00",
    "effective_from": "2026-09-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-09-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -2293,11 +2361,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "2f938210466a13bd38e5db75a161f166d6a653413e377a55415b7d3e26879d7e"
   },
@@ -2319,10 +2388,10 @@
      "quote": "시행일 | 2026.04.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-04-01T00:00:00+09:00",
    "effective_from": "2026-04-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-04-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -2335,11 +2404,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "81af1e6ff5afda8fff9e3756442eebc5ba876fb1490c3a262468ed6e6e235d41"
   },
@@ -2361,7 +2431,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -2377,11 +2447,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "40003605c8623f0d1068a8098702174cbf2808376c188bf3f16c4df8526b6537"
   },
@@ -2403,10 +2474,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -2419,11 +2490,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "0b57c0857c0efa3db9b87a2fed47707b98ad67d739df38e8aef934e8ad26f1f0"
   },
@@ -2445,10 +2517,10 @@
      "quote": "시행일 | 2026.08.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-08-01T00:00:00+09:00",
    "effective_from": "2026-08-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-08-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -2461,11 +2533,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "915957ebfe86853d679a628d07b187eebd33edc10500b908bb103e5f1dee17df"
   },
@@ -2487,10 +2560,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -2503,11 +2576,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "a26c593ab67c66ff5a19b614a25327ea30c883e19e807cc195dad54caa615c48"
   },
@@ -2529,10 +2603,10 @@
      "quote": "시행일 | 2026.09.18"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-09-18T00:00:00+09:00",
    "effective_from": "2026-09-18",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-09-18T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -2545,11 +2619,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "adc17bfae6f21a50d26af142ccb54420188ca9643d80024ae4fce9a667e62218"
   },
@@ -2571,10 +2646,10 @@
      "quote": "시행일 | 2026.10.06"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-06T00:00:00+09:00",
    "effective_from": "2026-10-06",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-06T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -2587,11 +2662,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "52844d89da28740ae3741910a6e3227c0a2764e95d7eb8c58054d5d417aeb21b"
   },
@@ -2613,7 +2689,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -2628,12 +2704,35 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-041",
+     "target_code": "IT-041",
+     "page": 2,
+     "quote": "관리자 권한과 외부 원격접속은 별도 승인 및 로그검토 대상이며, 계정 발급·회수는 IT-041에 따른다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-025",
+     "target_code": "ED-025",
+     "page": 2,
+     "quote": "보안교육의 대상·평가·미이수 처리는 ED-025 및 ED-024에 따른다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-024",
+     "target_code": "ED-024",
+     "page": 2,
+     "quote": "보안교육의 대상·평가·미이수 처리는 ED-025 및 ED-024에 따른다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "bc50fb830e1c4aa35fa14be7f16d95ce1249734ad6469f70d1abc819e4586ab4"
   },
@@ -2666,7 +2765,7 @@
      "note": "SEC-062(처리일)"
     }
    ],
-   "available_from": null,
+   "available_from": "2025-06-01T00:00:00+09:00",
    "effective_from": "2025-06-01",
    "effective_to": "2026-10-01",
    "guidance_valid_from": null,
@@ -2682,10 +2781,11 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
-    "document_role: 구조로 제안(부칙 시행일 조항)"
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "75d527d46a773718344fcb4f0846740cd1c60bbdc7d5ff23625731c391af488d"
   },
@@ -2707,7 +2807,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -2722,12 +2822,35 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-065",
+     "target_code": "SEC-065",
+     "page": 2,
+     "quote": "개인정보의 수집·제공·파기는 SEC-065~067 및 관계 법령의 별도 요건을 적용한다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-066",
+     "target_code": "SEC-066",
+     "page": 2,
+     "quote": "개인정보의 수집·제공·파기는 SEC-065~067 및 관계 법령의 별도 요건을 적용한다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-067",
+     "target_code": "SEC-067",
+     "page": 2,
+     "quote": "개인정보의 수집·제공·파기는 SEC-065~067 및 관계 법령의 별도 요건을 적용한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "c5a684274a277c5c732bfcf9cc96718c1258f6da965c1f4b720857bf3d87c975"
   },
@@ -2749,7 +2872,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -2765,11 +2888,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "e6986de2d0c4d95b8e8f342d845b6f79b67a9b24d8b586c3723f5e169170190c"
   },
@@ -2791,7 +2915,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -2806,12 +2930,21 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-066",
+     "target_code": "SEC-066",
+     "page": 2,
+     "quote": "목적 달성 또는 보유기간 종료 시 파기 대상을 식별하고 SEC-066에 따라 처리한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "decb8edd022c22c8359e3743f21ead8cf71645cff50c1f48e16f44d74342515b"
   },
@@ -2833,7 +2966,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -2849,11 +2982,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "0e741eef5b17332a5c27ed20ba4107dbf810021934b3498ee35f913be49074ff"
   },
@@ -2875,10 +3009,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -2891,11 +3025,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "099c2a5114255ab58b08c91fa72d2110b9b3bca0006b262b018b440537626da8"
   },
@@ -2917,10 +3052,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -2933,11 +3068,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "6d68655926eb6ee4f4f42d7e7633196cea0a26959b94da1b5ea3f372d87c8e78"
   },
@@ -2959,7 +3095,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -2974,12 +3110,21 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-072",
+     "target_code": "SEC-072",
+     "page": 2,
+     "quote": "오발송, 공개 링크 노출, 승인되지 않은 다운로드를 발견하면 즉시 공유를 중지하고 SEC-072에 따라 신고한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "6e55daf1be2f6e3fa477273f14783a58968317f4654ad9a6148c9643276e51f9"
   },
@@ -3001,10 +3146,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -3016,12 +3161,21 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "precedes",
+     "target_document_key": "DOC-067",
+     "target_code": "SEC-067",
+     "page": 1,
+     "quote": "고객정보가 포함된 경우 SEC-067 검토를 먼저 거친다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "db30d1747cf3ed4dbb171bc0a444edf4036ce8b6b1663fe43505a5b283b7296e"
   },
@@ -3043,10 +3197,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -3059,11 +3213,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "55f73ab6f837a31a5729c5ac382682349326d6f6a46ad0f0664747ba2f8d307d"
   },
@@ -3085,10 +3240,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -3101,11 +3256,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "0c97f32347d1921eecbca37826c7e8fd2f4fbbea2a1204eddc1717ae77147e07"
   },
@@ -3127,10 +3283,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -3142,12 +3298,21 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-039",
+     "target_code": "IT-039",
+     "page": 2,
+     "quote": "임시 기기 지급은 IT-039에 따라 자산 기록과 보안 설정을 확인한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "2831e7b8b04345c636a2e85ff55f5ceef79cbd82266cb388f278a83ba9626f6f"
   },
@@ -3169,10 +3334,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -3185,11 +3350,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "c3a7068539f1dae370ba46175f21621758d75c36a46d7077b5cd98f6f13f3393"
   },
@@ -3211,7 +3377,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -3227,11 +3393,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "4d924a875d6c5c20cf514d4ee3d53384232d3b9fbf4fd6ae7e0bbf39b2dcd130"
   },
@@ -3253,10 +3420,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -3268,12 +3435,28 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-041",
+     "target_code": "IT-041",
+     "page": 2,
+     "quote": "계정 변경 이력은 IT-041에, 분기별 접근권한 재검토는 SEC-077에 따라 확인한다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-077",
+     "target_code": "SEC-077",
+     "page": 2,
+     "quote": "계정 변경 이력은 IT-041에, 분기별 접근권한 재검토는 SEC-077에 따라 확인한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "7804439d21fb5360a2f5137c4c50569ddb2ccbf1327e74fece3068344c3b820b"
   },
@@ -3295,10 +3478,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -3310,12 +3493,21 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-080",
+     "target_code": "SEC-080",
+     "page": 1,
+     "quote": "권한 유지가 필요한 예외는 업무목적·대체통제·만료일·승인자를 적고 SEC-080에 따라 처리한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "68474d30cfbcda9f53de86c7737a05b8d6ac45b30dd6fbc93939c609f757a228"
   },
@@ -3337,7 +3529,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -3352,12 +3544,21 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-073",
+     "target_code": "SEC-073",
+     "page": 2,
+     "quote": "기기 분실은 SEC-073절차도 따른다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "f6d64fe43f9410e514a7b62fc219b37156b7d27c6841444aa02b4a7519390d11"
   },
@@ -3379,10 +3580,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -3394,12 +3595,28 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-021",
+     "target_code": "ED-021",
+     "page": 1,
+     "quote": "집합교육 회차는 출석 90퍼센트 이상을 기준으로 하며 세부 사항은 ED-021·ED-025에 따른다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-025",
+     "target_code": "ED-025",
+     "page": 1,
+     "quote": "집합교육 회차는 출석 90퍼센트 이상을 기준으로 하며 세부 사항은 ED-021·ED-025에 따른다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "32f3ca32f94012f2c74e2e0bc0887dcaacc484bc621aaa17b3ded9964c178180"
   },
@@ -3421,10 +3638,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -3437,11 +3654,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "d70e7f600f6f37a78e9009704af30fbfe92775b24d93265e31f3fa5e5c028240"
   },
@@ -3468,7 +3686,7 @@
      "note": "GA-081 제4조(출장 시작일)"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -3484,10 +3702,11 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
-    "document_role: 구조로 제안(부칙 시행일 조항)"
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "08be16a45e7c1879e670ba66475fba97ee36194f8ec236615caa353f10870804"
   },
@@ -3520,7 +3739,7 @@
      "note": "GA-082 제2조(출장 시작일)"
     }
    ],
-   "available_from": null,
+   "available_from": "2025-01-01T00:00:00+09:00",
    "effective_from": "2025-01-01",
    "effective_to": "2026-10-01",
    "guidance_valid_from": null,
@@ -3536,10 +3755,11 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
-    "document_role: 구조로 제안(부칙 시행일 조항)"
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "77ed9d90f082794853cc4da546406d54e3efed9b09b4ef20d62c31f8b9ff7b5f"
   },
@@ -3561,10 +3781,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -3576,12 +3796,28 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-081",
+     "target_code": "GA-081",
+     "page": 1,
+     "quote": "2026년 10월 1일 이후 시작한 출장에는 GA-081의 한도를, 그 이전에 시작한 출장에는 GA-082를 적용한다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-089",
+     "target_code": "GA-089",
+     "page": 2,
+     "quote": "거래금액, 결제수단, 영수증 등 보완 요청이 있으면 GA-089에 따라 재제출한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "569a99d02f8869a2da097881760214dcf5daf307cc6fb465ef09a6926074aa06"
   },
@@ -3603,7 +3839,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -3619,11 +3855,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "6fdbef5f4389c74ae66c47057a72e155b502f1250bbbff37a0eabb5f62282e99"
   },
@@ -3645,10 +3882,10 @@
      "quote": "시행일 | 2026.10.05"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-05T00:00:00+09:00",
    "effective_from": "2026-10-05",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-05T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -3661,11 +3898,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "f2c7d2b96c72cb3b796ebcc2673abd81130614ba2b7dcfb03d9306869ad7a71f"
   },
@@ -3687,10 +3925,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -3702,12 +3940,35 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-029",
+     "target_code": "ED-029",
+     "page": 2,
+     "quote": "외부교육의 사전 승인과 비용 한도는 ED-029·ED-030을 적용하고, 출장비는 GA-081에 따른다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-030",
+     "target_code": "ED-030",
+     "page": 2,
+     "quote": "외부교육의 사전 승인과 비용 한도는 ED-029·ED-030을 적용하고, 출장비는 GA-081에 따른다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-081",
+     "target_code": "GA-081",
+     "page": 2,
+     "quote": "외부교육의 사전 승인과 비용 한도는 ED-029·ED-030을 적용하고, 출장비는 GA-081에 따른다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "7b0b2fd6b3361b1ed03938300dc2cfd5ae01a543039f1ac5a7f55e8f430e2d81"
   },
@@ -3729,7 +3990,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -3744,12 +4005,21 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-084",
+     "target_code": "GA-084",
+     "page": 2,
+     "quote": "법인카드로 결제한 경우 GA-084의 월별 거래 소명 기한을 따른다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "4e42a2ec89311f3131703f1184522b848450fd362d9d7b451151e0b60824f397"
   },
@@ -3771,10 +4041,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -3786,12 +4056,28 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-039",
+     "target_code": "IT-039",
+     "page": 2,
+     "quote": "조직 이동·퇴사 시에는 기존 자산의 재배정 또는 회수를 IT-039·IT-058에 따라 처리한다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-058",
+     "target_code": "IT-058",
+     "page": 2,
+     "quote": "조직 이동·퇴사 시에는 기존 자산의 재배정 또는 회수를 IT-039·IT-058에 따라 처리한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "e35d9a703a664108b86e08ba752accfc6e7eec67d8b66c2a0dea60b06fcc0d55"
   },
@@ -3813,10 +4099,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -3829,11 +4115,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "feacbf9a6d91c1c0a14cc55a8016715b3aee5b5f8554cbd62f4214fc6b4923c0"
   },
@@ -3860,10 +4147,10 @@
      "note": "GA-090 1.2(교육비는 교육 시작일, 출장비는 출장 시작일)"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-06T00:00:00+09:00",
    "effective_from": "2026-10-06",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-06T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -3875,11 +4162,27 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-030",
+     "target_code": "ED-030",
+     "page": 1,
+     "quote": "수강료·교재비·응시료는 ED-030에 따라, 교통·숙박·식비는 출장 승인과 GA-081에 따라 검토한다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-081",
+     "target_code": "GA-081",
+     "page": 1,
+     "quote": "수강료·교재비·응시료는 ED-030에 따라, 교통·숙박·식비는 출장 승인과 GA-081에 따라 검토한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
-    "document_role: 구조로 제안(문서 정보 표)"
+    "document_role: 구조로 제안(문서 정보 표)",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "8d52429ba3795d24c272951fd307649eedc3cc80d380ec6314214bab8c410a1f"
   },
@@ -3906,12 +4209,33 @@
      "note": "CM-091(최종 결재일, CM-092와 대조)"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
    "guidance_valid_to": null,
-   "transition_relations": [],
+   "transition_relations": [
+    {
+     "from_source_file_id": "PDF-091",
+     "to_source_file_id": "PDF-092",
+     "clause_anchor": "제9조(미결 문서)",
+     "application_basis": "approval_date",
+     "event_conditions": [
+      {
+       "event": "request_date",
+       "compare": "before",
+       "date": "2026-10-01"
+      },
+      {
+       "event": "approval_date",
+       "compare": "on_or_after",
+       "date": "2026-10-01"
+      }
+     ],
+     "authority_relation": "current_rules_apply",
+     "basis_evidence": "PDF-092 제9조: 2026년 9월 30일 이전에 상신했으나 10월 1일 이후 최종 승인되는 문서는 개정된 승인 확인·이력 기준에 따라 재검토한다. 상신→request_date, 최종 승인→approval_date(D-40)"
+    }
+   ],
    "supersedes_source_file_id": "PDF-092",
    "edition_state": "current",
    "owning_department": null,
@@ -3921,11 +4245,48 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "limited_by",
+     "target_document_key": "DOC-093",
+     "target_code": "CM-093",
+     "page": 2,
+     "quote": "전결은 CM-093의 금액·업무유형별 위임 범위 안에서만 가능하다."
+    },
+    {
+     "kind": "precedes",
+     "target_document_key": "DOC-072",
+     "target_code": "SEC-072",
+     "page": 2,
+     "quote": "보안사고 대응은 SEC-072의 긴급대응 절차를 우선 확인한다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-096",
+     "target_code": "CM-096",
+     "page": 2,
+     "quote": "보존기간과 폐기 판단은CM-096을, 접근권한은 SEC-064를 따른다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-064",
+     "target_code": "SEC-064",
+     "page": 2,
+     "quote": "보존기간과 폐기 판단은CM-096을, 접근권한은 SEC-064를 따른다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-093",
+     "target_code": "CM-093",
+     "page": 3,
+     "quote": "업무별 금액·권한을 확인하려면 CM-093과 소관 업무 규정을 함께 적용한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
-    "document_role: 구조로 제안(부칙 시행일 조항)"
+    "document_role: 구조로 제안(부칙 시행일 조항)",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "c07f51b6a7f32ab57a34374d0794c8e3d70af5acb10e18a92060334b014f71c3"
   },
@@ -3958,7 +4319,7 @@
      "note": "CM-092 제2/9조(최종 결재일·경과조건)"
     }
    ],
-   "available_from": null,
+   "available_from": "2025-01-01T00:00:00+09:00",
    "effective_from": "2025-01-01",
    "effective_to": "2026-10-01",
    "guidance_valid_from": null,
@@ -3974,11 +4335,12 @@
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
    "authority_relations": [],
-   "review_status": "needs_review",
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "transition_relations: 원문 경과조항 있음(CM-092 제9조/IT-041 제13조), 사건 조건 매핑 미검수"
+    "transition_relations: 원문 경과조항 있음(CM-092 제9조/IT-041 제13조), 사건 조건 매핑 미검수",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "2cee8bdc18dbb7237f68339205fef0ff87c5b433253d92f3fe32aae73f302408"
   },
@@ -4000,7 +4362,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -4020,12 +4382,42 @@
    },
    "access_policy_source": "user_decision:D-31 (원문 열람 제한 표기)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-086",
+     "target_code": "GA-086",
+     "page": 1,
+     "quote": "지급·검수·승인의 직무분리는GA-086의 지침에 따라 운영한다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-064",
+     "target_code": "SEC-064",
+     "page": 2,
+     "quote": "시스템 조회·변경 권한은 팀장과 시스템 소유자의 승인을 모두 확인하며 고위험 권한은 SEC-064·IT-056에 따라 정보보안 검토를 받는다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-056",
+     "target_code": "IT-056",
+     "page": 2,
+     "quote": "시스템 조회·변경 권한은 팀장과 시스템 소유자의 승인을 모두 확인하며 고위험 권한은 SEC-064·IT-056에 따라 정보보안 검토를 받는다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-080",
+     "target_code": "SEC-080",
+     "page": 2,
+     "quote": "정보보안 예외는 SEC-080에 따라 자산 소유부서와 정보보안팀의 별도 검토·승인을 받아야 한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "e3e4613283526144b7e096573e5cbfbe2502954709d70cb8a8d99b0766221d09"
   },
@@ -4047,10 +4439,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -4062,12 +4454,21 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-095",
+     "target_code": "CM-095",
+     "page": 2,
+     "quote": "승인된 문서는 CM-095에 따라 문서번호·버전·제정 및 개정일·담당 부서·상태를 등록한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "c698a5a96725049c0e255b421caf6ada866e6d88230780b8183e1009f8015fa2"
   },
@@ -4089,7 +4490,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -4104,13 +4505,29 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-063",
+     "target_code": "SEC-063",
+     "page": 2,
+     "quote": "SEC-063·064에 정한 등급과 사용자 권한은 문서 원본과 파생 정보에 동일하게 적용한다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-064",
+     "target_code": "SEC-064",
+     "page": 2,
+     "quote": "SEC-063·064에 정한 등급과 사용자 권한은 문서 원본과 파생 정보에 동일하게 적용한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
     "application_basis: 사건 기준 근거 없음, general_reference 제안",
-    "적용 기간 표기 있음(2026.10.01.~): guidance_valid 또는 effective 구간 검수 필요"
+    "적용 기간 표기 있음(2026.10.01.~): guidance_valid 또는 effective 구간 검수 필요",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "cf0fd02f9a69fb86ed6f66bf49fb9c0bf72c8df57bb0e740e8f5b5e1e93659dc"
   },
@@ -4132,7 +4549,7 @@
      "quote": "제1조(시행일) 이 규정은 2026년 10월 01일부터 시행한다"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
    "guidance_valid_from": null,
@@ -4147,12 +4564,21 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-066",
+     "target_code": "SEC-066",
+     "page": 1,
+     "quote": "개인정보 처리기록은 SEC-066과 관계 법령을 함께 적용한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(부칙 시행일 조항)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "161389ea188d717f2d90777c4ee43d19822e9c40b6cff48b75b6de997591bf84"
   },
@@ -4174,10 +4600,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -4189,12 +4615,28 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-038",
+     "target_code": "IT-038",
+     "page": 2,
+     "quote": "사내 전면 서비스 장애는 IT-038에 따른 우선순위를 판단하며, 실제 침해 의심·고객정보 유출·기기 도난 등은 SEC-072에따라 즉시 신고한다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-072",
+     "target_code": "SEC-072",
+     "page": 2,
+     "quote": "사내 전면 서비스 장애는 IT-038에 따른 우선순위를 판단하며, 실제 침해 의심·고객정보 유출·기기 도난 등은 SEC-072에따라 즉시 신고한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "1293b2aa28e38cbe985c7a452a0fbbdf6995ead2b84339cd88dbad92ec7dafe7"
   },
@@ -4216,10 +4658,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -4231,12 +4673,35 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-041",
+     "target_code": "IT-041",
+     "page": 1,
+     "quote": "인사 발령 확정 정보를 기준으로 IT-041·IT-057에 따라 기본 계정과 표준 기기를 요청한다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-057",
+     "target_code": "IT-057",
+     "page": 1,
+     "quote": "인사 발령 확정 정보를 기준으로 IT-041·IT-057에 따라 기본 계정과 표준 기기를 요청한다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-044",
+     "target_code": "IT-044",
+     "page": 1,
+     "quote": "직원은 담당자가 안내한 절차로 본인 확인을 마친 후 초기 비밀번호를 변경하고 IT-044에 따라 다중인증을 등록한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "c1ef4f0d08bde15d5f6f3fb3a9dd4ace6ff856021f5341820cdad3cbeca15b2d"
   },
@@ -4258,10 +4723,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -4273,12 +4738,35 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-093",
+     "target_code": "CM-093",
+     "page": 1,
+     "quote": "이동 전 개인 계정으로만 소유되는 공유 문서는승인된 소관 계정으로 이관하고, 결재·대결 권한은 CM-093에 따라 재정비한다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-039",
+     "target_code": "IT-039",
+     "page": 2,
+     "quote": "불필요한 소프트웨어 라이선스나 프로젝트용 접근권한은 회수하고 장비 교체가 필요하면 IT-039·GA-088을 따른다."
+    },
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-088",
+     "target_code": "GA-088",
+     "page": 2,
+     "quote": "불필요한 소프트웨어 라이선스나 프로젝트용 접근권한은 회수하고 장비 교체가 필요하면 IT-039·GA-088을 따른다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "8ecc1f4e67a3fe300fce05f9034983b3cf4761cb346dcc1b7c65d1d242f1be8c"
   },
@@ -4300,10 +4788,10 @@
      "quote": "시행일 | 2026.10.01"
     }
    ],
-   "available_from": null,
+   "available_from": "2026-10-01T00:00:00+09:00",
    "effective_from": "2026-10-01",
    "effective_to": null,
-   "guidance_valid_from": null,
+   "guidance_valid_from": "2026-10-01T00:00:00+09:00",
    "guidance_valid_to": null,
    "transition_relations": [],
    "supersedes_source_file_id": null,
@@ -4315,12 +4803,21 @@
    },
    "access_policy_source": "user_decision:D-31 (기본 authenticated)",
    "related_document_keys": [],
-   "authority_relations": [],
-   "review_status": "needs_review",
+   "authority_relations": [
+    {
+     "kind": "defers_to",
+     "target_document_key": "DOC-096",
+     "target_code": "CM-096",
+     "page": 2,
+     "quote": "종전 공지는 CM-096에 따라 보존하되 직원의 기본 공지 조회에서 지난 긴급 알림을 현재 진행 중인 사건으로 오인하지 않도록 구분한다."
+    }
+   ],
+   "review_status": "reviewed",
    "review_notes": [
     "available_from: 원문으로 정할 수 없음(O-02, P-15)",
     "document_role: 구조로 제안(문서 정보 표)",
-    "application_basis: 사건 기준 근거 없음, general_reference 제안"
+    "application_basis: 사건 기준 근거 없음, general_reference 제안",
+    "D-36·D-40 일괄 승인(2026-10-18, 사용자 결정)"
    ],
    "sha256": "9e7ad7fe41b614fd6338b9d21c30ee85705e9a384c2f305e293ddda5cba05db1"
   }

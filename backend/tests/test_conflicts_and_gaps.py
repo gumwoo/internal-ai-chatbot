@@ -278,3 +278,102 @@ async def test_unpublished_edition_does_not_cover_the_date(org):
 
     assert await covers(NOW) is True
     assert await covers(datetime(2026, 9, 20, 10, tzinfo=KST)) is False  # 현행은 10-01 공개
+
+
+# --- D-39(P-18 B): 일부 사건만 날짜 미확인이면 확인된 사건은 답하고 서버 되묻기 문구를 붙인다 ---
+
+TRIP_NO_DATE = (
+    "search_documents",
+    {"query": "출장 숙박비 한도", "date_basis": "trip_start", "event_key": "trip"},
+)
+TWO_TOPICS = "9월 29일에 시작한 외부교육 한도랑 출장 숙박비 한도도 알려줘"
+
+
+async def _covered_citation(migrated) -> str:
+    probe = Capturing([tool_turn(COVERED_SEARCH, TRIP_NO_DATE), final("답")])
+    async with api_client(_app(migrated, probe)) as client:
+        await _ask(client, TWO_TOPICS)
+    covered, trip = probe.tool_payloads()
+    assert trip["data"]["resolution"] == "needs_clarification"
+    return next(p["citation_id"] for g in covered["data"]["groups"] for p in g["passages"])
+
+
+async def test_partial_clarification_is_appended_to_answered(published, migrated):
+    cid = await _covered_citation(migrated)
+    model = Capturing(
+        [tool_turn(COVERED_SEARCH, TRIP_NO_DATE), final("교육비 한도는 100만 원입니다", citations=[cid])]
+    )
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, TWO_TOPICS)
+    body = response.json()
+    assert body["outcome"] == "answered"
+    assert body["answer"].startswith("교육비 한도는 100만 원입니다")
+    assert body["answer"].endswith("출장 시작일이 필요합니다. 날짜를 알려 주시겠어요?")
+
+
+async def test_partial_clarification_is_not_duplicated_or_added_after_resolution(published, migrated):
+    cid = await _covered_citation(migrated)
+    asked = "교육비는 100만 원. 적용할 규정 판본을 정하려면 출장 시작일이 필요합니다. 날짜를 알려 주시겠어요?"
+    model = Capturing([tool_turn(COVERED_SEARCH, TRIP_NO_DATE), final(asked, citations=[cid])])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, TWO_TOPICS)
+    assert response.json()["answer"] == asked  # 모델이 이미 같은 질문을 했으면 붙이지 않는다
+    trip_dated = (
+        "search_documents",
+        {
+            "query": "출장 숙박비 한도",
+            "date_basis": "trip_start",
+            "as_of_date": "2026-09-29",
+            "date_quote": "9월 29일에 출발한",
+            "event_key": "trip",
+        },
+    )
+    model = Capturing(
+        [tool_turn(COVERED_SEARCH, TRIP_NO_DATE), tool_turn(trip_dated), final("두 한도", citations=[cid])]
+    )
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(
+            client, "9월 29일에 시작한 외부교육 한도. 9월 29일에 출발한 출장 숙박비 한도"
+        )
+    assert response.json()["answer"] == "두 한도"  # 같은 사건이 뒤에서 확인됐으면 되묻지 않는다
+
+
+async def test_partial_clarification_survives_missing_event_key_and_current_search(published, migrated):
+    """재검증 P1: event_key를 비우거나 같은 key로 current 검색을 해도 날짜 미확인 사건의 되묻기는 남는다."""
+    covered = ("search_documents", {k: v for k, v in COVERED_SEARCH[1].items() if k != "event_key"})
+    trip = ("search_documents", {"query": "출장 숙박비 한도", "date_basis": "trip_start"})
+    cid = await _covered_citation(migrated)
+    for calls in (
+        [covered, trip],
+        [
+            COVERED_SEARCH,
+            TRIP_NO_DATE,
+            ("search_documents", {"query": "출장 숙박비 한도", "event_key": "trip"}),
+        ],
+    ):
+        probe = Capturing([tool_turn(*calls), final("답")])
+        async with api_client(_app(migrated, probe)) as client:
+            await _ask(client, TWO_TOPICS)
+        first = next(
+            p["citation_id"] for g in probe.tool_payloads()[0]["data"]["groups"] for p in g["passages"]
+        )
+        model = Capturing([tool_turn(*calls), final("교육비 100만, 숙박 10만", citations=[first])])
+        async with api_client(_app(migrated, model)) as client:
+            _, response = await _ask(client, TWO_TOPICS)
+        assert response.json()["answer"].endswith("출장 시작일이 필요합니다. 날짜를 알려 주시겠어요?"), calls
+    assert cid
+
+
+async def test_gap_abstain_keeps_other_event_clarification(published, migrated):
+    """규범 공백으로 결론을 보류할 때도 날짜 미확인인 다른 사건의 되묻기 문구는 남긴다."""
+    question = "2024년 11월 1일에 시작한 외부교육 한도. 출장 숙박비 한도도 알려줘"
+    probe = Capturing([tool_turn(GAP_SEARCH, TRIP_NO_DATE), final("답")])
+    async with api_client(_app(migrated, probe)) as client:
+        await _ask(client, question)
+    faq = next(p["citation_id"] for g in probe.tool_payloads()[0]["data"]["groups"] for p in g["passages"])
+    model = Capturing([tool_turn(GAP_SEARCH, TRIP_NO_DATE), final("한도는 100만 원", citations=[faq])])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, question)
+    body = response.json()
+    assert body["outcome"] == "insufficient_evidence" and "규정 판본이 없어" in body["answer"]
+    assert body["answer"].endswith("출장 시작일이 필요합니다. 날짜를 알려 주시겠어요?")

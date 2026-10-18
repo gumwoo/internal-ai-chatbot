@@ -27,3 +27,4 @@ ValidateInput(directory,manifest,limits) → 오류/누락/100파일 구성 보�
 ## 경계 기준
 
 이 문서는 모듈 수준의 책임·공개 계약·협력까지 정의한다. 클래스·SQL·파일 배치·세부 알고리즘은 별도 구현 결정이다. 공통 타입은 [계약](../contracts/00-shared-contracts.md), 의존 방향은 [모듈 지도](../architecture/04-module-map.md), 검증 ID는 [테스트](../07-test-and-evaluation.md)를 따른다.
+- 검수(D-36·D-40, 2026-10-18): `agent.cli review-manifest`가 available_from=시행일 00:00 KST, 안내 개정 쌍의 guidance 구간, 본문 명시 문장으로 authority_relations 초안(근거 문장 포함), 원문 경과조항 2건(CM-092 제9조, IT-041 제13조)을 적용하고 reviewed로 바꾼다. T-18 검사에 관계 형식 검사를 더했다.

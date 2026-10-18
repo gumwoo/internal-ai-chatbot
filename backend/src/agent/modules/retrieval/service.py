@@ -7,11 +7,16 @@
 3. 검색: MOD-05가 권한·게시·지식 시점·규범 적용 구간으로 먼저 거른 후보만 받는다(raw_candidate_limit=20).
 4. 조립: 후보마다 support_group(조항·FAQ 문항·표 전체)을 붙이고, 그룹을 대표 후보의 거리 순으로 정렬한다.
    같은 그룹은 한 번만 넣는다. 여러 검색의 최종 예산 조립은 MOD-02가 한다.
+6. 경과조항 확장(D-40): 기본 판본에 검수된 transition_relations가 있으면, 사건 조건(검증된 사건 날짜들)이
+   모두 확인되고 충족될 때만 반대편 판본의 조항을 같은 support_group에 source_role=transition으로 붙인다.
+   알려진 조건이 이미 어긋나면 붙이지 않는다. 나머지 조건의 사건 날짜가 없으면 기본 판본 결과는 그대로 두고
+   그 날짜를 묻는 후속 문구(transition_pending)를 싣는다(MOD-02가 답 끝에 붙인다). 같은 조항은 한 번만 붙인다.
+7. 우선관계(D-40): 결과 문서의 authority_relations 중 대상 문서를 지금 볼 수 있는 것만 결과에 싣는다.
 5. 규범 공백(T-17): 가장 가까운 규범이 이 날짜 기준에 맞는데 그 날짜를 포함하는 공개 판본이 없으면
    normative_gap을 표시한다. 안내 문서는 절차 확인용으로만 남기고, 결론 보류는 MOD-02가 한다.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timedelta
 from typing import Any, Literal
 
@@ -52,6 +57,8 @@ class SearchRequest:
     # 사건 날짜 근원 검증 결과(MOD-02). 실패 사유가 있으면 되묻는다.
     date_problem: str | None = None
     date_evidence: dict[str, Any] = field(default_factory=dict)
+    # 경과조항 조건용 다른 사건 날짜(MOD-02가 사용자 문장으로 검증한 값만). {date_basis: date}
+    verified_events: dict[str, date] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -81,6 +88,10 @@ class RetrievalResult:
     date_evidence: dict[str, Any] = field(default_factory=dict)
     # 적용 원규정 판본이 없는 날짜(05-retrieval-assembly). 안내로 금액·권리·의무를 확정하지 않는다.
     normative_gap: dict[str, Any] | None = None
+    # 결과 문서의 명시 우선관계(대상 문서가 보이는 것만). {from_title, kind, to_title, quote}
+    authority_relations: tuple[dict[str, Any], ...] = ()
+    # 경과조항 조건의 사건 날짜가 빠졌을 때의 후속 되묻기 {reason, required_event_type, event_key, prompt}
+    transition_pending: dict[str, Any] | None = None
     requested_strategy: str = "raw"
     effective_strategy: str = "raw"
     retriever_config_id: str = RETRIEVER_CONFIG_ID
@@ -194,6 +205,14 @@ class RetrievalService:
             : min(request.top_k, RAW_CANDIDATE_LIMIT)
         ]
         groups = await self._groups(actor, hits)
+        events = dict(request.verified_events)
+        if request.date_basis in EVENT_BASES:
+            events[request.date_basis] = as_of
+        groups, missing_event = await self._expand_transitions(
+            actor, snapshot_id, groups, request.date_basis, events, knowledge_as_of
+        )
+        pending = _transition_prompt(missing_event, request.event_key) if missing_event else None
+        relations = await self._authority_relations(actor, snapshot_id, groups, knowledge_as_of)
         return RetrievalResult(
             "resolved",
             as_of_date=as_of,
@@ -201,8 +220,91 @@ class RetrievalService:
             groups=tuple(groups),
             date_evidence=evidence,
             normative_gap=normative_gap,
+            authority_relations=relations,
+            transition_pending=pending,
             **base,
         )
+
+    async def _expand_transitions(
+        self,
+        actor: ActorContext,
+        snapshot_id: str,
+        groups: list[SupportGroup],
+        date_basis: str,
+        events: dict[str, date],
+        knowledge_as_of: datetime,
+    ) -> tuple[list[SupportGroup], str | None]:
+        """ExpandTransitionEvidence(05-retrieval-assembly). 자동 우선순위 추정은 하지 않는다."""
+        meta = await self._knowledge.edition_relations({p.edition_id for g in groups for p in g.passages[:1]})
+        out: list[SupportGroup] = []
+        missing_event: str | None = None
+        attached: set[tuple[str, str]] = set()  # (반대편 파일, 조항): 같은 조항은 결과 전체에서 한 번만
+        for group in groups:
+            base = group.passages[0]
+            added: list[Passage] = []
+            for relation in (meta.get(base.edition_id) or {}).get("transition_relations", []):
+                if relation.get("application_basis") != date_basis:
+                    continue
+                conditions = relation.get("event_conditions") or []
+                known = [c for c in conditions if c["event"] in events]
+                if not all(_condition_holds(events[c["event"]], c) for c in known):
+                    continue  # 이미 알려진 사건이 조건 밖이면 이 경과조항은 이 사건의 것이 아니다
+                missing = [c["event"] for c in conditions if c["event"] not in events]
+                if missing:
+                    missing_event = missing_event or missing[0]
+                    continue
+                target = (relation["to_source_file_id"], relation["clause_anchor"])
+                if target in attached:
+                    continue
+                attached.add(target)
+                added.extend(
+                    await self._knowledge.transition_passages(
+                        actor,
+                        snapshot_id,
+                        relation["to_source_file_id"],
+                        relation["clause_anchor"],
+                        knowledge_as_of=knowledge_as_of,
+                    )
+                )
+            if added:
+                ids = {p.passage_id for p in group.passages}
+                extra = tuple(
+                    replace(p, extra={**p.extra, "source_role": "transition"}, distance=None, rank=None)
+                    for p in added
+                    if p.passage_id not in ids
+                )
+                group = replace(group, passages=group.passages + extra)
+            out.append(group)
+        return out, missing_event
+
+    async def _authority_relations(
+        self, actor: ActorContext, snapshot_id: str, groups: list[SupportGroup], knowledge_as_of: datetime
+    ) -> tuple[dict[str, Any], ...]:
+        bases = {g.passages[0].edition_id: g.passages[0] for g in groups}
+        meta = await self._knowledge.edition_relations(set(bases))
+        pairs = [
+            (bases[edition_id], relation)
+            for edition_id, info in meta.items()
+            for relation in info.get("authority_relations", [])
+        ]
+        titles = await self._knowledge.relation_titles(
+            actor, snapshot_id, {r["target_document_key"] for _, r in pairs}, knowledge_as_of=knowledge_as_of
+        )
+        out, seen = [], set()
+        for passage, relation in pairs:
+            key = (passage.document_key, relation["kind"], relation["target_document_key"])
+            if relation["target_document_key"] not in titles or key in seen:
+                continue  # 볼 수 없는 대상 문서는 존재·제목을 드러내지 않는다
+            seen.add(key)
+            out.append(
+                {
+                    "from_title": passage.title,
+                    "kind": relation["kind"],
+                    "to_title": titles[relation["target_document_key"]],
+                    "quote": relation["quote"],
+                }
+            )
+        return tuple(out)
 
     async def _groups(self, actor: ActorContext, hits: list[Passage]) -> list[SupportGroup]:
         groups: list[SupportGroup] = []
@@ -220,6 +322,21 @@ class RetrievalService:
             )
         groups.sort(key=lambda g: (g.distance, g.passages[0].passage_id))
         return groups
+
+
+def _transition_prompt(event_type: str, event_key: str | None) -> dict[str, Any]:
+    name = _EVENT_NAMES.get(event_type, "기준 날짜")
+    return {
+        "reason": "missing_date",
+        "required_event_type": event_type,
+        "event_key": event_key,
+        "prompt": f"경과조항 적용 여부를 확인하려면 {name}이 필요합니다. 날짜를 알려 주시겠어요?",
+    }
+
+
+def _condition_holds(event_date: date, condition: dict[str, Any]) -> bool:
+    boundary = date.fromisoformat(condition["date"])
+    return event_date < boundary if condition["compare"] == "before" else event_date >= boundary
 
 
 def _basis_fits(passage: Passage, date_basis: str) -> bool:
@@ -250,7 +367,7 @@ _EVENT_NAMES = {
     "training_start": "교육 시작일",
     "trip_start": "출장 시작일",
     "approval_date": "최종 결재일",
-    "request_date": "신청일",
+    "request_date": "신청일(상신일)",
     "work_date": "근무일",
     "processing_date": "처리일",
     "explicit_date": "기준 날짜",

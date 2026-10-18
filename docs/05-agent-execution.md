@@ -10,7 +10,7 @@ MOD-02가 실행을 조정하고 MOD-03이 스키마/분배, MOD-01이 필수 �
 |---|---|---|
 | list_trainings | date_preset, start_date?, end_date_exclusive?, query?, limit=10, offset=0 | TrainingPage |
 | get_training | training_id(UUID) | TrainingDetail |
-| search_documents | query(1~500자), top_k?(1~20, 서버 retriever config 범위), as_of_date?(ISO date, 후보), date_quote?(날짜를 말한 사용자 문장, 서버가 대조·정규화), date_basis=current, event_key?(영문·숫자·_·- 1~40자) | CT-14 원문 또는 날짜 추가 확인 |
+| search_documents | query(1~500자), top_k?(1~20, 서버 retriever config 범위), as_of_date?(ISO date, 후보), date_quote?(날짜를 말한 사용자 문장, 서버가 대조·정규화), date_basis=current, event_key?(영문·숫자·_·- 1~40자), other_events?(최대 3개, 같은 사건의 다른 날짜 `{date_basis(사건 기준), as_of_date?, date_quote?}`, 경과조항 조건용, 사건마다 서버가 대조·정규화, D-40) | CT-14 원문 또는 날짜 추가 확인 |
 | list_it_tickets | status?(open), limit=10(1~20), offset=0 | 현재 허용 TicketPage |
 | get_it_ticket | ticket_id(UUID) | 현재 허용 TicketDetail |
 | prepare_it_ticket | subject?, description?, request_type?, category?, target_service?, occurred_at?, impact_scope?, urgent_work?, urgency_reason?, asset_identifier?, origin_candidates? | ActionPreview |
@@ -42,7 +42,7 @@ prepare의 자유문장은 CT-06 origin_candidates로 근원을 제안하고 MOD
 | 한 검색 top_k | 서버 retriever config의 검증 범위, 후보 예산 안에서 결정 |
 | 최종 답변용 passage 합계 | 개수 고정 상한 없음, support_group 보존·공통 token 예산 |
 
-최종 원문 토큰 상한은 초기4000이며 dev 예산 스윕 뒤 [비교 프로토콜](13-retrieval-comparison.md)에 고정한다. 여러 검색의 누적 근거는 선택/중복 제거 후 공통 예산으로 재구성하며 과거 tool 본문의 중복 주입으로 예산을 우회하지 않는다. 모델 인자 보정도 모델 시도/도구 제안 상한 안에서 수행한다. 읽기 임베딩 오류는 해당 도구 재시도 안에 포함한다. prepare는 같은 run/ordinal로 멱등 준비만 재시도 가능하다. 티켓 확인은 Agent 실행 밖의 사용자 HTTP이며 자동 모델 재시도 대상이 아니다.
+최종 원문 토큰 상한은 초기4000이며 dev 예산 스윕 뒤 [비교 프로토콜](13-retrieval-comparison.md)에 고정한다. 여러 검색의 누적 근거는 선택/중복 제거 후 공통 예산으로 재구성하며 과거 tool 본문의 중복 주입으로 예산을 우회하지 않는다. 모델 인자 보정도 모델 시도/도구 제안 상한 안에서 수행한다. 예외 하나(D-37): 도구를 하나도 부르지 않은 첫 응답의 answer가 비어 있으면(되묻기 제외) 서버 문구 `[서버 안내]`를 붙여 한 번만 다시 부르고 run usage에 `empty_answer_retries`로 남긴다. 다시 받은 답도 무효면 명세대로 실패다. 읽기 임베딩 오류는 해당 도구 재시도 안에 포함한다. prepare는 같은 run/ordinal로 멱등 준비만 재시도 가능하다. 티켓 확인은 Agent 실행 밖의 사용자 HTTP이며 자동 모델 재시도 대상이 아니다.
 
 ## 최종 출력
 

@@ -10,7 +10,7 @@ knowledge_as_of에서 `available_from`을 통과한 안내 중 `guidance_valid_f
 
 ## 반대편 판본의 경과조항
 
-MOD-05가 검수한 `transition_relations={from_edition_id,to_edition_id,clause_anchor,application_basis,event_conditions,authority_relation}`를 보존한다. MOD-11이 기본 판본을 고른 뒤 MOD-05.ExpandTransitionEvidence로 CM-092 제9조/IT-041 제13조 등의 명시 경과조항을 회수한다. 다른 판본 전체를 재검색해 무관한 금액을 섞지 않는다. 링크 대상도 현재 ACL/게시/knowledge_as_of를 통과해야 한다.
+MOD-05가 검수한 `transition_relations={from_edition_id,to_edition_id,clause_anchor,application_basis,event_conditions,authority_relation}`를 보존한다(manifest에서는 판본을 source_file_id로 적는다, [메타데이터 계약](../corpus/01-metadata-contract.md)). 구현(2026-10-18, D-40): verified_events는 이번 검색의 사건 날짜와 search_documents의 other_events 중 MOD-02가 사용자 문장으로 확인한 날짜다. 이미 알려진 조건이 어긋나면 확장하지 않고(묻지도 않음), 알려진 조건이 모두 맞는데 남은 사건 날짜가 없으면 그 사건 종류를 되묻는다. 확장 원문은 기본 그룹 뒤에 `source_role=transition`으로 붙는다. 문서 우선관계(authority_relations)는 결과 문서의 관계 중 대상 문서를 지금 볼 수 있는 것만 `{from_title,kind,to_title,quote}`로 결과에 싣는다. MOD-11이 기본 판본을 고른 뒤 MOD-05.ExpandTransitionEvidence로 CM-092 제9조/IT-041 제13조 등의 명시 경과조항을 회수한다. 다른 판본 전체를 재검색해 무관한 금액을 섞지 않는다. 링크 대상도 현재 ACL/게시/knowledge_as_of를 통과해야 한다.
 
 event_conditions는 조건마다 application_basis 닫힌 값의 사건 종류와 비교(이전/이후/구간)를 가진 목록이다. CM-092 제9조처럼 "상신일과 승인일" 두 사건이 필요하면 조건 두 개를 모두 확인한 verified_events가 있어야 확장한다. 원문의 사건 표현(예: 상신)을 어느 닫힌 값으로 볼지는 검수자가 transition_relations에 기록하며(O-02), 닫힌 값으로 표현할 수 없으면 needs_review로 게시하지 않는다. 사건 하나라도 미확인이면 되묻는다.
 

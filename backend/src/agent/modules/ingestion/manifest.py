@@ -55,6 +55,10 @@ REQUIRED_FIELDS = (
     "sha256",
 )
 REVIEW_STATUSES = frozenset({"reviewed", "needs_review"})
+# 관계 형식(D-40, docs/corpus/01-metadata-contract.md)
+AUTHORITY_KINDS = frozenset({"defers_to", "precedes", "limited_by"})
+TRANSITION_EFFECTS = frozenset({"current_rules_apply", "past_reference_current_recheck"})
+EVENT_COMPARES = frozenset({"before", "on_or_after"})
 DOMAINS = {
     "HR": "인사·근태",
     "ED": "교육·연수",
@@ -155,6 +159,7 @@ def validate_manifest(
             report.errors.append(f"{label}: 검수됨인데 available_from 없음")
         keys.setdefault(entry["document_key"], []).append(entry)
     report.files = len(ids)
+    report.errors.extend(check_relations([e for e in entries if all(n in e for n in REQUIRED_FIELDS)]))
     report.document_keys = len(keys)
     report.superseded = sum(1 for e in entries if e.get("edition_state") == "superseded")
     for key, editions in keys.items():
@@ -482,3 +487,53 @@ def _owner(row: dict[str, str], pages: list[tuple[int, str]]) -> str | None:
 
 def kst_midnight(day: date) -> str:
     return datetime(day.year, day.month, day.day, tzinfo=KST).isoformat()
+
+
+def check_relations(entries: list[dict[str, Any]]) -> list[str]:
+    """관계 형식 검사(T-18 보강). 비어 있으면 통과한다."""
+    errors: list[str] = []
+    keys = {e["document_key"] for e in entries}
+    by_id = {e["source_file_id"]: e for e in entries}
+    for entry in entries:
+        label = entry["source_file_id"]
+        for relation in entry.get("authority_relations") or []:
+            if relation.get("kind") not in AUTHORITY_KINDS:
+                errors.append(f"{label}: authority_relations 종류 오류")
+            if relation.get("target_document_key") == entry["document_key"]:
+                errors.append(f"{label}: authority_relations가 자기 문서를 가리킴")
+            if relation.get("target_document_key") not in keys:
+                errors.append(
+                    f"{label}: authority_relations 대상 문서 없음({relation.get('target_document_key')})"
+                )
+            if not str(relation.get("quote") or "").strip():
+                errors.append(f"{label}: authority_relations 근거 문장 없음")
+        for relation in entry.get("transition_relations") or []:
+            target = by_id.get(relation.get("to_source_file_id"))
+            if relation.get("from_source_file_id") != label:
+                errors.append(f"{label}: transition_relations 기본 판본이 이 파일이 아님")
+            if target is None or target["document_key"] != entry["document_key"] or target is entry:
+                errors.append(f"{label}: transition_relations 반대편 판본 오류")
+            if relation.get("application_basis") not in APPLICATION_BASIS:
+                errors.append(f"{label}: transition_relations application_basis 오류")
+            elif relation.get("application_basis") != entry["application_basis"]:
+                errors.append(f"{label}: transition_relations application_basis가 기본 판본과 다름")
+            if relation.get("authority_relation") not in TRANSITION_EFFECTS:
+                errors.append(f"{label}: transition_relations 효력 값 오류")
+            if not str(relation.get("clause_anchor") or "").strip():
+                errors.append(f"{label}: transition_relations 조항 위치 없음")
+            conditions = relation.get("event_conditions") or []
+            if not conditions:
+                errors.append(f"{label}: transition_relations 사건 조건 없음")
+            for condition in conditions:
+                try:
+                    date.fromisoformat(condition.get("date") or "")
+                except ValueError:
+                    errors.append(f"{label}: transition_relations 조건 날짜 오류")
+                if condition.get("event") not in APPLICATION_BASIS or condition.get("event") in (
+                    "general_reference",
+                    "per_claim",
+                ):
+                    errors.append(f"{label}: transition_relations 사건 종류 오류")
+                if condition.get("compare") not in EVENT_COMPARES:
+                    errors.append(f"{label}: transition_relations 비교 값 오류")
+    return errors

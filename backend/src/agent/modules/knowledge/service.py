@@ -373,6 +373,79 @@ class KnowledgeService:
             rows = (await conn.execute(text(_COVERS_SQL), params)).mappings().all()
         return any(_row_allowed(actor, row["policy"]) for row in rows)
 
+    async def edition_relations(self, edition_ids: set[str]) -> dict[str, dict[str, Any]]:
+        """판본의 검수된 관계(transition_relations·authority_relations).
+
+        이미 허용된 passage의 판본만 묻는다.
+        """
+        if not edition_ids:
+            return {}
+        async with self._engine.connect() as conn:
+            rows = (
+                await conn.execute(
+                    select(
+                        document_editions.c.edition_id,
+                        document_editions.c.source_file_id,
+                        document_editions.c.transition_relations,
+                        document_editions.c.authority_relations,
+                    ).where(document_editions.c.edition_id.in_([uuid.UUID(e) for e in edition_ids]))
+                )
+            ).all()
+        return {
+            str(row.edition_id): {
+                "source_file_id": row.source_file_id,
+                "transition_relations": list(row.transition_relations or []),
+                "authority_relations": list(row.authority_relations or []),
+            }
+            for row in rows
+        }
+
+    async def transition_passages(
+        self,
+        actor: ActorContext,
+        snapshot_id: str,
+        source_file_id: str,
+        clause_anchor: str,
+        *,
+        knowledge_as_of: datetime,
+    ) -> list[Passage]:
+        """ExpandTransitionEvidence의 원문 회수: 반대편 판본에서 조항 제목이 clause_anchor인 단위 전체.
+
+        사건 조건 판정은 MOD-11이 한다. 여기서는 게시·공개 시각·철회·현재 ACL만 본다(날짜 필터 없음).
+        """
+        if not _allowed(actor, "knowledge.search"):
+            return []
+        params = {
+            **_acl_params(actor),
+            "snapshot_id": uuid.UUID(snapshot_id),
+            "source_file_id": source_file_id,
+            "anchor": clause_anchor,
+            "knowledge_as_of": knowledge_as_of,
+        }
+        async with self._engine.connect() as conn:
+            rows = (await conn.execute(text(_TRANSITION_SQL), params)).mappings().all()
+        return [_passage(row, snapshot_id) for row in rows if _row_allowed(actor, row["policy"])]
+
+    async def relation_titles(
+        self, actor: ActorContext, snapshot_id: str, keys: set[str], *, knowledge_as_of: datetime
+    ) -> dict[str, str]:
+        """우선관계 대상 문서 중 지금 이 actor가 볼 수 있는 것의 현행 제목(볼 수 없는 문서는 빠진다)."""
+        visible = await self.visible_document_keys(actor, keys)
+        if not visible:
+            return {}
+        async with self._engine.connect() as conn:
+            rows = (
+                await conn.execute(
+                    text(_TITLE_SQL),
+                    {
+                        "snapshot_id": uuid.UUID(snapshot_id),
+                        "keys": sorted(visible),
+                        "knowledge_as_of": knowledge_as_of,
+                    },
+                )
+            ).all()
+        return {row.document_key: row.title for row in rows}
+
     async def support_group(self, actor: ActorContext, passage: Passage) -> list[Passage]:
         """같은 단위(조항·FAQ 문항·표)의 청크 전체. 권한은 문서 키 단위라 기준 passage와 같다."""
         sql = _GROUP_SQL
@@ -725,6 +798,37 @@ ORDER BY distance, c.passage_id
 LIMIT :limit
 """
 )
+
+_TRANSITION_SQL = (
+    "SELECT"  # noqa: S608 - 고정 SQL 조각만 잇는다(사용자 값은 바인드 변수)
+    + _COLUMNS
+    + """
+FROM snapshot_members m
+JOIN parsed_artifacts p ON p.artifact_id = m.artifact_id
+JOIN document_editions e ON e.edition_id = p.edition_id
+JOIN resource_acl a ON a.document_key = e.document_key
+JOIN chunks c ON c.artifact_id = p.artifact_id
+WHERE m.snapshot_id = :snapshot_id
+  AND e.source_file_id = :source_file_id
+  AND e.edition_state <> 'withdrawn'
+  AND e.available_from <= :knowledge_as_of
+  AND c.support_group IN (
+    SELECT c2.support_group FROM chunks c2 WHERE c2.artifact_id = p.artifact_id AND c2.heading = :anchor
+  )
+"""
+    + _ACL_CLAUSE
+    + "ORDER BY c.ordinal"
+)
+
+_TITLE_SQL = """
+SELECT DISTINCT ON (e.document_key) e.document_key, e.title
+FROM snapshot_members m
+JOIN parsed_artifacts p ON p.artifact_id = m.artifact_id
+JOIN document_editions e ON e.edition_id = p.edition_id
+WHERE m.snapshot_id = :snapshot_id AND e.document_key = ANY(CAST(:keys AS text[]))
+  AND e.edition_state <> 'withdrawn' AND e.available_from <= :knowledge_as_of
+ORDER BY e.document_key, (e.edition_state = 'current') DESC, e.effective_from DESC NULLS LAST
+"""
 
 _COVERS_SQL = (
     """

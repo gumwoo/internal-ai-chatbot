@@ -844,4 +844,5 @@ def _usage(result: ExecutionResult) -> dict[str, Any]:
         "output_tokens": usage.output_tokens,
         "complete": usage.complete,
         "model_attempts": usage.model_attempts,
+        "empty_answer_retries": usage.empty_answer_retries,
     }

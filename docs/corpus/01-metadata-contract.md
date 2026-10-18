@@ -19,7 +19,7 @@ PDF 입력 위치는 [data/raw/pdfs](../../data/raw/pdfs/README.md). manifest는
 | application_basis / basis_evidence | general_reference/training_start/trip_start/approval_date/request_date/work_date/processing_date/per_claim; 근거 조항 필수, 대응표는 검색 조립 계약 |
 | document_role | normative 또는 guidance, 규정 효력과 안내의 공개 시점을 구분 |
 | guidance_valid_from / guidance_valid_to | 안내 판본 자체의 지식 시점 유효 구간(종료 제외), 개정 쌍 중복/공백 검수 |
-| transition_relations | 반대편 판본 경과조항 anchor·적용 조건·참조 규정, 검수 후만 회수 |
+| transition_relations | 반대편 판본 경과조항, 검수 후만 회수. 기본 판본 항목에 `{from_source_file_id(이 파일), to_source_file_id(같은 문서 키의 반대편 판본), clause_anchor(조항 제목), application_basis, event_conditions:[{event(사건 기준 닫힌 값), compare(before/on_or_after), date}], authority_relation(current_rules_apply/past_reference_current_recheck), basis_evidence(원문 조항)}` (D-40) |
 | available_from | 검수된 공개 가능 시각; 미확인값 자동 추정 금지 |
 | effective_from | normative 규칙의 사건 적용 시작 날짜(포함); guidance의 표지 날짜는 별도 원문 메타데이터 |
 | effective_to | 종료 날짜, 제외; 현행 종료 미정이면 null |
@@ -28,7 +28,7 @@ PDF 입력 위치는 [data/raw/pdfs](../../data/raw/pdfs/README.md). manifest는
 | classification | 취급 등급 레이블; 이것만으로 권한 부여하지 않음 |
 | access_policy | 명시적 읽기 허용 범위, 현재 정책 적용; 누락/알 수 없음은 거부 |
 | related_document_keys | 관련 논리 문서 키 목록, 링크 실재 여부 검증 |
-| authority_relations | 위임·예외·상위 규정 등 의미가 명시된 관계; 없으면 빈 목록 |
+| authority_relations | 위임·예외·상위 규정 등 의미가 명시된 관계; 없으면 빈 목록. `{kind(defers_to/precedes/limited_by), target_document_key, target_code, page, quote(근거 문장)}`. 본문에 다른 문서 번호와 관계 표현(따른다·우선 확인·범위 안에서만)이 함께 적힌 문장만(D-40) |
 | review_status | 본문·메타데이터 검수 상태; 미검수 게시 금지 |
 
 수령 PDF에는 담당 부서·등급이 모두 표시되어 있지 않다. PDF의 /Author도100개 모두 ‘가온웍스 인사팀’이므로 실제 문서 소유자나 ACL의 근원으로 쓰지 않는다. 운영 manifest는 작성자 확인·검수로 채우고 미확인 ACL은 거부한다. PDF 본문에서 확인한 ID·판본·시행일·관계는 manifest와 대조하며 차이는 자동 추정으로 통과시키지 않는다. 개정일·시행일은 분리한다. 수령한 `ED-030_문서명.pdf`를 보존하고 PDF-030/DOC-030/GW-ED-030을 매핑한다. [수령 목록](02-received-register.md)과 [실제 수령 보정](03-received-pdf-adjustments.md)을 따른다.

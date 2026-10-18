@@ -51,6 +51,21 @@ DateBasis = Literal[
 ]
 
 
+EventBasis = Literal[
+    "training_start", "trip_start", "approval_date", "request_date", "work_date", "processing_date"
+]
+
+
+class OtherEvent(BaseModel):
+    """경과조항 조건에 필요한 같은 사건의 다른 날짜(예: 결재의 상신일). 서버가 사용자 문장으로 검증한다."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    date_basis: EventBasis
+    as_of_date: date | None = None
+    date_quote: str | None = Field(default=None, max_length=200)
+
+
 class SearchDocumentsArgs(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -63,6 +78,7 @@ class SearchDocumentsArgs(BaseModel):
     date_quote: str | None = Field(default=None, max_length=200)
     # 서버가 인용 DTO에 그대로 싣는 값이라 안전한 식별자 모양만 받는다.
     event_key: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,40}$")
+    other_events: list[OtherEvent] = Field(default_factory=list, max_length=3)
 
 
 @dataclass(frozen=True)
@@ -242,6 +258,7 @@ class ToolExecutor:
             date_problem=None if verified else origin.get("reason") or "missing_date",
             date_evidence=origin.get("evidence") or {},
             event_key=args.event_key,
+            verified_events=_verified_events(call.field_origins or {}, args),
             **({"top_k": args.top_k} if args.top_k else {}),
         )
         try:
@@ -277,6 +294,17 @@ class ToolExecutor:
             raise RequiredRecordError("교육 결과 receipt 저장 실패") from exc
 
 
+def _verified_events(origins: dict[str, Any], args: SearchDocumentsArgs) -> dict[str, date]:
+    """other_events 중 MOD-02가 사용자 문장으로 확인한 날짜만. 확인 못 한 사건은 없는 것으로 본다(되묻기)."""
+    seen: dict[str, set[date]] = {}
+    for index, event in enumerate(args.other_events):
+        origin = origins.get(f"other_events[{index}]") or {}
+        if event.date_basis != args.date_basis and origin.get("verified") and origin.get("date"):
+            seen.setdefault(event.date_basis, set()).add(date.fromisoformat(origin["date"]))
+    # 같은 사건 기준에 서로 다른 날짜가 오면 어느 것인지 몰라 쓰지 않는다(되묻기로 남는다).
+    return {basis: next(iter(dates)) for basis, dates in seen.items() if len(dates) == 1}
+
+
 def search_view(result: RetrievalResult, ordinal: int) -> dict[str, Any]:
     """검색 결과 → 도구 결과 데이터. citation_id를 붙이고 서버가 정한 출처 값만 담는다."""
     data: dict[str, Any] = {
@@ -290,6 +318,8 @@ def search_view(result: RetrievalResult, ordinal: int) -> dict[str, Any]:
         "clarification": result.clarification,
         "unsupported": result.unsupported,
         "normative_gap": result.normative_gap,
+        "authority_relations": list(result.authority_relations),
+        "transition_pending": result.transition_pending,
         "groups": [],
     }
     counter = 0
@@ -306,6 +336,7 @@ def search_view(result: RetrievalResult, ordinal: int) -> dict[str, Any]:
                     "title": passage.title,
                     "version": passage.version,
                     "document_type": passage.document_type,
+                    "source_role": passage.extra.get("source_role", "base"),
                     "document_role": passage.document_role,
                     "edition_state": passage.edition_state,
                     "effective_from": passage.effective_from.isoformat() if passage.effective_from else None,

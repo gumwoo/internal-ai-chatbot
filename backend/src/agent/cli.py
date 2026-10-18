@@ -104,6 +104,30 @@ async def _draft_manifest(args: argparse.Namespace) -> None:
     )
 
 
+async def _review_manifest(args: argparse.Namespace) -> None:
+    """D-36·D-40 규칙으로 manifest를 검수본으로 만든다. 원문을 읽기만 하고 PDF는 바꾸지 않는다."""
+    from agent.app.corpus_ops import INPUT_ROOT, MANIFEST_PATH, write_json
+    from agent.modules.ingestion.manifest import load_manifest, to_metadata, validate_manifest
+    from agent.modules.ingestion.parser import parse_pdf
+    from agent.modules.ingestion.review import apply_review
+    from agent.modules.knowledge.service import validate_metadata
+
+    manifest = load_manifest(MANIFEST_PATH)
+    if manifest.get("status") == "reviewed" and not args.force:
+        sys.exit("이미 검수본이다. 다시 적용하려면 --force")
+    documents = {e["source_file_id"]: parse_pdf(INPUT_ROOT / e["filename"]) for e in manifest["files"]}
+    notes = apply_review(manifest, documents)
+    report = validate_manifest(manifest, INPUT_ROOT, release=True)
+    problems = validate_metadata([to_metadata(e) for e in manifest["files"]])
+    if report.errors or problems:
+        print(
+            json.dumps({"written": False, "errors": report.errors, "metadata": problems}, ensure_ascii=False)
+        )
+        sys.exit(1)
+    write_json(MANIFEST_PATH, manifest)
+    print(json.dumps({"written": str(MANIFEST_PATH), "notes": notes}, ensure_ascii=False))
+
+
 async def _validate_manifest(args: argparse.Namespace) -> None:
     from agent.app.corpus_ops import INPUT_ROOT, MANIFEST_PATH
     from agent.modules.ingestion.manifest import load_manifest, validate_manifest
@@ -212,6 +236,8 @@ def main(argv: list[str] | None = None) -> None:
     draft.add_argument("--force", action="store_true", help="이미 있는 manifest를 덮어쓴다")
     validate = sub.add_parser("validate-manifest", help="manifest를 검사한다(T-18)")
     validate.add_argument("--release", action="store_true", help="100파일·91키·종전9 구성까지 검사")
+    review = sub.add_parser("review-manifest", help="D-36·D-40 규칙으로 manifest 검수본을 만든다")
+    review.add_argument("--force", action="store_true", help="이미 검수본이어도 다시 적용한다")
 
     ask = sub.add_parser("ask", help="질문 하나로 Agent를 실행한다. 기본은 dry-run")
     ask.add_argument("question")
@@ -224,6 +250,7 @@ def main(argv: list[str] | None = None) -> None:
         "seed-identity": _seed_identity,
         "draft-manifest": _draft_manifest,
         "validate-manifest": _validate_manifest,
+        "review-manifest": _review_manifest,
         "ask": _ask,
     }[args.command]
     # psycopg async는 Windows Proactor 루프를 지원하지 않는다.
