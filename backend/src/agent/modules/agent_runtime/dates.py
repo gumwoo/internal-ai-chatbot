@@ -46,21 +46,38 @@ _RELATIVE_DAYS = {"내일모레": 2, "그저께": -2, "그제": -2, "어제": -1
 _RELATIVE = re.compile(
     r"(?<![가-힣])(내일모레|그저께|그제|어제|오늘|내일|모레)(?=$|[^가-힣]|[은는이가에의도만](?![가-힣]))"
 )
-_YEAR_MARKERS = re.compile(r"재작년|작년|지난해|올해|금년|내년|다음 해|후년|\d{4}\s*년")
+_YEAR_MARKERS = re.compile(r"재작년|작년|지난해|올해|금년|내년|다음 해|후년|전년|이듬해|\d{4}\s*년")
+# 두 자리 연도("25년 12월 5일"). 인용이 "12월 5일"만이어도 걸리게 문장 전체에서 본다.
+_SHORT_YEAR = re.compile(r"(?<!\d)\d{2}\s*년(?=\s*\d{1,2}\s*월)")
 # 날짜·시각 바로 뒤의 "부터·까지"와 "~"만 범위로 본다("영상 끝까지"는 범위가 아니다, D-56).
 _RANGE = re.compile(r"(\d\s*(일|시|분)?\s*(부터|까지))|~|∼|(오늘|내일|모레|어제|그제)\s*(부터|까지)")
 _HYPOTHETICAL = re.compile(r"다면|라면|한다는|는다는")
 _STEMS = "시작|출발|신청|상신|처리|결재|승인|근무|출근|참석|수료|종료|접수|제출|요청|개강"
 # 완료·예정 표지. "시작한다"는 완료가 아니라 예정이다.
 _COMPLETED = re.compile(
-    rf"({_STEMS})(한|했|된|됐)(?!다)|다녀온|다녀왔|떠난|떠났|돌아온|돌아왔|받은|받았|갔던|갔다|끝난|끝났|었던|였던"
+    rf"({_STEMS})(한|했|된|됐)(?!다)|다녀온|다녀왔|떠난|떠났|돌아온|돌아왔|받은|받았|갔던"
+    r"|갔다(?! ?(올|오))|끝난|끝났|었던|였던"
 )
 _PLANNED = re.compile(rf"({_STEMS})(하는|할|될|한다|된다)|다녀올|떠날|떠나는|예정|받을")
 # "9월 29일에 출발해서 10월 2일에 돌아온"처럼 연결형이면 시제는 문장 뒤쪽 서술어에서 본다.
 # 사건 동사가 아니어도 과거 어미("참가는 했는데", "끝났어요")가 있으면 90일 창 규칙으로 정하지 않는다(D-56).
-# 받침 ㅆ인 음절을 과거 어미로 본다. "있"(존재)은 뺀다.
+# 받침 ㅆ인 음절을 과거 어미로 본다. "있"(존재)·"겠"(추측)은 뺀다. 과거 관형형("쓴 택시비", "참가한 비용")도
+# 과거 단서로 본다(형용사 "필요한"도 걸리지만 그러면 되묻기 쪽이라 안전하다).
 _PAST_ENDING = re.compile(
-    "[" + "".join(chr(c) for c in range(0xAC00, 0xD7A4) if (c - 0xAC00) % 28 == 20 and chr(c) != "있") + "]"
+    "["
+    + "".join(chr(c) for c in range(0xAC00, 0xD7A4) if (c - 0xAC00) % 28 == 20 and chr(c) not in "있겠")
+    + "]"
+    + r"|(?<![가-힣])(쓴|낸|탄|산|본|온|간|준|받은|들은|먹은|올린|다녀온)(?![가-힣])"
+    + r"|[가-힣](한|된)(?![가-힣])"
+)
+# 날짜 바로 앞의 "지난"은 완료, "다음·오는"은 예정 단서다("지난 12월 5일 출장").
+_PAST_PREFIX = re.compile(r"(?<![가-힣])지난\s*$")
+_NEXT_PREFIX = re.compile(r"(?<![가-힣])(다음|오는)\s*$")
+# 날짜와 그 사건 사이에 절이 끊기거나 다른 때가 끼면 날짜는 그 사건의 날짜가 아니다
+# ("11월 2일 이사하고 다음 주에 출장", "11월 2일부터 휴가인데 교육").
+_CLAUSE_BREAK = re.compile(r"(하고|받고|하다가|다가|인데|는데|이라서|라서|이고|하며)(?![가-힣])")
+_OTHER_TIME = re.compile(
+    r"다음 ?주|다음 ?달|이번 ?주|이번 ?달|주말|다음 ?날|이튿날|며칠 ?(뒤|후)|\d+ ?일 ?(뒤|후)"
 )
 _DEFERRED = re.compile(rf"(({_STEMS})(해서|하고|하여)|다녀와서|떠나서)\s*$")
 
@@ -78,7 +95,9 @@ class _Role:
 def _role(verbs: str, nouns: str | None, completed_extra: str = "", planned_extra: str = "") -> _Role:
     """verbs는 정규 어간("출발|떠나|다녀"), 시제는 어간 + 어미와 따로 준 불규칙 형태로 본다."""
     regular = verbs.split("|")[0] if "떠나" in verbs else verbs  # 떠나·다녀는 불규칙이라 extra로만
-    completed = "|".join(filter(None, [rf"({regular})(한|했|된|됐)(?!다)", "었던|였던", completed_extra]))
+    completed = "|".join(
+        filter(None, [rf"({regular})(한(?!다)|했|된(?!다)|됐)", "었던|였던", completed_extra])
+    )
     planned = "|".join(
         filter(None, [rf"({regular})(하는|할|될|한다|된다)", rf"({regular}) ?예정", planned_extra])
     )
@@ -91,11 +110,16 @@ _ROLES = {
     "trip_start": _role(
         "출발|떠나|떠난|떠날|떠났|다녀",
         "출장",
-        "떠난|떠났|다녀온|다녀왔|갔|간 출장",
-        "떠날|떠나는|다녀올|출장 ?예정|가는|가요|갑니다|갈|가려",
+        # "안 갔"(아직 안 감)·"갔으면"(바람)·"갔다 올"(예정 관용)은 완료가 아니다
+        "떠난|떠났|다녀온|다녀왔|(?<!안 )(?<!못 )갔(?!다 ?(올|오)|으면)|(?<!안 )(?<!못 )간 출장",
+        "떠날|떠나는|다녀올|출장 ?예정|가는|가요|갑니다|갈|가려|갔다 ?(올|오)",
     ),
     "training_start": _role(
-        "시작|개강", "교육|과정|연수", "들었|받았|열린|열렸", "교육 ?예정|열리는|열릴|듣는|들을|받을"
+        "시작|개강",
+        "교육|과정|연수",
+        # "교육 들었·받았"만 완료다("열린다고 들었는데"·"안내 받았는데"는 다른 행위의 시제)
+        "(교육|강의|수업|과정|연수)(을|를)? ?(들었|받았)|열린(?!다)|열렸",
+        "교육 ?예정|열리는|열릴|열린다|듣는|들을|받을",
     ),
     "request_date": _role("신청|상신|요청|접수|제출", None),  # 상신 → 신청일(D-40)
     "approval_date": _role("결재|승인", None, "결재 ?받은|결재 ?받았", "결재 ?받을"),
@@ -106,7 +130,7 @@ _ROLES = {
 _ANY_EVENT_VERB = re.compile(
     r"출발|떠나|떠난|떠날|떠났|다녀|시작|개강|신청|상신|요청|접수|제출|결재|승인|처리|근무|출근"
 )
-_END_ROLE = re.compile(r"돌아온|돌아왔|복귀|귀국|정산|끝난|끝났|마친|종료|마감")
+_END_ROLE = re.compile(r"돌아온|돌아왔|복귀|귀국|정산|보고|끝난|끝났|마친|종료|마감")
 _START_BASES = frozenset({"trip_start", "training_start"})
 _SENTENCE_END = re.compile(r"[?!\n]|\.(?!\s*\d)")  # "2026.9.29", "1.5배"의 점은 문장 끝이 아니다
 
@@ -155,6 +179,8 @@ def verify_event_date(
     if located is None:
         return _fail("missing_date", "quote_not_in_user_message")
     message, start, source = located
+    if source != "current_message" and _find_dates(current_message, today):
+        return _fail("ambiguous_date", "date_in_current_message")
     left, right = _sentence_bounds(message, start, len(quote))
     sentence = message[left:right]
     after = message[start + len(quote) : right]  # 같은 문장에서 인용 뒤
@@ -174,8 +200,8 @@ def verify_event_date(
         return _fail("ambiguous_date", "relative_date_in_history")
     if _RANGE.search(sentence) and not start_range:
         return _fail("ambiguous_date", "range_not_supported")
-    if item.kind in ("month_day", "relative") and _YEAR_MARKERS.search(
-        sentence.replace(quote, "", 1) + quote
+    if item.kind in ("month_day", "relative") and (
+        _YEAR_MARKERS.search(sentence.replace(quote, "", 1) + quote) or _SHORT_YEAR.search(sentence)
     ):
         return _fail("ambiguous_date", "year_marker_not_supported")
     if item.kind in ("full", "year_md") and len(_YEAR_MARKERS.findall(sentence)) > 1:
@@ -186,10 +212,16 @@ def verify_event_date(
     role = _ROLES.get(date_basis or "")
     if role is not None:
         own_verb = role.verb.search(tail)
-        if not own_verb and not (role.noun and role.noun.search(tail)):
+        own_noun = role.noun.search(tail) if role.noun else None
+        if not own_verb and not own_noun:
             return _fail("basis_mismatch", "role_not_after_date")
         if not own_verb and _ANY_EVENT_VERB.search(tail):
             return _fail("basis_mismatch", "other_event_verb")
+        lead = tail[: min(m.start() for m in (own_verb, own_noun) if m)]  # 날짜와 이 사건 사이
+        if _ANY_EVENT_VERB.search(lead):
+            return _fail("basis_mismatch", "other_event_verb")
+        if _CLAUSE_BREAK.search(lead) or _OTHER_TIME.search(lead):
+            return _fail("basis_mismatch", "date_in_other_clause")
     if date_basis in _START_BASES and _END_ROLE.search(tail.split("까지")[0] if start_range else tail):
         return _fail("basis_mismatch", "end_event_for_start_basis")
     if item.kind == "month_day":
@@ -200,7 +232,7 @@ def verify_event_date(
             item.month,
             item.day,
             today,
-            *_tense(tail, after, completed, planned),
+            *_tense(tail, after, completed, planned, message[left:start] + quote[: item.start]),
             past_ending=bool(_PAST_ENDING.search(tail + after)),
         )
         if value is None:
@@ -298,10 +330,15 @@ def _find_dates(quote: str, today: date) -> list[_Found]:
     return sorted(out, key=lambda f: f.start)
 
 
-def _tense(tail: str, after: str, completed: re.Pattern[str], planned: re.Pattern[str]) -> tuple[bool, bool]:
+def _tense(
+    tail: str, after: str, completed: re.Pattern[str], planned: re.Pattern[str], before: str = ""
+) -> tuple[bool, bool]:
     """(완료, 예정). 날짜 뒤 말에서 그 사건 동사의 시제를 본다. 시제 없이 연결형("출발해서")이면 같은 문장
-    뒤쪽의 주 서술어("…돌아온")를 일반 표지로 본다."""
-    found = (bool(completed.search(tail)), bool(planned.search(tail)))
+    뒤쪽의 주 서술어("…돌아온")를 일반 표지로 본다. 날짜 바로 앞의 "지난"·"다음"도 단서로 더한다."""
+    found = (
+        bool(completed.search(tail) or _PAST_PREFIX.search(before)),
+        bool(planned.search(tail) or _NEXT_PREFIX.search(before)),
+    )
     if not any(found) and _DEFERRED.search(tail):
         return bool(_COMPLETED.search(after)), bool(_PLANNED.search(after))
     return found
