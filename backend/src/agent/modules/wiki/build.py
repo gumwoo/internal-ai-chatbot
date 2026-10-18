@@ -286,13 +286,15 @@ def check_output(candidate: Any, plan: PagePlan) -> CheckedPage:
     if not title or not summary:
         problems.append("empty_title_or_summary")
     claims: list[CheckedClaim] = []
+    truncated = 0
     for kind, field, limit in (("claim", "claims", MAX_CLAIMS), ("relation", "relations", MAX_RELATIONS)):
         items = candidate.get(field)
         if not isinstance(items, list):
             problems.append(f"{field}_not_list")
             continue
-        if len(items) > limit:
-            problems.append(f"{field}_too_many")
+        # 상한을 넘긴 뒤쪽 항목은 버리고 앞의 항목만 원문과 대조한다(D-45 보충: 2026-10-18 실제 빌드에서
+        # 미게시 12개가 모두 "주장 수 초과"였다. 원문과 어긋난 것이 아니므로 page 전체를 버리지 않는다).
+        truncated += max(0, len(items) - limit)
         for index, item in enumerate(items[:limit]):
             where = f"{field}[{index}]"
             text = str(item.get("text") or "").strip() if isinstance(item, dict) else ""
@@ -322,7 +324,7 @@ def check_output(candidate: Any, plan: PagePlan) -> CheckedPage:
             claims.append(CheckedClaim(kind, text, tuple(links)))  # type: ignore[arg-type]
     if not any(c.kind == "claim" for c in claims):
         problems.append("no_claims")
-    return CheckedPage(title, summary, tuple(claims), tuple(problems))
+    return CheckedPage(title, summary, tuple(claims), tuple(problems), truncated)
 
 
 def search_text(page: CheckedPage) -> str:

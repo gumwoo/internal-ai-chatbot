@@ -1123,3 +1123,11 @@ async def test_truncated_output_gets_a_feedback_retry_and_transient_errors_do_no
     assert len(helpdesk) == 2 and "잘렸다" in helpdesk[1]
     old_travel = [r for r in writer.requests if 'document="출장비 지급 기준 [종전]' in r.messages[0].text]
     assert len(old_travel) == 3  # 일시 오류 재시도 1 + 위조 1 + 재생성 1
+
+
+def test_too_many_claims_keep_the_first_ones_instead_of_excluding_the_page():
+    text_value = "지원 한도는 100만 원이다."
+    page = _plan_with(_passage(text_value))
+    claims = [{"text": f"주장 {i}", "links": [{"passage": "P1", "quote": "지원 한도는"}]} for i in range(20)]
+    checked = wb.check_output({"title": "t", "summary": "s", "claims": claims, "relations": []}, page)
+    assert checked.valid and len(checked.claims) == wb.MAX_CLAIMS and checked.truncated == 20 - wb.MAX_CLAIMS

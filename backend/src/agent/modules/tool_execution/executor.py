@@ -269,6 +269,15 @@ def _receipt(context: ExecutionContext, ordinal: int, items: list[Any]) -> Train
     )
 
 
+def _drop_nulls(value: Any) -> Any:
+    """모델이 null로 보낸 인자를 지운다(목록 안의 객체도). 빈 값으로 기본값을 덮지 않게 한다."""
+    if isinstance(value, dict):
+        return {k: _drop_nulls(v) for k, v in value.items() if v is not None}
+    if isinstance(value, list):
+        return [_drop_nulls(v) for v in value]
+    return value
+
+
 def _input_schema(tool: _Tool) -> dict[str, Any]:
     # 인자 모델의 docstring은 개발용 설명이라 모델에 보내지 않는다. 도구 설명은 description에 따로 둔다.
     schema = tool.args_model.model_json_schema()
@@ -318,7 +327,8 @@ class ToolExecutor:
             # 허용되지 않은 도구는 존재 여부를 따로 알리지 않고 미등록으로 다룬다.
             return ToolResult.failure(AppError(ErrorCode.TOOL_NOT_REGISTERED))
         try:
-            args = tool.args_model.model_validate(call.proposal.arguments)
+            # strict 도구 스키마는 선택 인자를 null 허용 필수로 보낸다(MOD-07). null은 "입력하지 않음"이다.
+            args = tool.args_model.model_validate(_drop_nulls(call.proposal.arguments))
         except ValidationError as exc:
             return ToolResult.failure(
                 AppError(ErrorCode.TOOL_ARGUMENT_INVALID, details={"field_names": _field_names(exc)})

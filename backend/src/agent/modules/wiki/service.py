@@ -70,6 +70,7 @@ class _Tally:
     embed_requests: int = 0
     embed_inputs: int = 0
     embed_failed_requests: int = 0
+    truncated: int = 0  # page 하나: 상한을 넘겨 버린 주장·관계 수(마지막 생성 기준)
     model_ids: set[str] = field(default_factory=set)
 
     def add(self, usage: Usage, model_id: str | None = None) -> None:
@@ -90,6 +91,7 @@ class _Tally:
             "embed_requests": self.embed_requests,
             "embed_inputs": self.embed_inputs,
             "embed_failed_requests": self.embed_failed_requests,
+            "truncated_items": self.truncated,
             "model_ids": sorted(self.model_ids),
         }
 
@@ -268,6 +270,7 @@ class WikiService:
             tally.add(response.usage, response.model_id)
             usage.add(response.usage, response.model_id)
             checked = wb.check_output(response.final_candidate, plan)
+            usage.truncated = checked.truncated
             if checked.valid:
                 break
             feedback = checked.problems

@@ -276,3 +276,27 @@ async def test_tool_limit_cuts_slow_lookup_even_with_long_deadline(clock):
 def test_tool_description_states_limit_range(clock):
     spec = _executor_without_db(clock).describe_allowed_tools(_context(clock))[0]
     assert "1~20" in spec.description
+
+
+def test_null_arguments_mean_not_given_and_keep_defaults():
+    """strict 스키마에서 모델은 선택 인자를 null로 보낸다(MOD-07). 기본값을 null로 덮지 않는다."""
+    from agent.modules.tool_execution.executor import ListTicketsArgs, SearchDocumentsArgs, _drop_nulls
+
+    args = SearchDocumentsArgs.model_validate(
+        _drop_nulls(
+            {
+                "query": "q",
+                "top_k": None,
+                "date_basis": None,
+                "as_of_date": None,
+                "date_quote": None,
+                "event_key": None,
+                "other_events": [{"date_basis": "trip_start", "as_of_date": None, "date_quote": None}],
+            }
+        )
+    )
+    assert args.date_basis == "current" and args.top_k is None and args.other_events[0].as_of_date is None
+    assert (
+        ListTicketsArgs.model_validate(_drop_nulls({"status": None, "limit": None, "offset": None})).limit
+        == 10
+    )

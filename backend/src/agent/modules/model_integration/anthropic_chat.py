@@ -67,6 +67,94 @@ def provider_schema(schema: Any) -> Any:
     return cleaned
 
 
+# Anthropic strict 도구의 문법 제한(2026-10-18 실측 400): 요청 전체에서 선택 인자 24개, union 인자 16개.
+# 여유를 두고 맞춘다.
+_OPTIONAL_LIMIT = 22
+_UNION_LIMIT = 14
+
+
+def strict_tool_schemas(schemas: list[Any]) -> list[Any]:
+    """요청의 도구 스키마 전체를 strict 문법 제한 안으로 맞춘다(의미는 바꾸지 않는다).
+
+    null을 허용하는 선택 인자는 두 방식 중 하나로 보낸다.
+    - 필수 + null 허용: 선택 인자 수가 준다(union은 그대로).
+    - null 없이 선택: union 수가 준다(모델은 값이 없으면 인자를 생략한다).
+    어느 쪽이든 MOD-03은 null·생략을 "입력하지 않음"으로 보고 같은 Pydantic 모델로 검증한다.
+    먼저 모두 필수 + null 허용으로 바꾼 뒤, union이 한도를 넘으면 뒤쪽 도구 인자부터 null 없이 선택으로 둔다.
+    """
+    import copy
+
+    out = [copy.deepcopy(s) for s in schemas]
+    nullable: list[tuple[dict, str]] = []
+    for schema in out:
+        for obj in _objects(schema):
+            required = obj.setdefault("required", [])
+            for name, prop in obj["properties"].items():
+                if name not in required and _allows_null(prop):
+                    required.append(name)
+                    nullable.append((obj, name))
+    union = sum(_count(s, _is_union) for s in out)
+    for obj, name in reversed(nullable):
+        if union <= _UNION_LIMIT:
+            break
+        obj["required"].remove(name)
+        obj["properties"][name] = _without_null(obj["properties"][name])
+        union -= 1
+    optional = sum(_count(s, None) for s in out)
+    if union > _UNION_LIMIT or optional > _OPTIONAL_LIMIT:
+        raise ValueError(f"strict 도구 스키마 제한 초과(optional={optional}, union={union})")
+    return out
+
+
+def strict_tool_schema(schema: Any) -> Any:
+    return strict_tool_schemas([schema])[0]
+
+
+def _objects(schema: Any):
+    if isinstance(schema, dict):
+        if isinstance(schema.get("properties"), dict):
+            yield schema
+        for value in schema.values():
+            yield from _objects(value)
+    elif isinstance(schema, list):
+        for value in schema:
+            yield from _objects(value)
+
+
+def _is_union(prop: Any) -> bool:
+    return isinstance(prop, dict) and ("anyOf" in prop or isinstance(prop.get("type"), list))
+
+
+def _count(schema: Any, predicate) -> int:
+    """predicate가 있으면 그 조건의 속성 수, 없으면 선택(필수가 아닌) 속성 수."""
+    total = 0
+    for obj in _objects(schema):
+        if predicate is None:
+            total += len(set(obj["properties"]) - set(obj.get("required") or []))
+        else:
+            total += sum(1 for prop in obj["properties"].values() if predicate(prop))
+    return total
+
+
+def _without_null(prop: dict) -> dict:
+    if isinstance(prop.get("type"), list):
+        types = [t for t in prop["type"] if t != "null"]
+        return {**prop, "type": types[0] if len(types) == 1 else types}
+    options = [o for o in prop.get("anyOf", []) if not (isinstance(o, dict) and o.get("type") == "null")]
+    if len(options) == 1:
+        rest = {k: v for k, v in prop.items() if k != "anyOf"}
+        return {**options[0], **rest}
+    return {**prop, "anyOf": options}
+
+
+def _allows_null(prop: Any) -> bool:
+    if not isinstance(prop, dict):
+        return False
+    if prop.get("type") == "null" or (isinstance(prop.get("type"), list) and "null" in prop["type"]):
+        return True
+    return any(_allows_null(option) for option in prop.get("anyOf") or [])
+
+
 def _content(message: ModelMessage) -> list[dict[str, Any]]:
     if message.role == "user":
         return [{"type": "text", "text": message.text or ""}]
@@ -191,14 +279,10 @@ class AnthropicChatModel:
         if request.system:
             params["system"] = request.system
         if request.tools:
+            schemas = strict_tool_schemas([provider_schema(tool.input_schema) for tool in request.tools])
             params["tools"] = [
-                {
-                    "name": tool.name,
-                    "description": tool.description,
-                    "input_schema": provider_schema(tool.input_schema),
-                    "strict": True,
-                }
-                for tool in request.tools
+                {"name": tool.name, "description": tool.description, "input_schema": schema, "strict": True}
+                for tool, schema in zip(request.tools, schemas, strict=True)
             ]
         if request.tools and request.tool_choice == "any":
             # 도구 호출을 강제하는 요청은 최종 JSON을 받지 않는다(응답이 tool_use뿐이다).

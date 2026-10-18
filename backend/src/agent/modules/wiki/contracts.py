@@ -59,6 +59,8 @@ class CheckedPage:
     summary: str
     claims: tuple[CheckedClaim, ...]
     problems: tuple[str, ...]
+    # 상한(주장 14·관계 6)을 넘겨 버린 항목 수. 원문과 어긋난 것이 아니라 page 길이 조정이다.
+    truncated: int = 0
 
     @property
     def valid(self) -> bool:

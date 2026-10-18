@@ -282,3 +282,28 @@ def test_empty_messages_are_not_sent():
     assert converted == [
         {"role": "user", "content": [{"type": "text", "text": "질문"}, {"type": "text", "text": "다음 질문"}]}
     ]
+
+
+def test_strict_tool_schemas_fit_provider_grammar_limits_for_a_full_employee():
+    """2026-10-18 실측 400: 6개 도구를 다 받는 직원 계정에서 선택 인자 26개(한도 24)·union 22개(한도 16)."""
+    from agent.modules.model_integration.anthropic_chat import _count, _is_union
+    from agent.modules.tool_execution import executor as ex
+
+    tools = [ToolSpec(name, "d", ex._input_schema(tool)) for name, tool in ex._TOOLS.items()]
+    request = ModelRequest(
+        purpose="agent_answer",
+        messages=(ModelMessage(role="user", text="q"),),
+        tools=tuple(tools),
+        output_contract=None,
+        timeout_s=5.0,
+        model_config=ModelConfig("m", 100, "v"),
+    )
+    raw = [provider_schema(t.input_schema) for t in tools]
+    assert (
+        sum(_count(s, None) for s in raw) > 24 and sum(_count(s, _is_union) for s in raw) > 16
+    )  # 원래는 초과
+    sent = [t["input_schema"] for t in AnthropicChatModel.build_params(request)["tools"]]
+    assert len(sent) == 6
+    assert sum(_count(s, None) for s in sent) <= 22 and sum(_count(s, _is_union) for s in sent) <= 14
+    # 이름·설명·검증 의미는 그대로다: 같은 속성 집합을 보낸다.
+    assert [set(s["properties"]) for s in sent] == [set(s["properties"]) for s in raw]
