@@ -150,6 +150,7 @@ async def _run_case(app, client, current, case, strategy, strict, origin) -> dic
                 "outcome": r.outcome,
                 "error_code": r.error_code,
                 "usage": r.usage,
+                "evidence_trace": r.evidence_trace,
                 "model_ids": r.model_ids,
                 "retrieval_context": r.retrieval_context,
                 "prompt_version": r.prompt_version,
@@ -168,3 +169,100 @@ async def _run_case(app, client, current, case, strategy, strict, origin) -> dic
             for t in traces
         ],
     }
+
+
+class CachingEmbedder:
+    """질의 임베딩 디스크 캐시(평가 전용). A/B가 같은 질의를 다시 임베딩하지 않게 한다(무료 티어 절약).
+
+    캐시 키는 (모델, 차원, 작업, 입력 문자열)이다. 캐시에 없는 입력만 실제 모델로 보낸다.
+    """
+
+    def __init__(self, inner, path: Path) -> None:
+        self._inner = inner
+        self._path = path
+        self._cache: dict[str, tuple[float, ...]] = {}
+        self.hits = self.misses = 0
+        if path.exists():
+            for line in path.read_text(encoding="utf-8").splitlines():
+                if line.strip():
+                    row = json.loads(line)
+                    self._cache[row["k"]] = tuple(row["v"])
+
+    @staticmethod
+    def _key(text: str, config) -> str:
+        import hashlib
+
+        return hashlib.sha256(f"{config.model}|{config.dimension}|{config.task}|{text}".encode()).hexdigest()
+
+    async def embed_once(self, texts, config, timeout_s):
+        from agent.modules.model_integration.ports import EmbeddingBatch, Usage
+
+        keys = [self._key(t, config) for t in texts]
+        missing = [t for t, k in zip(texts, keys, strict=True) if k not in self._cache]
+        model_id = config.model
+        if missing:
+            self.misses += len(missing)
+            batch = await self._inner.embed_once(tuple(missing), config, timeout_s)
+            model_id = batch.model_id
+            self._path.parent.mkdir(parents=True, exist_ok=True)
+            with self._path.open("a", encoding="utf-8") as sink:
+                for text, vector in zip(missing, batch.vectors, strict=True):
+                    key = self._key(text, config)
+                    self._cache[key] = vector
+                    sink.write(json.dumps({"k": key, "v": list(vector)}) + "\n")
+        self.hits += len(texts) - len(missing)
+        return EmbeddingBatch(
+            model_id=model_id,
+            dimension=config.dimension,
+            vectors=tuple(self._cache[k] for k in keys),
+            usage=Usage(input_tokens=None, output_tokens=None, complete=False),
+            input_count=len(texts),
+        )
+
+
+async def load_passages(engine, passage_ids: set[str]) -> dict[str, Any]:
+    """채점용 passage 본문·쪽·원본 파일(권한과 무관한 평가 도구 읽기, 결과에 나온 ID만)."""
+    from sqlalchemy import text
+
+    from agent.app.eval_score import PassageText
+
+    if not passage_ids:
+        return {}
+    async with engine.connect() as conn:
+        rows = (
+            (
+                await conn.execute(
+                    text(
+                        "SELECT c.passage_id, c.text, c.spans, e.source_file_id FROM chunks c"
+                        " JOIN parsed_artifacts p ON p.artifact_id = c.artifact_id"
+                        " JOIN document_editions e ON e.edition_id = p.edition_id"
+                        " WHERE c.passage_id = ANY(CAST(:ids AS uuid[]))"
+                    ),
+                    {"ids": [uuid.UUID(i) for i in passage_ids]},
+                )
+            )
+            .mappings()
+            .all()
+        )
+    return {
+        str(r["passage_id"]): PassageText(
+            str(r["passage_id"]),
+            r["source_file_id"],
+            frozenset(int(s.get("page", 0)) for s in (r["spans"] or []) if isinstance(s, dict)),
+            r["text"],
+        )
+        for r in rows
+    }
+
+
+def result_passage_ids(results: list[dict[str, Any]]) -> set[str]:
+    ids: set[str] = set()
+    for result in results:
+        for turn in result["turns"]:
+            ids.update(c["passage_id"] for c in turn.get("citations", []) if c.get("passage_id"))
+        for tool in result.get("tools", []):
+            for group in (tool.get("trace") or {}).get("pool", []):
+                ids.update(group.get("passage_ids", []))
+        for run in result.get("runs", []):
+            ids.update(p["passage_id"] for p in ((run.get("evidence_trace") or {}).get("packed") or []))
+    return ids

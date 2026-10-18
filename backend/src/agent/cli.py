@@ -504,6 +504,10 @@ def main(argv: list[str] | None = None) -> None:
     publish.add_argument("--build", required=True)
     sub.add_parser("wiki-status", help="Wiki 게시 상태(stale 여부)")
 
+    from agent.app.eval_cli import register as register_eval
+
+    eval_handlers = register_eval(sub)
+
     args = parser.parse_args(argv)
     handler = {
         "seed-trainings": _seed,
@@ -520,7 +524,14 @@ def main(argv: list[str] | None = None) -> None:
         "apply-wiki-review": _apply_wiki_review,
         "publish-wiki": _publish_wiki,
         "wiki-status": _wiki_status,
-    }[args.command]
+    }.get(args.command)
+    if handler is None:
+        settings = _settings()
+        eval_handler = eval_handlers[args.command]
+
+        async def handler(_args):  # noqa: ANN202 - 평가 명령은 설정을 같이 받는다
+            await eval_handler(_args, settings)
+
     # psycopg async는 Windows Proactor 루프를 지원하지 않는다.
     asyncio.run(handler(args), loop_factory=asyncio.SelectorEventLoop)
 

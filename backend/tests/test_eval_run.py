@@ -75,3 +75,52 @@ def test_load_cases_reads_jsonl_files(tmp_path):
     path = tmp_path / "c.jsonl"
     path.write_text(json.dumps(CASES[0], ensure_ascii=False) + "\n\n", encoding="utf-8")
     assert load_cases([path]) == [CASES[0]]
+
+
+async def test_runner_results_can_be_scored_against_db_passages(org, migrated, tmp_path):
+    from agent.app.eval_run import load_passages, result_passage_ids
+    from agent.app.eval_score import score_case
+    from agent.shared.db import make_engine
+
+    await _published_wiki(org)
+    model = Capturing([tool_turn(_search()), final("종전 기준입니다.", citations=["c1-1"])])
+    settings = make_settings(database_url=migrated, allowed_origins=ORIGIN)
+    (result,) = await run_cases(
+        CASES[:1],
+        settings=settings,
+        clock=FixedClock(),
+        strategy="raw",
+        strict=True,
+        out=tmp_path / "r.jsonl",
+        chat_model=model,
+        embedding_model=BigramEmbedder(),
+    )
+    engine = make_engine(migrated)
+    try:
+        passages = await load_passages(engine, result_passage_ids([result]))
+    finally:
+        await engine.dispose()
+    cited = result["turns"][0]["citations"][0]
+    assert cited["passage_id"] in passages and passages[cited["passage_id"]].source_file_id == "PDF-031"
+    quote = " ".join(passages[cited["passage_id"]].text.split())[:30]
+    case = {
+        **CASES[0],
+        "expected_outcome": "answered",
+        "required_facts": [],
+        "forbidden_claims": [],
+        "hard_negative_anchors": [],
+        "evidence_sets": [
+            [
+                {
+                    "source_file_id": "PDF-031",
+                    "page": sorted(passages[cited["passage_id"]].pages)[0],
+                    "quote": quote,
+                }
+            ]
+        ],
+    }
+    # 시험 corpus에서 이 계정이 볼 수 있는 문서만 문맥에 들어온다(제한 문서는 권한 검사로 빠진다).
+    sources = {p.source_file_id: {"access_policy": {"audience": "authenticated"}} for p in passages.values()}
+    scored = score_case(case, result, passages, sources)
+    assert scored["recall_pool"] == 1.0 and scored["recall_budget"] == 1.0, scored
+    assert scored["rule_correct"] and not scored["leaked_source_files"]

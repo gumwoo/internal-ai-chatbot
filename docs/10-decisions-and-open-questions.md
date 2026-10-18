@@ -54,6 +54,7 @@
 | D-46 | Wiki 탐색 설정(O-06의 Wiki 부분 해소): `wiki-exact-cosine-v1` = 질의 벡터를 A와 공유, 권한·적용 시점(사건 날짜가 page 구간 안, 지식 시점이 기여 원문 공개 이후·안내 유효 기간 안)을 통과한 page 5개를 같은 거리로 고르고, 그 page들의 주장·관계 링크를 모두 펼쳐 중복을 없앤 뒤 raw와 같은 SQL 필터(권한·게시·지식 시점·규범 적용 구간)와 같은 원문 거리로 정렬해 20개. 이후 support_group·경과조항·우선관계는 A와 같다. O-06의 chunk/overlap·거리·후처리는 M3 값(D-32 이후 바꾸지 않음, D-41)으로 고정 | 사용자 확인(D-41 추천안). 후보 수 5·확장 20은 docs/13 초기값 그대로이며 dev에서만 조정한다 |
 | D-47 | 검색 전략 선택·기록: 대화 생성 때 서버가 strategy(raw/wiki_assisted)와 strict를 정한다(MOD-01 `ServerOptions`, 평가 포트만 지정, 직원 HTTP 입력 없음, 운영 기본 raw). Wiki snapshot은 run 수락 때 고정한다. 운영 B는 Wiki 미준비·stale·후보 0개면 raw로 fallback하고 effective_strategy=raw·fallback_reason을 남긴다. 엄격 B는 fallback 없이 strict_failure(wiki_not_ready/wiki_stale/no_wiki_candidates)를 남기고 빈 결과를 낸다. 검색 경로(resolution·날짜·요청/실제 전략·이유·실제 실행한 retriever_config_id·Wiki 후보 ID·패킹 전 후보 passage)는 `tool_calls.retrieval_trace`에, 근거 예산 안에 실제로 들어간 passage는 `agent_runs.evidence_trace`에만 저장하고 모델이 보는 도구 결과 형식은 A/B가 같다 | 사용자 확인(D-41 추천안) |
 | D-48 | Wiki 의미 충실성 검수는 독립 검수 에이전트(모델)가 page마다 주장과 인용 원문을 대조해 approved/rejected를 기록하고(reviewer_kind=model), 보고서에 "모델 검수"라고 밝힌다. 사람 표본 검수는 하지 않았다고 한계로 적는다. 게시는 검수가 끝난(pending 없음) build의 승인 page만 묶는다 | 사용자 확인(D-41 추천안: 사람 검수자가 없는 포트폴리오 환경). 링크 자동 검사는 의미 검수를 대체하지 않는다(MOD-10) |
+| D-49 | 비교 실행 설정([P-22](15-policy-options.md#p-22) A, O-07 해소): 예산 스윕 후보 4000·8000·12000 token(초기값 + 더 큰 값 2개), packing_order는 현재 구현 `group-relevance-v1`(그룹은 MOD-11 대표 거리 순, 그룹 안 원문 순서, 한 그룹은 끊지 않음, A/B 동일). dev50을 A/B × 3예산으로 1회씩 실행하고(모델 온도는 공급자 기본, 반복 1회), 답변 규칙 정답률이 더 오르지 않거나 hard negative 인용 오답이 늘기 시작하는 가장 작은 예산을 holdout 전에 동결한다. 동률이면 작은 값. judge 순서 seed 20261018. 모델 입력 한도(Haiku 5.5)는 12000 예산에서도 여유가 있다(문맥+시스템+도구 정의 합계를 실행 기록의 입력 token으로 확인) | 사용자 확인(D-41 추천안). 반복 1회는 비용·무료 티어 한도 때문이며 분산을 측정하지 못한다는 한계로 보고한다 |
 
 ## 초기 기본 정책 — 설정으로 명시
 
@@ -69,7 +70,7 @@
 | O-04 | 모델·공급자는 D-25/D-27로 확정. 남은 것: 차원은 D-32로 1536 시작(768 비교 기록), 한국어 품질 확인(dev 질문으로 비교 후보 하나와 대조, 예: 로컬 `voyage-4-nano`), judge의 정확한 Gemini 모델 ID, 공급자별 사용 한도 설정 | 차원·한국어 확인은 M3 색인 전. 차원이 pgvector 컬럼에 고정되므로 바꾸면 재색인. judge ID는 holdout 전 |
 | O-05 | 파서는 D-33(pdfplumber)으로 확정. 남은 것: OCR 지원·한계·표 복원·파일 상한 | M3 파일럿 검증 |
 | O-06 | D-46으로 해소(Wiki 탐색 `wiki-exact-cosine-v1`, chunk/거리는 M3 값 고정) | 2026-10-18 |
-| O-07 | 예산 스윕 후보 값(초기4000+더 큰 값 2개 이상)·모델 한도 검증·최종 dev 동결값·packing_order·반복 횟수·seed | 비교 실행 전에 필수 설정 |
+| O-07 | D-49로 해소(예산 4000·8000·12000, group-relevance-v1, dev 1회 실행 후 동결, [P-22](15-policy-options.md#p-22)) | 2026-10-18 |
 | O-08 | D-45·D-48로 해소(주제 계획 초안+검수, 권한 등급·시행 구간 분할, 자동 대조+모델 의미 검수, [P-21](15-policy-options.md#p-21)) | 2026-10-18 |
 | O-09 | 정답 근거·150문항 실물·검수자 | PDF 검수 후 |
 | O-10 | D-30·D-42로 해소(it-support → 8개 부서 명시 범위) | 2026-10-18 |

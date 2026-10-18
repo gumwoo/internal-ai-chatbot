@@ -69,7 +69,9 @@ uv run python -m agent.cli wiki-status                                         #
 uv run python -m agent.cli review-manifest [--force]                           # D-36·D-40 규칙으로 검수본 작성(원문은 읽기만)
 ```
 
-💰 과금되는 명령(승인 후에만): `draft-wiki-topics`·`build-wiki`(Haiku로 Wiki 생성, build-wiki는 Gemini 임베딩도 씀), `ask ... --live`(실제 Haiku 호출), `uv run pytest -m live_model -v`(교육 8개 + 문서 6개 + 티켓 3개, 결과는 `LIVE_RESULTS_DIR` 또는 임시 폴더의 `live-smoke/`). 문서 smoke는 Gemini 무료 티어 임베딩도 쓴다(분당 100건, `data/staging/embeddings/` 캐시 재사용).
+평가(APP-04): `eval-run --strategy raw|wiki_assisted --split dev|holdout [--budget N] --live`(💰 Haiku + Gemini 질의 임베딩, 질의는 `data/staging/embeddings/eval-query-cache.jsonl` 재사용), `eval-score --results …`(과금 없음), `eval-judge --results … --live`(Gemini 무료 티어). 평가셋 기계 검사: `python -B scripts/check_eval.py`(원문 내보내기 `data/staging/eval-sources/` 필요).
+
+💰 과금되는 명령(승인 후에만): `eval-run --live`, `draft-wiki-topics`·`build-wiki`(Haiku로 Wiki 생성, build-wiki는 Gemini 임베딩도 씀), `ask ... --live`(실제 Haiku 호출), `uv run pytest -m live_model -v`(교육 8개 + 문서 6개 + 티켓 3개, 결과는 `LIVE_RESULTS_DIR` 또는 임시 폴더의 `live-smoke/`). 문서 smoke는 Gemini 무료 티어 임베딩도 쓴다(분당 100건, `data/staging/embeddings/` 캐시 재사용).
 
 API 컨테이너 확인: `docker compose --profile api up -d --build api`(마이그레이션은 자동 실행하지 않는다). 포트: API 8010, 웹 5190(8000·5173·5180은 다른 프로그램이 사용 중).
 

@@ -30,3 +30,8 @@ MOD-02(Agent), MOD-05(온라인 검색 임베딩), MOD-06(색인), MOD-10(Wiki �
 prepare의 공급자 도구 arguments 안 origin_candidates는 CT-06.origin_candidates로 분리하고 업무 arguments와 구분한다. 값은 검증된 출처가 아닌 비신뢰 제안이며 MOD-02/12가 출처 계약대로 검증한다.
 
 - M5(2026-10-18, D-41): ModelRequest.tool_choice(auto/any). any면 Anthropic `tool_choice={type: any}`로 보내고 최종 JSON 형식(output_config)은 붙이지 않는다(응답이 tool_use뿐). 빈 첫 답 재호출에서만 쓴다.
+
+## 구현 메모(평가 judge, 2026-10-18)
+
+- `gemini_chat.py` `GeminiJudgeModel`: purpose=eval_judge 전용 구조화 생성(JSON 스키마 응답, 온도 0, 도구 없음, SDK 재시도 끔). 답변 생성·Wiki 빌드는 Anthropic이다(D-25). 사용량은 응답 metadata가 있을 때만 채우고 없으면 미확인으로 둔다. 모델 ID는 설정 `JUDGE_MODEL`(D-27, 실행 날짜와 함께 기록).
+
