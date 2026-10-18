@@ -80,6 +80,7 @@ _PAST_STRONG = re.compile(
 # 이 사건의 과거가 아니다.
 _NOT_PAST = re.compile(
     r"[가-힣]*(다|라|냐)고\s*\S+|갔다 ?(올|오)|(규정|기준|한도|금액|제도|지침)\S*\s*(바뀌었|변경됐|달라졌)\S*"
+    r"|잡혔|정해졌|확정됐"  # 일정이 잡혔다는 말은 사건의 과거가 아니다
 )
 # 약한 과거 단서: "-한·-된" 관형형("참가한 비용").
 # "지정한 과정"처럼 사건과 무관한 경우가 많아 창 규칙에서만 쓴다.
@@ -88,6 +89,7 @@ _PAST_WEAK = re.compile(r"([가-힣]+)(한|된)(?![가-힣])")
 _ADJECTIVES = frozenset(
     "가능 필요 관련 해당 중요 간단 동일 적절 유효 충분 정확 다양 일정 특정 상당 별도 무관".split()
 )
+_HAN_NOUNS = frozenset("권 상 하 제 기 시 연 무".split())  # "권한·상한·하한·제한·기한·시한·연한·무한"은 명사
 # 날짜 앞의 "지난·지난번·저번"은 완료, "다음·오는"은 예정 단서다("지난 12월 5일 출장").
 # "마감 지난 11월 20일"처럼 "지난"이 앞말에 붙은 동사면 어느 쪽인지 모른다.
 _PAST_PREFIX = re.compile(r"(?<![가-힣])(지난\s*번에?|저번에?|지난)\s*$")
@@ -99,7 +101,8 @@ _PLANNED_HINT = re.compile(r"미리|앞으로")
 # ("11월 2일 이사하고 다음 주에 출장", "11월 2일부터 휴가인데 교육").
 # 연결어미로 끝나는 말(-고·-면·-서·-며·-다가·-데·-니까·-지만, "에서"는 조사라 뺀다), "아니고·말고".
 _CLAUSE_BREAK = re.compile(
-    r"([가-힣](고|면|며|다가|데|니까|지만|라서|해서|라)|(?:(?!에)[가-힣])서)(?=[\s,]|$)|아니|말고"
+    r"([가-힣](고|면|며|다가|데|니까|지만|라서|해서)|(휴가|외근|재택|연차|출장|교육|회의)(이)?라"
+    r"|(?:(?!에)[가-힣])서)(?=[\s,]|$)|아니|말고"
 )
 # 기준점·어림·다른 때("이후", "전날", "무렵", "다음 주", "이틀 뒤"), 일만 있는 날짜("5일에", "1박 2일"은 뺀다)
 _OTHER_TIME = re.compile(
@@ -108,7 +111,11 @@ _OTHER_TIME = re.compile(
     r"|(?<!박 )(?<!박)(?<!월 )(?<!월)(?<![\d.])\d{1,2}\s*일(?!\s*(간|동안))"
 )
 # 신청·결재 기준에서 날짜 뒤가 다른 사건 명사면("11월 20일 교육 신청") 날짜는 그 사건의 날짜다
-_EVENT_NOUN = re.compile(r"출장|교육|과정|연수|휴가|세미나|행사")
+_EVENT_NOUN = re.compile(r"출장|교육|과정|연수|휴가|연차|반차|외근|재택|휴직|워크숍|세미나|행사")
+# 사건 명사 뒤에 신청·결재 동사("12월 24일 연차 신청했")가 오면 그 시제는 신청의 것이다
+_NOUN_THEN_REQUEST = re.compile(
+    rf"({_EVENT_NOUN.pattern})[^\s]*\s*.{{0,6}}?(신청|상신|요청|접수|제출|결재|승인)"
+)
 _DEFERRED = re.compile(rf"(({_STEMS})(해서|하고|하여)|다녀와서|떠나서)\s*$")
 
 
@@ -152,7 +159,7 @@ _ROLES = {
         "교육 ?예정|열리는|열릴|열린다|듣는|들을|받을",
     ),
     "request_date": _role("신청|상신|요청|접수|제출", None),  # 상신 → 신청일(D-40)
-    "approval_date": _role("결재|승인", None, "결재 ?받은|결재 ?받았", "결재 ?받을"),
+    "approval_date": _role("결재(?! ?(올|상신|요청))|승인", None, "결재 ?받은|결재 ?받았", "결재 ?받을"),
     "processing_date": _role("처리", "발령|부서 ?이동|퇴사|입사|자로"),
     "work_date": _role("근무(?!지|처)|출근", None),
 }
@@ -258,6 +265,9 @@ def verify_event_date(
             return _fail("basis_mismatch", "date_in_other_clause")
     elif _OTHER_TIME.search(tail[:12]):
         return _fail("basis_mismatch", "date_in_other_clause")
+    elif _NOUN_THEN_REQUEST.search(tail):
+        # 기준 없이 "12월 24일 연차 신청했"이면 시제("했")는 신청의 것이라 연차 날짜의 연도를 정하지 못한다
+        return _fail("basis_mismatch", "other_event_verb")
     if date_basis in _START_BASES and _END_ROLE.search(tail.split("까지")[0] if start_range else tail):
         return _fail("basis_mismatch", "end_event_for_start_basis")
     if item.kind == "month_day":
@@ -387,7 +397,10 @@ def _tense(
 
 
 def _has_weak_past(text: str) -> bool:
-    return any(not m.group(1).endswith(tuple(_ADJECTIVES)) for m in _PAST_WEAK.finditer(text))
+    return any(
+        not m.group(1).endswith(tuple(_ADJECTIVES)) and m.group(1) not in _HAN_NOUNS
+        for m in _PAST_WEAK.finditer(text)
+    )
 
 
 _CORRECTION = re.compile(r"바뀌|바꿔|변경|미뤄|미루|미뤘|당겨|연기|취소|아니라|아니고")
