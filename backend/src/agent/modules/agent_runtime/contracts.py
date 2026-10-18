@@ -120,3 +120,5 @@ class ExecutionResult:
     document_keys: tuple[str, ...] = ()
     # 모델 문맥에 들어간 티켓 ID(답에서 언급했는지와 무관). 권한이 바뀌면 이 답도 가린다(CP-05).
     ticket_dependency_ids: tuple[str, ...] = ()
+    # 근거 예산 안에 실제로 들어간 passage와 예산 때문에 뺀 그룹(평가 Recall@budget용, 모델에 보이지 않음).
+    evidence_trace: dict[str, Any] | None = None

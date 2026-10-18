@@ -140,7 +140,7 @@ Idempotency-Key는 UUID 형식, actor 범위에서 작업·대상·입력에 바
 
 ## 건강 확인
 
-GET `/health/live`: 프로세스 응답. GET `/health/ready`: DB 등 필수 의존 상태, corpus/wiki 준비 여부는 capability 상태로 표시한다. 교육만 구현한 단계에서 문서 미게시를 전체 앱 장애로 판정하지 않는다. 모델 유료 호출은 하지 않는다.
+GET `/health/live`: 프로세스 응답. GET `/health/ready`: DB 등 필수 의존 상태, corpus/wiki 준비 여부는 capability 상태로 표시한다(knowledge: ready/disabled, wiki: ready/stale/disabled). 교육만 구현한 단계에서 문서 미게시를 전체 앱 장애로 판정하지 않는다. 모델 유료 호출은 하지 않는다.
 
 ## 목록 공통 형태와 티켓 초안 표시
 

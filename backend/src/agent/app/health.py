@@ -37,7 +37,22 @@ async def ready(request: Request) -> JSONResponse:
         {
             "status": "ready",
             "checks": {"database": "ok", "vector_extension": vector},
-            # 문서·Wiki 미게시는 장애가 아니라 비활성 capability로 표시한다.
-            "capabilities": {"knowledge": "disabled", "wiki": "disabled"},
+            # 문서·Wiki 미게시는 장애가 아니라 비활성 capability로 표시한다(disabled/ready, Wiki는 stale도).
+            "capabilities": await _capabilities(request),
         }
     )
+
+
+async def _capabilities(request: Request) -> dict[str, str]:
+    knowledge = getattr(request.app.state, "knowledge", None)
+    wiki = getattr(request.app.state, "wiki", None)
+    try:
+        corpus = await knowledge.current_snapshot() if knowledge is not None else None
+        wiki_state = (await wiki.status())["state"] if wiki is not None else "not_ready"
+    except SQLAlchemyError:
+        # 마이그레이션 전 등: 필수 의존(DB)은 위에서 확인했고, 선택 기능만 비활성으로 표시한다.
+        return {"knowledge": "disabled", "wiki": "disabled"}
+    return {
+        "knowledge": "ready" if corpus else "disabled",
+        "wiki": {"ready": "ready", "stale": "stale"}.get(wiki_state, "disabled"),
+    }

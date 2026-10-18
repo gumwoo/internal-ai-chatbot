@@ -56,3 +56,8 @@ CP-07 ConversationEvidenceReader 구현을 소유한다. ReadUserEvidence는 본
 - 최종 응답(JSON·SSE·재전송) 직전에 MOD-09 ReloadActor로 actor를 다시 읽는다. 세션 회수·비활성이면 가린다.
 - 사용자 입력의 서버 표시 문자열("[대화 자료]", "[사용자 질문]")은 모델 문맥에 넣을 때 괄호를 바꿔 서버 블록과 섞이지 않게 한다(MOD-02).
 - M5(2026-10-18): 메시지에 action_preview(채택한 root draft)와 ticket_refs를 저장한다. 의존 자원에 `ticket:{id}`(모델 문맥에 들어간 티켓)를 넣고, 이력·응답 직전에 MOD-12 CheckTicketVisibility(CP-05)로 다시 판정해 볼 수 없으면 가린다. CP-06 `DbRunEligibility`(check_prepare: 본인 running·deadline 전, adopted: completed이고 그 답의 action_preview가 root draft)와 CP-07 `read_user_messages`(본인 대화·그 run의 질문과 이력 창의 user 메시지만)를 MOD-12에 주입한다. HistoryMessage·ExecutionContext에 message ID를 싣는다.
+
+## 구현 메모(M4 검색 전략, 2026-10-18)
+
+- `create_conversation(actor, title, server_options=ServerOptions(strategy, strict))`. 직원 HTTP는 server_options를 넘기지 않는다(본문의 strategy 같은 값은 무시). 평가 포트(APP-04)만 raw/wiki_assisted·엄격 모드를 고른다. `conversations.retrieval_strict` 칸.
+- run 수락 때 corpus snapshot과(B 대화면) Wiki snapshot을 고정해 `agent_runs.retrieval_context`(strategy·wiki_snapshot_id·strict)에 남긴다. 실행 도중 새 Wiki가 게시돼도 그 run은 바뀌지 않는다(T-27).

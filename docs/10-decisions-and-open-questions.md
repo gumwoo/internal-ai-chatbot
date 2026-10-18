@@ -50,6 +50,10 @@
 | D-42 | M5 티켓 세부값([P-20](15-policy-options.md#p-20) A): pending 필수 필드는 subject·description·request_type·category·target_service·urgent_work(장애면 occurred_at, 긴급이면 urgency_reason 추가), impact_scope·asset_identifier는 선택. 데모 지원 범위는 it-support 계정 → 8개 부서 명시(전사 조회 아님). 회신 수단은 계정별 "사내 메신저 {표시 이름}"(fixture). 직원 역할에 ticket.prepare·ticket.submit. 입력 출처 정규화 목록은 P-20 표. draft 채택은 최종 출력 action_id가 이번 run에서 준비한 draft일 때만 | 추천안 채택(D-41 진행 규칙, 2026-10-18). O-10의 support_department_ids 해소 |
 | D-43 | 티켓 준비에서 출처를 확인하지 못한 필드(출처 없음·중복·구간/정규화/값 불일치·미래 발생 시각)는 저장하지 않고 비운 뒤 `rejected_fields`로 알린다(초안 전체를 거절하지 않음). 자유문장 값이 인용 구간 안에 정확히 한 번 있으면 서버가 구간을 그 값으로 좁힌다. 오류 우선순위는 03-errors(소유권 → version·입력 → 성공 replay → 상태 → root 자격) | 추천안 채택(D-41 진행 규칙, 2026-10-18). 실제 모델 smoke에서 출처 하나가 틀리면 재시도가 반복 실패한 것이 근거([P-20](15-policy-options.md#p-20)) |
 | D-44 | UI 연결(M6) 전 남은 값: P-10은 A(seed 때 교육 상태 계산 유지, 데모·평가는 fixed_status라 영향 없음), P-11은 A(모델 시간 초과는 MODEL_UPSTREAM_ERROR 유지, 화면 문구 동일), P-14는 C(원문은 바꾸지 않고 공백만 있는 제목·메시지는 422) | 추천안 채택(D-41 진행 규칙, 2026-10-18). O-14·O-15·O-18 해소 |
+| D-45 | Wiki 주제·분할·검수([P-21](15-policy-options.md#p-21) A, O-08 해소): 주제 계획은 문서 제목·종류만 보고 모델이 도메인별 초안(needs_review)을 쓰고, 모든 문서가 한 주제 이상에 있는지 검사한 뒤 검수자가 reviewed로 표시한다. page = 주제 × 권한 등급(같은 접근 정책끼리) × (규범 시행 구간 \| 안내 유효 기간). 규범 판본의 시행 시작·끝 날짜마다 page를 나누고, 안내 문서는 규범 구간 page와 따로 둔다(현행 FAQ가 종전 구간 요약에 섞이지 않게). 자동 검사: 주장마다 원문 링크 1개 이상, 링크 라벨이 이 page 입력 passage, 인용이 그 passage의 연속 구간(공백 정규화)과 일치, 4~300자. 하나라도 어긋나면 문제를 알려 주고 1회 재생성, 다시 어긋나면 page를 미게시 항목(problems 기록)으로 둔다. 기여 원문 = page 입력 판본 전체. 공개 날짜가 다른 안내는 page를 나눈다(늦게 공개된 안내 때문에 먼저 공개된 안내까지 과거 지식 시점에서 빠지지 않게). 주제 제목은 page 생성 입력에 넣지 않는다(다른 권한 등급 문서 이름이 섞이지 않게). 원문은 이스케이프해 넣고, 인용은 숫자 중간에서 시작·끝나면 거절한다. 잘린 출력은 형식 문제로 알려 재생성하고, 일시 오류 재시도 1회는 재생성 기회와 따로 센다. 평가 질문·정답은 주제 계획·빌드 입력에 넣지 않는다 | 사용자 확인(2026-10-18 GOAL D-41: 추천안 채택) |
+| D-46 | Wiki 탐색 설정(O-06의 Wiki 부분 해소): `wiki-exact-cosine-v1` = 질의 벡터를 A와 공유, 권한·적용 시점(사건 날짜가 page 구간 안, 지식 시점이 기여 원문 공개 이후·안내 유효 기간 안)을 통과한 page 5개를 같은 거리로 고르고, 그 page들의 주장·관계 링크를 모두 펼쳐 중복을 없앤 뒤 raw와 같은 SQL 필터(권한·게시·지식 시점·규범 적용 구간)와 같은 원문 거리로 정렬해 20개. 이후 support_group·경과조항·우선관계는 A와 같다. O-06의 chunk/overlap·거리·후처리는 M3 값(D-32 이후 바꾸지 않음, D-41)으로 고정 | 사용자 확인(D-41 추천안). 후보 수 5·확장 20은 docs/13 초기값 그대로이며 dev에서만 조정한다 |
+| D-47 | 검색 전략 선택·기록: 대화 생성 때 서버가 strategy(raw/wiki_assisted)와 strict를 정한다(MOD-01 `ServerOptions`, 평가 포트만 지정, 직원 HTTP 입력 없음, 운영 기본 raw). Wiki snapshot은 run 수락 때 고정한다. 운영 B는 Wiki 미준비·stale·후보 0개면 raw로 fallback하고 effective_strategy=raw·fallback_reason을 남긴다. 엄격 B는 fallback 없이 strict_failure(wiki_not_ready/wiki_stale/no_wiki_candidates)를 남기고 빈 결과를 낸다. 검색 경로(resolution·날짜·요청/실제 전략·이유·실제 실행한 retriever_config_id·Wiki 후보 ID·패킹 전 후보 passage)는 `tool_calls.retrieval_trace`에, 근거 예산 안에 실제로 들어간 passage는 `agent_runs.evidence_trace`에만 저장하고 모델이 보는 도구 결과 형식은 A/B가 같다 | 사용자 확인(D-41 추천안) |
+| D-48 | Wiki 의미 충실성 검수는 독립 검수 에이전트(모델)가 page마다 주장과 인용 원문을 대조해 approved/rejected를 기록하고(reviewer_kind=model), 보고서에 "모델 검수"라고 밝힌다. 사람 표본 검수는 하지 않았다고 한계로 적는다. 게시는 검수가 끝난(pending 없음) build의 승인 page만 묶는다 | 사용자 확인(D-41 추천안: 사람 검수자가 없는 포트폴리오 환경). 링크 자동 검사는 의미 검수를 대체하지 않는다(MOD-10) |
 
 ## 초기 기본 정책 — 설정으로 명시
 
@@ -64,9 +68,9 @@
 | O-03 | D-26으로 해소. 남은 것: 각 도구의 버전 고정(uv 잠금 파일에 기록) | M0 |
 | O-04 | 모델·공급자는 D-25/D-27로 확정. 남은 것: 차원은 D-32로 1536 시작(768 비교 기록), 한국어 품질 확인(dev 질문으로 비교 후보 하나와 대조, 예: 로컬 `voyage-4-nano`), judge의 정확한 Gemini 모델 ID, 공급자별 사용 한도 설정 | 차원·한국어 확인은 M3 색인 전. 차원이 pgvector 컬럼에 고정되므로 바꾸면 재색인. judge ID는 holdout 전 |
 | O-05 | 파서는 D-33(pdfplumber)으로 확정. 남은 것: OCR 지원·한계·표 복원·파일 상한 | M3 파일럿 검증 |
-| O-06 | chunk/overlap·거리·후처리·Wiki 탐색 config | dev 실험 전 고정 |
+| O-06 | D-46으로 해소(Wiki 탐색 `wiki-exact-cosine-v1`, chunk/거리는 M3 값 고정) | 2026-10-18 |
 | O-07 | 예산 스윕 후보 값(초기4000+더 큰 값 2개 이상)·모델 한도 검증·최종 dev 동결값·packing_order·반복 횟수·seed | 비교 실행 전에 필수 설정 |
-| O-08 | Wiki 주제 분할·검수 항목·권한별 분할 필요 | M4 빌드 전 검토 |
+| O-08 | D-45·D-48로 해소(주제 계획 초안+검수, 권한 등급·시행 구간 분할, 자동 대조+모델 의미 검수, [P-21](15-policy-options.md#p-21)) | 2026-10-18 |
 | O-09 | 정답 근거·150문항 실물·검수자 | PDF 검수 후 |
 | O-10 | D-30·D-42로 해소(it-support → 8개 부서 명시 범위) | 2026-10-18 |
 | O-11 | 정식 이름·공개 배포·데이터 보존기간 | 최종 데모/공개 전 |

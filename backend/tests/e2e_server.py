@@ -49,7 +49,9 @@ TABLES = (
     " messages, agent_runs, conversations, auth_sessions, membership_audit, user_roles, user_departments,"
     " users, role_capabilities, roles, departments, corpus_pointer, snapshot_members, corpus_snapshots,"
     " chunk_embeddings, chunks, document_pages, parsed_artifacts, document_editions, source_files, acl_audit,"
-    " resource_acl, logical_documents"
+    " resource_acl, logical_documents,"
+    " wiki_pointer, wiki_snapshot_members, wiki_snapshots, wiki_embeddings,"
+    " wiki_source_links, wiki_claims, wiki_pages, wiki_builds"
 )
 
 

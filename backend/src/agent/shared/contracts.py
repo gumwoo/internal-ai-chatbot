@@ -41,10 +41,14 @@ class ToolResult:
     data: dict[str, Any] | None
     error: AppError | None
     resource_ids: tuple[str, ...] = ()
+    # 모델에 보내지 않는 실행 기록(검색 경로 등). 도구 호출 기록에만 남는다.
+    trace: dict[str, Any] | None = None
 
     @classmethod
-    def success(cls, data: dict[str, Any], resource_ids: tuple[str, ...] = ()) -> "ToolResult":
-        return cls(ok=True, data=data, error=None, resource_ids=resource_ids)
+    def success(
+        cls, data: dict[str, Any], resource_ids: tuple[str, ...] = (), trace: dict[str, Any] | None = None
+    ) -> "ToolResult":
+        return cls(ok=True, data=data, error=None, resource_ids=resource_ids, trace=trace)
 
     @classmethod
     def failure(cls, error: AppError) -> "ToolResult":
@@ -73,6 +77,10 @@ class RetrievalContext:
 
     knowledge_enabled: bool = False
     corpus_snapshot_id: str | None = None
+    # 대화 생성 때 서버가 고정한 전략(raw/wiki_assisted)과 run 수락 때 고정한 Wiki snapshot(CT-13).
+    requested_strategy: str = "raw"
+    wiki_snapshot_id: str | None = None
+    strict_mode: bool = False
 
 
 @dataclass(frozen=True)
@@ -108,6 +116,7 @@ class ToolCallRecord:
     error_code: str | None
     error_stage: str | None
     resource_ids: tuple[str, ...]
+    retrieval_trace: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)

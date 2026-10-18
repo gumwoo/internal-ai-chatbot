@@ -98,6 +98,8 @@ build는 source corpus ID·설정/프롬프트/모델 hash·빌드 범위·입�
 
 원문 전체를 읽는 빌드 운영자는 명시된 운영 권한이 필요하다. 읽기용 candidate를 반환할 때는 모든 기여 원문을 현재 사용자가 읽을 수 있어야 한다. 원문 링크 하나라도 해석되지 않으면 게시 실패 또는 명시된 미게시 항목이다.
 
+구현(D-45~D-48): page는 주제 × 권한 등급 × (규범 시행 구간 | 안내 유효 기간)이고 기여 원문은 page 입력 판본 전체다. 원문 대조에 실패한 page는 problems를 기록한 미게시 항목이다. candidate는 page_id·제목·거리·링크 passage ID이며 Wiki 본문은 근거로 넘기지 않는다. 검색 경로는 모델이 보지 않는 `tool_calls.retrieval_trace`에 남긴다(D-47).
+
 ## CT-16 Ticket / PendingAction / Confirmation
 
 Ticket=`id,subject,description,request_type,category,target_service,occurred_at,impact_scope,urgent_work,urgency_reason,asset_identifier,reply_channel,status,requester_id,created_at`. MVP 생성 상태 open. TicketDetail=Ticket, TicketPage={items:Ticket[],total,limit,offset,has_more}. ActionPreview는 missing_fields 및 action_id/version/status/expires_at/conversation_id와 Ticket의 모든 접수 필드 및 서버 생성 회신 표시를 포함한다. 필드·누락 시 추가 질문 기준은 [수령 보정](../corpus/03-received-pdf-adjustments.md)의 IT 접수 표를 따른다. 사용자 ID는 서버가 바인딩한다.

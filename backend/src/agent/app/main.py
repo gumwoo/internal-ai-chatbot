@@ -29,6 +29,7 @@ from agent.modules.model_integration.ports import ChatModel, EmbeddingModel, Mod
 from agent.modules.retrieval.service import RetrievalService
 from agent.modules.tool_execution.executor import ToolExecutor
 from agent.modules.training.service import TrainingService
+from agent.modules.wiki.service import WikiService
 from agent.shared.actor import CurrentActor
 from agent.shared.clock import Clock, SystemClock
 from agent.shared.contracts import ExecutionPolicy
@@ -67,7 +68,9 @@ def create_app(
     clock: Clock | None = None,
     chat_model: ChatModel | None = None,
     embedding_model: EmbeddingModel | None = None,
+    policy: ExecutionPolicy | None = None,
 ) -> FastAPI:
+    """policy는 평가 포트(APP-04)가 근거 예산 등을 설정 ID로 고정할 때만 넘긴다(직원 경로는 기본값)."""
     settings = settings or Settings()
     clock = clock or SystemClock()
 
@@ -89,7 +92,10 @@ def create_app(
             engine, clock, embedder, embedding_model=settings.embedding_model, input_root=INPUT_ROOT
         )
         app.state.knowledge = knowledge
-        retrieval = RetrievalService(knowledge)
+        # 온라인 경로는 GetCandidates만 쓴다(빌드는 운영 CLI). 대화 전략은 대화 생성 때 서버가 정한다.
+        wiki = WikiService(engine, clock, knowledge, embedding_model=settings.embedding_model)
+        app.state.wiki = wiki
+        retrieval = RetrievalService(knowledge, wiki)
         # CP-07 창은 MOD-02가 모델에 보내는 이력 창과 같아야 한다(출처 계산과 재검증이 같은 메시지를 본다).
         evidence = DbConversationEvidence(engine, ExecutionPolicy().history_messages)
         # MOD-12: CP-06(run 자격)·CP-07(사용자 원문)은 MOD-01 구현을 앱이 주입한다(모듈 import 아님).
@@ -111,6 +117,7 @@ def create_app(
             retrieval=retrieval,
             identity=app.state.identity,
             tickets=tickets,
+            policy=policy,
         )
         app.state.conversations = service
         # 시작 시 deadline 지난 running을 회수한다(01-run-lifecycle). DB 접속을 기다리느라 시작이 막히지 않게

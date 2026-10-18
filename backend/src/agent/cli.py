@@ -5,6 +5,14 @@
     uv run python -m agent.cli draft-manifest            # data/raw/document-manifest.json 초안(검수 전)
     uv run python -m agent.cli validate-manifest [--release]
     uv run python -m agent.cli ask "다음 주 교육 알려줘" [--fixed-clock] [--live]
+    uv run python -m agent.cli ingest [--release] [--files PDF-001,PDF-002] [--label L]   # 문서 게시(MOD-05)
+    uv run python -m agent.cli draft-wiki-topics [--force]        # 💰 제목만 보고 주제 계획 초안
+    uv run python -m agent.cli review-wiki-topics --reviewer NAME # 검사 통과 시 status=reviewed
+    uv run python -m agent.cli build-wiki                          # 💰 page 생성·원문 대조·임베딩
+    uv run python -m agent.cli export-wiki-review --build ID       # 의미 검수용 파일
+    uv run python -m agent.cli apply-wiki-review --build ID --file PATH
+    uv run python -m agent.cli publish-wiki --build ID
+    uv run python -m agent.cli wiki-status
 
 ask는 기본이 dry-run이다. 모델에 보낼 요청만 보여 주고 호출하지 않는다.
 --live를 붙여야 실제 Anthropic API를 호출한다(과금된다).
@@ -16,6 +24,7 @@ import json
 import sys
 import uuid
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 from agent.modules.agent_runtime.contracts import FINAL_OUTPUT_SCHEMA, ConversationSnapshot
@@ -151,6 +160,234 @@ async def _validate_manifest(args: argparse.Namespace) -> None:
     )
 
 
+def _read_json(path: Path) -> Any:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _engine(settings: Settings):
+    return make_engine(settings.database_url, settings.db_connect_timeout_s)
+
+
+def _embedder(settings: Settings):
+    from agent.modules.model_integration.gemini_embedding import GeminiEmbeddingModel
+
+    key = settings.gemini_api_key.get_secret_value() if settings.gemini_api_key else None
+    return GeminiEmbeddingModel(api_key=key)
+
+
+async def _ingest(args: argparse.Namespace) -> None:
+    """검수된 manifest로 문서를 게시한다(Gemini 무료 티어 임베딩, 준비 산출물 캐시 재사용)."""
+    from agent.app.corpus_ops import ingest
+
+    settings = _settings()
+    engine = _engine(settings)
+    embedder = _embedder(settings)
+    files = [f.strip() for f in args.files.split(",")] if args.files else None
+    try:
+        result = await ingest(
+            engine,
+            SystemClock(),
+            embedder,
+            settings.operator_user_id,
+            source_file_ids=files,
+            label=args.label,
+            scope="release" if args.release else "pilot",
+        )
+    finally:
+        await engine.dispose()
+    print(json.dumps(result, ensure_ascii=False, indent=1, default=str))
+
+
+def _wiki_service(settings: Settings, engine, chat=None, embedder=None):
+    from agent.modules.knowledge.service import KnowledgeService
+    from agent.modules.wiki import build as wb
+    from agent.modules.wiki.service import WikiService
+
+    knowledge = KnowledgeService(engine, SystemClock(), embedder, embedding_model=settings.embedding_model)
+    config = ModelConfig(model=settings.chat_model, max_output_tokens=6000, config_version=wb.PROMPT_VERSION)
+    wiki = WikiService(
+        engine,
+        SystemClock(),
+        knowledge,
+        chat=chat,
+        embedder=embedder,
+        model_config=config,
+        embedding_model=settings.embedding_model,
+    )
+    return knowledge, wiki
+
+
+async def _operator(settings: Settings, engine):
+    from agent.modules.identity_access.service import IdentityService
+
+    return await IdentityService(engine, SystemClock()).resolve_operator_actor(settings.operator_user_id)
+
+
+def _chat(settings: Settings) -> AnthropicChatModel:
+    key = settings.anthropic_api_key.get_secret_value() if settings.anthropic_api_key else None
+    return AnthropicChatModel(api_key=key)
+
+
+async def _draft_wiki_topics(args: argparse.Namespace) -> None:
+    from agent.app.corpus_ops import MANIFEST_PATH
+    from agent.app.wiki_ops import TOPIC_PLAN_PATH, draft_topic_plan, write_json
+    from agent.modules.ingestion.manifest import load_manifest
+
+    settings = _settings()
+    if TOPIC_PLAN_PATH.exists() and not args.force:
+        sys.exit(f"{TOPIC_PLAN_PATH}가 이미 있다. 다시 만들려면 --force")
+    chat = _chat(settings)
+    config = ModelConfig(model=settings.chat_model, max_output_tokens=4000, config_version="wiki-topics-v1")
+    try:
+        plan, usage = await draft_topic_plan(chat, config, load_manifest(MANIFEST_PATH), SystemClock().now())
+    finally:
+        await chat.aclose()
+    write_json(TOPIC_PLAN_PATH, plan)
+    usd = _cost(settings.chat_model, usage["input_tokens"], usage["output_tokens"])
+    print(
+        json.dumps(
+            {
+                "written": str(TOPIC_PLAN_PATH),
+                "topics": len(plan["topics"]),
+                "notes": plan["notes"],
+                "usage": usage,
+                "usd_by_list_price": usd if not usage["unknown_usage_calls"] else None,
+            },
+            ensure_ascii=False,
+            indent=1,
+        )
+    )
+
+
+async def _review_wiki_topics(args: argparse.Namespace) -> None:
+    from agent.app.corpus_ops import MANIFEST_PATH
+    from agent.app.wiki_ops import TOPIC_PLAN_PATH, review_topic_plan, write_json
+    from agent.modules.ingestion.manifest import load_manifest
+
+    _settings()
+    plan = json.loads(TOPIC_PLAN_PATH.read_text(encoding="utf-8"))
+    problems = review_topic_plan(plan, load_manifest(MANIFEST_PATH), args.reviewer, SystemClock().now())
+    if problems:
+        print(json.dumps({"reviewed": False, "problems": problems}, ensure_ascii=False, indent=1))
+        sys.exit(1)
+    write_json(TOPIC_PLAN_PATH, plan)
+    print(json.dumps({"reviewed": True, "topics": len(plan["topics"])}, ensure_ascii=False))
+
+
+async def _build_wiki(args: argparse.Namespace) -> None:
+    from agent.app.wiki_ops import TOPIC_PLAN_PATH
+    from agent.modules.wiki.build import load_topic_plan
+
+    settings = _settings()
+    plan = load_topic_plan(json.loads(TOPIC_PLAN_PATH.read_text(encoding="utf-8")))
+    engine = _engine(settings)
+    chat, embedder = _chat(settings), _embedder(settings)
+    try:
+        knowledge, wiki = _wiki_service(settings, engine, chat, embedder)
+        corpus = await knowledge.current_snapshot()
+        if corpus is None:
+            sys.exit("게시된 corpus가 없다(ingest 먼저)")
+        report = await wiki.build(await _operator(settings, engine), plan, corpus_snapshot_id=corpus)
+    finally:
+        await chat.aclose()
+        await engine.dispose()
+    usage = report.usage
+    usd = _cost(settings.chat_model, usage["input_tokens"], usage["output_tokens"])
+    print(
+        json.dumps(
+            {
+                "build_id": report.build_id,
+                "status": report.status,
+                "corpus_snapshot_id": corpus,
+                "pages_planned": report.pages_planned,
+                "pages_valid": report.pages_valid,
+                "pages_excluded": report.pages_excluded,
+                "uncovered": list(report.uncovered_document_keys),
+                "excluded": list(report.excluded),
+                "usage": usage,
+                "usd_by_list_price": usd if not usage["unknown_usage_calls"] else None,
+            },
+            ensure_ascii=False,
+            indent=1,
+        )
+    )
+
+
+async def _export_wiki_review(args: argparse.Namespace) -> None:
+    from agent.app.wiki_ops import REVIEW_DIR, write_json
+
+    settings = _settings()
+    engine = _engine(settings)
+    try:
+        knowledge, wiki = _wiki_service(settings, engine)
+        operator = await _operator(settings, engine)
+        pages = await wiki.review_pages(args.build)
+        corpus = await wiki.build_corpus(args.build)  # build가 묶인 corpus의 원문(현재 게시본이 아니라)
+        texts = {
+            p.passage_id: p.text
+            for e in await knowledge.read_build_sources(operator, corpus)
+            for p in e.passages
+        }
+    finally:
+        await engine.dispose()
+    for page in pages:
+        for claim in page["claims"]:
+            for link in claim["links"]:
+                link["passage_text"] = texts.get(link["passage_id"], "")
+    out = Path(args.out) if args.out else REVIEW_DIR / f"{args.build}.json"
+    write_json(
+        out,
+        {
+            "build_id": args.build,
+            "instructions": "page마다 decision=approved|rejected, reviewer, "
+            "reviewer_kind(human|model), notes를 채운다. 주장이 인용 원문과 맞는지만 본다.",
+            "pages": pages,
+        },
+    )
+    print(json.dumps({"written": str(out), "pages": len(pages)}, ensure_ascii=False))
+
+
+async def _apply_wiki_review(args: argparse.Namespace) -> None:
+    settings = _settings()
+    review = _read_json(Path(args.file))
+    decisions = {p["page_id"]: p for p in review.get("pages", []) if p.get("decision")}
+    engine = _engine(settings)
+    try:
+        _, wiki = _wiki_service(settings, engine)
+        counts = await wiki.apply_review(await _operator(settings, engine), args.build, decisions)
+    finally:
+        await engine.dispose()
+    print(json.dumps(counts, ensure_ascii=False))
+
+
+async def _publish_wiki(args: argparse.Namespace) -> None:
+    from agent.modules.wiki.service import WikiPublishRejected
+
+    settings = _settings()
+    engine = _engine(settings)
+    try:
+        _, wiki = _wiki_service(settings, engine)
+        try:
+            result = await wiki.publish(await _operator(settings, engine), args.build)
+        except WikiPublishRejected as error:
+            print(json.dumps({"published": False, "reasons": error.reasons}, ensure_ascii=False, indent=1))
+            sys.exit(1)
+    finally:
+        await engine.dispose()
+    print(json.dumps({"published": True, **result}, ensure_ascii=False))
+
+
+async def _wiki_status(args: argparse.Namespace) -> None:
+    settings = _settings()
+    engine = _engine(settings)
+    try:
+        _, wiki = _wiki_service(settings, engine)
+        status = await wiki.status()
+    finally:
+        await engine.dispose()
+    print(json.dumps(status, ensure_ascii=False, indent=1))
+
+
 def _cost(model_id: str, input_tokens: int, output_tokens: int) -> float | None:
     price = _PRICE_PER_MTOK.get(model_id)
     if price is None:
@@ -247,6 +484,26 @@ def main(argv: list[str] | None = None) -> None:
     ask.add_argument("--fixed-clock", action="store_true", help="서버 시각을 2026-10-16 10:00 KST로 고정")
     ask.add_argument("--live", action="store_true", help="실제 Anthropic API를 호출한다(과금)")
 
+    ingest = sub.add_parser("ingest", help="검수된 manifest로 문서를 게시한다(Gemini 무료 티어 임베딩)")
+    ingest.add_argument("--release", action="store_true", help="100파일 전체 구성 검사(release)")
+    ingest.add_argument("--files", help="쉼표로 구분한 source_file_id(없으면 전체)")
+    ingest.add_argument("--label", default="dev", help="snapshot 이름")
+
+    topics = sub.add_parser("draft-wiki-topics", help="💰 문서 제목으로 Wiki 주제 계획 초안을 쓴다")
+    topics.add_argument("--force", action="store_true")
+    review_topics = sub.add_parser("review-wiki-topics", help="주제 계획을 검사하고 검수 표시한다")
+    review_topics.add_argument("--reviewer", required=True)
+    sub.add_parser("build-wiki", help="💰 현재 corpus로 Wiki page를 만들고 원문과 대조한다")
+    export = sub.add_parser("export-wiki-review", help="의미 검수용 파일을 쓴다")
+    export.add_argument("--build", required=True)
+    export.add_argument("--out")
+    apply = sub.add_parser("apply-wiki-review", help="의미 검수 결과를 반영한다")
+    apply.add_argument("--build", required=True)
+    apply.add_argument("--file", required=True)
+    publish = sub.add_parser("publish-wiki", help="검수된 build를 게시한다")
+    publish.add_argument("--build", required=True)
+    sub.add_parser("wiki-status", help="Wiki 게시 상태(stale 여부)")
+
     args = parser.parse_args(argv)
     handler = {
         "seed-trainings": _seed,
@@ -255,6 +512,14 @@ def main(argv: list[str] | None = None) -> None:
         "validate-manifest": _validate_manifest,
         "review-manifest": _review_manifest,
         "ask": _ask,
+        "ingest": _ingest,
+        "draft-wiki-topics": _draft_wiki_topics,
+        "review-wiki-topics": _review_wiki_topics,
+        "build-wiki": _build_wiki,
+        "export-wiki-review": _export_wiki_review,
+        "apply-wiki-review": _apply_wiki_review,
+        "publish-wiki": _publish_wiki,
+        "wiki-status": _wiki_status,
     }[args.command]
     # psycopg async는 Windows Proactor 루프를 지원하지 않는다.
     asyncio.run(handler(args), loop_factory=asyncio.SelectorEventLoop)

@@ -48,3 +48,12 @@ guidance의 유효 안내 판본 선택→기본 규범→검수 경과조항 �
 - 그룹(support_group)은 대표 후보의 코사인 거리 순, 같은 거리는 passage ID 순이다. 경과조항 확장(ExpandTransitionEvidence)은 검수된 transition_relations가 아직 없어(P-15) 구현하지 않았다.
 - 규범 공백(T-17, 2026-10-18): 판본 후보 전체에서 이 날짜 기준에 대응하는 가장 가까운 규범(per_claim 제외)이 그 날짜를 포함하는 공개 판본을 갖지 않으면 `normative_gap`을 결과에 표시한다. 사건 기준 질문에 그 기준의 규범이 없고 다른 사건 기준 규범만 있으면 basis_mismatch로 되묻는다. 안내 passage는 남기고 결론 보류는 MOD-02가 한다. 우선관계(authority_relations) 표시와 경과조항 확장은 D-40으로 구현했다(아래).
 - 경과조항 확장·우선관계(D-40, 2026-10-18): 기본 그룹의 판본에 transition_relations가 있고 그 application_basis가 이번 date_basis와 같으면, 알려진 사건 조건이 맞을 때만 진행한다. 빠진 사건 날짜는 되묻고, 모두 맞으면 반대편 판본 조항을 같은 그룹에 source_role=transition으로 붙인다. 결과의 authority_relations는 대상 문서가 보이는 관계만이다(제한 문서의 존재를 드러내지 않음).
+
+## 구현 메모(M4 wiki_assisted, 2026-10-18)
+
+- `RetrievalService.search(..., strategy, wiki_snapshot_id, strict)`. 날짜 검증·LookupApplicableBasis·규범 공백 판정·support_group·경과조항·우선관계는 A와 같고, 원문 직접 후보 단계만 바뀐다(D-46).
+- B: MOD-10 GetCandidates(page 5개) → 링크 passage를 MOD-05 `passages_by_ids`로 펼친다. raw 검색과 같은 SQL 필터(권한·게시·지식 시점·규범 적용 구간)를 다시 거치고 같은 원문 거리로 정렬해 20개. Wiki 거리는 원문 순서에 쓰지 않는다. Wiki 본문은 결과에 넣지 않는다.
+- 운영 B: Wiki 미준비·stale·후보 0개 → raw fallback, `effective_strategy=raw`, `fallback_reason`. 엄격 B: fallback 없이 `strict_failure`와 빈 결과. 펼친 passage가 필터에서 모두 빠지면 실패가 아니라 B의 0건 결과다.
+- 진단: `RetrievalResult.trace()`(요청/실제 전략·이유·Wiki 후보 ID와 거리·snapshot·retriever_config_id)를 MOD-03이 `ToolResult.trace`로 넘기고 MOD-01이 `tool_calls.retrieval_trace`에 저장한다. 모델이 보는 도구 결과 형식은 A/B가 같다.
+
+- 진단 보강(독립 검증 반영): trace에 resolution·date_basis·as_of_date·knowledge_as_of·패킹 전 후보(그룹 ID·순위·대표 거리·passage ID, Recall@pool)를 넣고, 운영 fallback이면 실제로 실행한 `raw-exact-cosine-v1`을 retriever_config_id로 남긴다. 예산 안에 실제로 들어간 passage(Recall@budget)는 MOD-02가 run 단위로 `agent_runs.evidence_trace`에 남긴다.

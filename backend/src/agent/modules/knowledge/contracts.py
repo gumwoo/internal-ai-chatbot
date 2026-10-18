@@ -146,3 +146,24 @@ class BasisHint:
     document_key: str
     document_role: str
     application_basis: str
+
+
+@dataclass(frozen=True)
+class SourceEdition:
+    """ReadBuildSources 한 판본(MOD-10 Wiki 빌드 입력). 운영 권한으로 읽은 게시 판본과 passage 전체."""
+
+    edition_id: str
+    document_key: str
+    source_file_id: str
+    title: str
+    version: str
+    document_role: str
+    application_basis: str
+    edition_state: str
+    available_from: datetime
+    effective_from: date | None
+    effective_to: date | None
+    guidance_valid_from: datetime | None
+    guidance_valid_to: datetime | None
+    access_policy: dict[str, Any]
+    passages: tuple[Passage, ...]

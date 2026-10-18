@@ -1,0 +1,26 @@
+{
+ "eval_version": "eval-v1",
+ "created_at": "2026-10-18",
+ "files": {
+  "cases/dev.jsonl": {
+   "cases": 50,
+   "sha256": "23ae6a7edf00205354e40a2115bc468bde909ce4fb7c04c53bc584e32ff61203"
+  },
+  "cases/holdout.jsonl": {
+   "cases": 100,
+   "sha256": "d7a68d0367747a87a1acfca9734d8cb54e6487b6775159e2b16172c9d5e37656"
+  }
+ },
+ "corpus_files_sha256": "497964379efe73cb3961aa2531925fbc1e0da9b4e9b704b67cbdb72a93a73dc2",
+ "source_text": "프로젝트 파서(parse_pdf)로 추출한 쪽별 텍스트(data/staging/eval-sources)",
+ "generation": "모델 생성 문항: 서브에이전트 3개(g1 단일·예외, g2 복수 문서, g3 개정·근거 없음·권한)가 원문만 보고 작성",
+ "verification": "다른 서브에이전트 3개가 정답 근거를 원문과 대조(ok/fix/drop), scripts/check_eval.py 기계 검사",
+ "human_review": "없음",
+ "notes": [
+  "EV-R-001: date_basis work_date -> explicit_date",
+  "EV-R-003: date_basis work_date -> explicit_date",
+  "EV-R-004: date_basis work_date -> explicit_date",
+  "EV-R-013: date_basis work_date -> explicit_date",
+  "EV-R-014: date_basis processing_date -> explicit_date"
+ ]
+}

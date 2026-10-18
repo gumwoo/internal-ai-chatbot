@@ -117,7 +117,9 @@ async def seeded_engine(migrated: str) -> AsyncIterator[AsyncEngine]:
                 " document_pages, parsed_artifacts, document_editions, source_files, acl_audit,"
                 " resource_acl, logical_documents,"
                 " tickets, ticket_audit, idempotency_records, ticket_prepare_receipts, ticket_action_heads,"
-                " ticket_actions, support_scopes"
+                " ticket_actions, support_scopes,"
+                " wiki_pointer, wiki_snapshot_members, wiki_snapshots, wiki_embeddings,"
+                " wiki_source_links, wiki_claims, wiki_pages, wiki_builds"
             )
         )
     await load_demo_trainings(

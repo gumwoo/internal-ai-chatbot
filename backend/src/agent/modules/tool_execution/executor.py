@@ -410,11 +410,15 @@ class ToolExecutor:
         )
         try:
             async with asyncio.timeout(limit_s):
+                knowledge = context.retrieval_context
                 result = await self._retrieval.search(
                     context.actor,
                     request,
                     knowledge_as_of=context.current_time,
-                    snapshot_id=context.retrieval_context.corpus_snapshot_id,
+                    snapshot_id=knowledge.corpus_snapshot_id,
+                    strategy=knowledge.requested_strategy,
+                    wiki_snapshot_id=knowledge.wiki_snapshot_id,
+                    strict=knowledge.strict_mode,
                 )
         except TimeoutError:
             return ToolResult.failure(AppError(ErrorCode.TOOL_TIMEOUT, retryable=True))
@@ -430,7 +434,7 @@ class ToolExecutor:
         resource_ids = tuple(
             sorted({f"doc:{p.document_key}" for group in result.groups for p in group.passages})
         )
-        return ToolResult.success(data, resource_ids)
+        return ToolResult.success(data, resource_ids, trace=result.trace())
 
     async def _record(self, context: ExecutionContext, call: ToolExecutionInput, items: list[Any]) -> None:
         try:

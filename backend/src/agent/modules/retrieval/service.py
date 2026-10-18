@@ -14,6 +14,11 @@
 7. 우선관계(D-40): 결과 문서의 authority_relations 중 대상 문서를 지금 볼 수 있는 것만 결과에 싣는다.
 5. 규범 공백(T-17): 가장 가까운 규범이 이 날짜 기준에 맞는데 그 날짜를 포함하는 공개 판본이 없으면
    normative_gap을 표시한다. 안내 문서는 절차 확인용으로만 남기고, 결론 보류는 MOD-02가 한다.
+
+B wiki_assisted(D-46, docs/13): 3의 원문 직접 후보 대신, run에 고정된 Wiki snapshot에서 권한·적용 시점을
+통과한 page 5개를 같은 질의 벡터로 고르고 그 원문 링크를 펼친다. 펼친 passage는 raw와 같은 필터를 다시
+거쳐 같은 원문 거리로 정렬해 20개까지 쓴다. 1·2·4·5·6·7은 A와 같다. Wiki 미준비·stale·후보 0개는
+운영이면 raw로 fallback(effective_strategy=raw와 이유 기록), 엄격 평가면 실패로 기록하고 빈 결과를 낸다.
 """
 
 from dataclasses import dataclass, field, replace
@@ -22,6 +27,8 @@ from typing import Any, Literal
 
 from agent.modules.knowledge.contracts import APPLICATION_BASIS, Passage
 from agent.modules.knowledge.service import KnowledgeService
+from agent.modules.wiki.contracts import CandidateResult
+from agent.modules.wiki.service import WikiService
 from agent.shared.actor import ActorContext
 from agent.shared.clock import KST
 from agent.shared.errors import AppError, ErrorCode
@@ -41,7 +48,11 @@ DATE_BASES = frozenset(
 EVENT_BASES = DATE_BASES - {"current", "explicit_date"}
 HORIZON_DAYS = 90
 RETRIEVER_CONFIG_ID = "raw-exact-cosine-v1"
+WIKI_RETRIEVER_CONFIG_ID = "wiki-exact-cosine-v1"  # Wiki 후보 5 → 링크 확장 → 공통 원문 거리 20
+STRATEGIES = frozenset({"raw", "wiki_assisted"})
 RAW_CANDIDATE_LIMIT = 20
+WIKI_CANDIDATE_LIMIT = 5
+EXPANDED_PASSAGE_LIMIT = 20
 # LookupApplicableBasis에서 볼 상위 판본 수. 가장 가까운 판본이 사건 기준 규범일 때만 날짜를 묻는다.
 # 2026-10-18 실제 모델 smoke에서 3개로 두자 관련 없는 사건 기준 규정이 섞여 되묻기가 과했다(TS-24).
 _BASIS_LOOKUP_TOP = 1
@@ -95,14 +106,53 @@ class RetrievalResult:
     requested_strategy: str = "raw"
     effective_strategy: str = "raw"
     retriever_config_id: str = RETRIEVER_CONFIG_ID
+    wiki_snapshot_id: str | None = None
+    # 운영 B가 raw로 바꾼 이유(wiki_not_ready/wiki_stale/no_wiki_candidates).
+    # 엄격 B는 같은 이유를 strict_failure에 남긴다.
+    fallback_reason: str | None = None
+    strict_failure: str | None = None
+    # 진단용 Wiki 후보(page_id, 거리). 모델에 보내지 않는다(A/B 도구 결과 형식을 같게 둔다).
+    wiki_candidates: tuple[tuple[str, float], ...] = ()
+
+    def trace(self) -> dict[str, Any]:
+        """도구 호출 기록용 검색 경로(모델에 보이지 않음)."""
+        return {
+            "resolution": self.resolution,
+            "date_basis": self.date_basis,
+            "as_of_date": self.as_of_date.isoformat() if self.as_of_date else None,
+            "knowledge_as_of": self.knowledge_as_of.isoformat(),
+            # 패킹 전 후보(Recall@pool): A는 원문 후보, B는 확장 원문 후보. 그룹 순서·대표 거리 포함.
+            "pool": [
+                {
+                    "group_id": g.group_id,
+                    "rank": g.rank,
+                    "distance": g.distance,
+                    "passage_ids": [p.passage_id for p in g.passages],
+                }
+                for g in self.groups
+            ],
+            "requested_strategy": self.requested_strategy,
+            "effective_strategy": self.effective_strategy,
+            "fallback_reason": self.fallback_reason,
+            "strict_failure": self.strict_failure,
+            "retriever_config_id": self.retriever_config_id,
+            "corpus_snapshot_id": self.corpus_snapshot_id,
+            "wiki_snapshot_id": self.wiki_snapshot_id,
+            "wiki_candidates": [list(c) for c in self.wiki_candidates],
+        }
 
 
 class RetrievalService:
-    def __init__(self, knowledge: KnowledgeService) -> None:
+    def __init__(self, knowledge: KnowledgeService, wiki: WikiService | None = None) -> None:
         self._knowledge = knowledge
+        self._wiki = wiki
 
     async def current_snapshot(self) -> str | None:
         return await self._knowledge.current_snapshot()
+
+    async def current_wiki_snapshot(self) -> str | None:
+        """run 수락 때 고정할 Wiki snapshot(B 대화만). 실행 도중 최신 Wiki로 바꾸지 않는다."""
+        return await self._wiki.current_snapshot() if self._wiki is not None else None
 
     async def visible_document_keys(self, actor: ActorContext, keys: set[str]) -> set[str]:
         """CP-05 문서 쪽 재검증(MOD-01이 이력·최종 응답을 가릴 때)."""
@@ -115,8 +165,13 @@ class RetrievalService:
         *,
         knowledge_as_of: datetime,
         snapshot_id: str | None,
+        strategy: str = "raw",
+        wiki_snapshot_id: str | None = None,
+        strict: bool = False,
     ) -> RetrievalResult:
         if snapshot_id is None:
+            raise AppError(ErrorCode.RETRIEVAL_NOT_READY)
+        if strategy not in STRATEGIES:
             raise AppError(ErrorCode.RETRIEVAL_NOT_READY)
         if request.date_basis not in DATE_BASES:
             raise AppError(ErrorCode.TOOL_ARGUMENT_INVALID, details={"field_names": ["date_basis"]})
@@ -126,6 +181,12 @@ class RetrievalService:
             "corpus_snapshot_id": snapshot_id,
             "date_basis": request.date_basis,
             "event_key": request.event_key,
+            "requested_strategy": strategy,
+            "effective_strategy": strategy,
+            "retriever_config_id": WIKI_RETRIEVER_CONFIG_ID
+            if strategy == "wiki_assisted"
+            else RETRIEVER_CONFIG_ID,
+            "wiki_snapshot_id": wiki_snapshot_id if strategy == "wiki_assisted" else None,
         }
         if request.date_basis == "current":
             as_of = today
@@ -192,18 +253,30 @@ class RetrievalService:
             # 문서 키·제목은 내보내지 않는다(이 사용자에게 보이는 문서지만 결과에 필요 없는 값).
             normative_gap = {"reason": "normative_gap", "safe_message": _GAP_MESSAGE}
 
-        hits = await self._knowledge.search(
-            actor,
-            snapshot_id,
-            vector,
-            knowledge_as_of=knowledge_as_of,
-            as_of_date=as_of,
-            # 기준이 맞지 않는 규정이 후보 자리를 차지해 거짓 0건이 되지 않게, 넉넉히 받아 거른 뒤 자른다.
-            limit=min(request.top_k, RAW_CANDIDATE_LIMIT) * 3,
-        )
-        hits = [h for h in hits if _basis_fits(h, request.date_basis)][
-            : min(request.top_k, RAW_CANDIDATE_LIMIT)
-        ]
+        limit = min(request.top_k, RAW_CANDIDATE_LIMIT)
+        route: dict[str, Any] = {}
+        hits: list[Passage] | None = None
+        if strategy == "wiki_assisted":
+            hits, route = await self._wiki_hits(
+                actor, vector, snapshot_id, wiki_snapshot_id, as_of, knowledge_as_of, request, strict
+            )
+        if hits is None:
+            hits = await self._knowledge.search(
+                actor,
+                snapshot_id,
+                vector,
+                knowledge_as_of=knowledge_as_of,
+                as_of_date=as_of,
+                # 기준이 맞지 않는 규정이 후보 자리를 차지해 거짓 0건이 되지 않게, 넉넉히 받아 거른 뒤 자른다.
+                limit=limit * 3,
+            )
+            hits = [h for h in hits if _basis_fits(h, request.date_basis)][:limit]
+        base.update(route)
+        if base.get("strict_failure"):
+            # 엄격 B: Wiki 경로가 없으면 원문 직접 검색으로 바꾸지 않는다(평가에서 실패로 집계).
+            return RetrievalResult(
+                "resolved", as_of_date=as_of, prospective=as_of > today, date_evidence=evidence, **base
+            )
         groups = await self._groups(actor, hits)
         events = dict(request.verified_events)
         if request.date_basis in EVENT_BASES:
@@ -224,6 +297,57 @@ class RetrievalService:
             transition_pending=pending,
             **base,
         )
+
+    async def _wiki_hits(
+        self,
+        actor: ActorContext,
+        vector: tuple[float, ...],
+        snapshot_id: str,
+        wiki_snapshot_id: str | None,
+        as_of: date,
+        knowledge_as_of: datetime,
+        request: SearchRequest,
+        strict: bool,
+    ) -> tuple[list[Passage] | None, dict[str, Any]]:
+        """B: Wiki 후보 → 원문 링크 확장. None이면 raw로 진행(운영 fallback)한다."""
+        if self._wiki is None:
+            outcome = CandidateResult("not_ready", None)
+        else:
+            outcome = await self._wiki.get_candidates(
+                actor,
+                vector,
+                corpus_snapshot_id=snapshot_id,
+                wiki_snapshot_id=wiki_snapshot_id,
+                as_of_date=as_of,
+                knowledge_as_of=knowledge_as_of,
+                limit=WIKI_CANDIDATE_LIMIT,
+            )
+        route: dict[str, Any] = {
+            "wiki_candidates": tuple((c.page_id, round(c.distance, 6)) for c in outcome.candidates)
+        }
+        reason = {"not_ready": "wiki_not_ready", "stale": "wiki_stale"}.get(outcome.status)
+        if reason is None and not outcome.candidates:
+            reason = "no_wiki_candidates"
+        if reason is not None:
+            if strict:
+                return [], {**route, "strict_failure": reason}
+            return None, {
+                **route,
+                "effective_strategy": "raw",
+                "fallback_reason": reason,
+                "retriever_config_id": RETRIEVER_CONFIG_ID,  # 실제로 실행한 설정
+            }
+        limit = min(request.top_k, EXPANDED_PASSAGE_LIMIT)
+        linked = await self._knowledge.passages_by_ids(
+            actor,
+            snapshot_id,
+            {p for c in outcome.candidates for p in c.passage_ids},
+            vector,
+            knowledge_as_of=knowledge_as_of,
+            as_of_date=as_of,
+            limit=limit * 3,
+        )
+        return [h for h in linked if _basis_fits(h, request.date_basis)][:limit], route
 
     async def _expand_transitions(
         self,

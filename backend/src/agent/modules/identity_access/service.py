@@ -212,6 +212,24 @@ class IdentityService:
             raise AppError(ErrorCode.ACTION_NOT_ALLOWED)
         return _operator_only(actor)
 
+    async def resolve_eval_actor(self, user_id: str) -> ActorContext:
+        """평가 포트(APP-04)의 계정 actor. 웹 세션과 같은 업무 권한(운영·평가 권한 제외), source=eval_fixture.
+
+        평가 문항의 계정이 실제 직원과 같은 권한 판정을 받게 한다. 없는·비활성 계정은 거부한다.
+        """
+        async with self._engine.connect() as conn:
+            actor = await self._actor(conn, user_id, "eval_fixture")
+        if actor is None:
+            raise AppError(ErrorCode.ACTION_NOT_ALLOWED)
+        return ActorContext(
+            user_id=actor.user_id,
+            department_ids=actor.department_ids,
+            role_ids=actor.role_ids,
+            capabilities=actor.capabilities & _WEB_CAPABILITIES,
+            auth_revision=actor.auth_revision,
+            source="eval_fixture",
+        )
+
     async def change_membership(
         self,
         operator: ActorContext,

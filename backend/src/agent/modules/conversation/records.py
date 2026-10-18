@@ -47,6 +47,7 @@ class DbExecutionObserver:
             "error_stage": record.error_stage,
             "duration_ms": record.duration_ms,
             "resource_ids": list(record.resource_ids),
+            "retrieval_trace": record.retrieval_trace,
         }
         await self._insert(insert(tool_calls).values(values).on_conflict_do_nothing())
 

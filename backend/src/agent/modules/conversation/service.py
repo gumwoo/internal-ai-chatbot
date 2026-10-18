@@ -56,6 +56,16 @@ class TicketVisibility(Protocol):
 
 # 대화 생성 시 서버가 고정하는 검색 전략. 검색 서비스가 조립되면 raw, 아니면 disabled(M1~M2와 같음).
 RETRIEVAL_STRATEGY = "disabled"
+
+
+@dataclass(frozen=True)
+class ServerOptions:
+    """신뢰된 서버/평가 설정(CT-13). HTTP 입력으로 만들지 않는다."""
+
+    strategy: str = "raw"
+    strict: bool = False
+
+
 _DOC_PREFIX = "doc:"
 _TICKET_PREFIX = "ticket:"
 _REDACTED_TEXT = "이 답변은 현재 권한으로 볼 수 없어 가렸습니다."
@@ -179,13 +189,21 @@ class ConversationService:
 
     # --- 대화 ---
 
-    async def create_conversation(self, actor: ActorContext, title: str | None) -> dict[str, Any]:
+    async def create_conversation(
+        self, actor: ActorContext, title: str | None, *, server_options: ServerOptions | None = None
+    ) -> dict[str, Any]:
+        """대화를 만든다. 검색 전략은 서버가 정한다(CT-13): 직원 HTTP는 server_options를 넘길 수 없고,
+        평가 포트(APP-04)만 raw/wiki_assisted와 엄격 모드를 고른다."""
         now = self._clock.now()
+        options = server_options or ServerOptions()
+        if options.strategy not in ("raw", "wiki_assisted"):
+            raise AppError(ErrorCode.INVALID_REQUEST, details={"field_names": ["strategy"]})
         row = {
             "id": uuid.uuid4(),
             "owner_user_id": actor.user_id,
             "title": title,
-            "retrieval_strategy": "raw" if self._retrieval is not None else RETRIEVAL_STRATEGY,
+            "retrieval_strategy": options.strategy if self._retrieval is not None else RETRIEVAL_STRATEGY,
+            "retrieval_strict": options.strict,
             "active_run_id": None,
             "business_state": {},
             "created_at": now,
@@ -393,6 +411,9 @@ class ConversationService:
         # 검색 snapshot은 수락 시 고정한다(CT-13). 문서 기능은 대화 전략이 raw이고 게시본이 있으며
         # actor가 knowledge.search를 가질 때만 켠다.
         snapshot_id = await self._retrieval.current_snapshot() if self._retrieval is not None else None
+        wiki_snapshot_id = (
+            await self._retrieval.current_wiki_snapshot() if self._retrieval is not None else None
+        )
         try:
             async with self._write() as conn:
                 conv = (
@@ -428,13 +449,16 @@ class ConversationService:
                 if active is not None:
                     raise AppError(ErrorCode.CONVERSATION_BUSY)
 
+                searchable = conv.retrieval_strategy in ("raw", "wiki_assisted")
                 knowledge = RetrievalContext(
                     knowledge_enabled=(
-                        conv.retrieval_strategy == "raw"
-                        and snapshot_id is not None
-                        and "knowledge.search" in actor.capabilities
+                        searchable and snapshot_id is not None and "knowledge.search" in actor.capabilities
                     ),
-                    corpus_snapshot_id=snapshot_id if conv.retrieval_strategy == "raw" else None,
+                    corpus_snapshot_id=snapshot_id if searchable else None,
+                    requested_strategy=conv.retrieval_strategy if searchable else "raw",
+                    # B 대화만 Wiki snapshot을 고정한다. 실행 도중 새 Wiki가 게시돼도 이 run은 바뀌지 않는다.
+                    wiki_snapshot_id=wiki_snapshot_id if conv.retrieval_strategy == "wiki_assisted" else None,
+                    strict_mode=bool(conv.retrieval_strict),
                 )
                 run_id, message_id = uuid.uuid4(), uuid.uuid4()
                 await conn.execute(
@@ -465,6 +489,8 @@ class ConversationService:
                             "knowledge_enabled": knowledge.knowledge_enabled,
                             "corpus_snapshot_id": knowledge.corpus_snapshot_id,
                             "strategy": conv.retrieval_strategy,
+                            "wiki_snapshot_id": knowledge.wiki_snapshot_id,
+                            "strict": knowledge.strict_mode,
                         },
                     )
                 )
@@ -630,6 +656,7 @@ class ConversationService:
                 finished_at=now,
                 outcome=result.outcome.value if result.outcome else None,
                 usage=_usage(result),
+                evidence_trace=result.evidence_trace,
                 model_ids=list(result.model_ids),
                 assistant_message_id=message_id,
             )
@@ -699,6 +726,7 @@ class ConversationService:
                 # 만료는 회수 경로와 같은 값(재시도로 같은 run이 살아나지 않음)으로 저장한다.
                 error_retryable=False if expired else error.retryable,
                 usage=_usage(result) if result else None,
+                evidence_trace=result.evidence_trace if result else None,
                 model_ids=list(result.model_ids) if result else None,
             )
             .returning(agent_runs.c.id)

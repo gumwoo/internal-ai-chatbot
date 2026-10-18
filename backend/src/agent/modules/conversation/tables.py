@@ -26,6 +26,8 @@ conversations = Table(
     Column("title", Text),
     # 대화 생성 시 서버가 고정하는 검색 전략. 직원 HTTP로 바꿀 수 없다. M1~M2는 disabled.
     Column("retrieval_strategy", Text, nullable=False),
+    # 평가 포트가 켠 엄격 모드(엄격 B는 fallback 대신 실패로 기록, docs/13-retrieval-comparison.md).
+    Column("retrieval_strict", Boolean, nullable=False, server_default="false"),
     Column("active_run_id", PG_UUID(as_uuid=True)),
     # CT-03 schema v2 업무 상태(검증된 교육 사본·마지막 목록·선택). 완료 commit에서만 바뀐다.
     Column("business_state", JSONB, nullable=False),
@@ -85,6 +87,8 @@ agent_runs = Table(
     Column("error_code", Text),
     Column("error_retryable", Boolean),
     Column("usage", JSONB),
+    # 근거 예산 안에 실제로 들어간 passage(평가용, 모델에 보이지 않음).
+    Column("evidence_trace", JSONB),
     Column("model_ids", JSONB),
     Column("assistant_message_id", PG_UUID(as_uuid=True)),
 )
@@ -102,6 +106,8 @@ tool_calls = Table(
     Column("error_stage", Text),
     Column("duration_ms", Integer, nullable=False),
     Column("resource_ids", JSONB, nullable=False),
+    # 모델에 보이지 않는 검색 경로 기록(요청/실제 전략·fallback 이유·Wiki 후보 ID).
+    Column("retrieval_trace", JSONB),
     Column("recorded_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
 )
 

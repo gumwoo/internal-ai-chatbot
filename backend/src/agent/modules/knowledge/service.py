@@ -30,6 +30,7 @@ from agent.modules.knowledge.contracts import (
     PreparedCorpus,
     PreparedEdition,
     PublishResult,
+    SourceEdition,
 )
 from agent.modules.knowledge.tables import (
     EMBEDDING_DIM,
@@ -463,6 +464,109 @@ class KnowledgeService:
             if _row_allowed(actor, row["policy"]) and _allowed(actor, "knowledge.search")
         ]
 
+    # --- Wiki(MOD-10·11) 포트 ---
+
+    async def read_build_sources(self, operator: ActorContext, snapshot_id: str) -> list[SourceEdition]:
+        """ReadBuildSources: Wiki 빌드 운영자(ops.wiki_build, 운영 CLI)가 snapshot의 게시 판본 전체를 읽는다.
+
+        철회 판본은 넣지 않는다. 권한은 판본마다 정책을 그대로 돌려주고(page 권한 등급 분할용) 거르지 않는다.
+        """
+        if operator.source != "operator_cli" or not _allowed(operator, "ops.wiki_build"):
+            raise AppError(ErrorCode.ACTION_NOT_ALLOWED)
+        async with self._engine.connect() as conn:
+            rows = (
+                (await conn.execute(text(_BUILD_SOURCES_SQL), {"snapshot_id": uuid.UUID(snapshot_id)}))
+                .mappings()
+                .all()
+            )
+        editions: dict[str, list[Any]] = {}
+        for row in rows:
+            editions.setdefault(str(row["edition_id"]), []).append(row)
+        out = []
+        for edition_id, members in editions.items():
+            first = members[0]
+            out.append(
+                SourceEdition(
+                    edition_id=edition_id,
+                    document_key=first["document_key"],
+                    source_file_id=first["source_file_id"],
+                    title=first["title"],
+                    version=first["version"],
+                    document_role=first["document_role"],
+                    application_basis=first["application_basis"],
+                    edition_state=first["edition_state"],
+                    available_from=first["available_from"],
+                    effective_from=first["effective_from"],
+                    effective_to=first["effective_to"],
+                    guidance_valid_from=first["guidance_valid_from"],
+                    guidance_valid_to=first["guidance_valid_to"],
+                    access_policy=dict(first["policy"]),
+                    passages=tuple(_passage(row, snapshot_id) for row in members),
+                )
+            )
+        return sorted(out, key=lambda e: (e.document_key, e.effective_from or date.min, e.edition_id))
+
+    async def visible_editions(
+        self, actor: ActorContext, snapshot_id: str, edition_ids: set[str], *, knowledge_as_of: datetime
+    ) -> set[str]:
+        """현재 접근 판정(CT-15 교집합 검사용): 이 actor가 지금 읽을 수 있는 snapshot 판본 ID.
+
+        현재 ACL·철회·지식 시점(공개 전 판본 제외)을 본다. Wiki page는 기여 판본이 모두 여기 있어야 보인다.
+        """
+        if not edition_ids or not _allowed(actor, "knowledge.search"):
+            return set()
+        try:
+            keys = [uuid.UUID(e) for e in edition_ids]
+        except ValueError:
+            return set()
+        params = {
+            **_acl_params(actor),
+            "snapshot_id": uuid.UUID(snapshot_id),
+            "edition_ids": keys,
+            "knowledge_as_of": knowledge_as_of,
+        }
+        async with self._engine.connect() as conn:
+            rows = (await conn.execute(text(_VISIBLE_EDITIONS_SQL), params)).mappings().all()
+        return {str(row["edition_id"]) for row in rows if _row_allowed(actor, row["policy"])}
+
+    async def passages_by_ids(
+        self,
+        actor: ActorContext,
+        snapshot_id: str,
+        passage_ids: set[str],
+        query_vector: tuple[float, ...],
+        *,
+        knowledge_as_of: datetime,
+        as_of_date: date | None,
+        limit: int,
+    ) -> list[Passage]:
+        """Wiki 링크 확장(B): 링크된 passage 중 raw 검색과 같은 필터(권한·게시·지식 시점·규범 적용 구간)를
+        통과한 것만 같은 원문 거리로 정렬해 돌려준다. Wiki 거리는 쓰지 않는다(공통 원문 거리 정렬, docs/13).
+        """
+        if not passage_ids or not _allowed(actor, "knowledge.search"):
+            return []
+        try:
+            keys = [uuid.UUID(p) for p in passage_ids]
+        except ValueError:
+            return []
+        params = {
+            **_acl_params(actor),
+            "snapshot_id": uuid.UUID(snapshot_id),
+            "query": _vector_literal(query_vector),
+            "knowledge_as_of": knowledge_as_of,
+            "as_of_date": as_of_date,
+            "limit": limit,
+            "passage_ids": keys,
+        }
+        async with self._engine.connect() as conn:
+            rows = (await conn.execute(text(_LINKED_SQL), params)).mappings().all()
+        passages = []
+        for row in rows:
+            if _row_allowed(actor, row["policy"]):
+                passage = _passage(row, snapshot_id)
+                passages.append(replace(passage, distance=float(row["distance"]), rank=len(passages) + 1))
+        return passages
+
     # --- 근거·PDF ---
 
     async def get_evidence(self, actor: ActorContext, passage_id: str) -> Passage:
@@ -797,6 +901,40 @@ WHERE m.snapshot_id = :snapshot_id
 ORDER BY distance, c.passage_id
 LIMIT :limit
 """
+)
+
+# 링크 확장: 검색 SQL과 같은 필터에 passage ID 목록 조건만 더한다.
+_LINKED_SQL = _SEARCH_SQL.replace(
+    "ORDER BY distance", "  AND c.passage_id = ANY(CAST(:passage_ids AS uuid[]))\nORDER BY distance"
+).format(date_clause=_DATE_CLAUSE)
+
+_BUILD_SOURCES_SQL = (
+    "SELECT"  # noqa: S608 - 고정 SQL 조각만 잇는다
+    + _COLUMNS
+    + """, e.guidance_valid_from, e.guidance_valid_to
+FROM snapshot_members m
+JOIN parsed_artifacts p ON p.artifact_id = m.artifact_id
+JOIN document_editions e ON e.edition_id = p.edition_id
+JOIN resource_acl a ON a.document_key = e.document_key
+JOIN chunks c ON c.artifact_id = p.artifact_id
+WHERE m.snapshot_id = :snapshot_id AND e.edition_state <> 'withdrawn'
+ORDER BY e.document_key, e.edition_id, c.ordinal
+"""
+)
+
+_VISIBLE_EDITIONS_SQL = (
+    """
+SELECT e.edition_id, a.policy
+FROM snapshot_members m
+JOIN parsed_artifacts p ON p.artifact_id = m.artifact_id
+JOIN document_editions e ON e.edition_id = p.edition_id
+JOIN resource_acl a ON a.document_key = e.document_key
+WHERE m.snapshot_id = :snapshot_id
+  AND e.edition_id = ANY(CAST(:edition_ids AS uuid[]))
+  AND e.edition_state <> 'withdrawn'
+  AND e.available_from <= :knowledge_as_of
+"""
+    + _ACL_CLAUSE
 )
 
 _TRANSITION_SQL = (

@@ -150,6 +150,24 @@ class _Run:
     def allowed_trainings(self) -> dict[str, dict[str, Any]]:
         return {**self.snapshot.training_cache, **self.ledger}
 
+    def evidence_trace(self) -> dict[str, Any] | None:
+        if not self.citations and not self.dropped_group_ids:
+            return None
+        return {
+            "context_token_limit": self.context.policy.final_context_token_limit,
+            "evidence_tokens": self.evidence_tokens,
+            "packed": [
+                {
+                    "citation_id": cid,
+                    "passage_id": c.get("passage_id"),
+                    "source_file_id": c.get("source_file_id"),
+                }
+                for cid, c in self.citations.items()
+            ],
+            "dropped_group_ids": list(self.dropped_group_ids),
+            "required_group_missing": self.required_group_missing,
+        }
+
     def failed(self, error: AppError) -> ExecutionResult:
         return ExecutionResult(
             status="failed",
@@ -161,6 +179,7 @@ class _Run:
             tool_summary=tuple(self.records),
             error=error,
             model_ids=tuple(self.model_ids),
+            evidence_trace=self.evidence_trace(),
         )
 
 
@@ -453,6 +472,7 @@ class AgentRuntime:
                 error_code=result.error.code.value if result.error else None,
                 error_stage=result.error.stage.value if result.error else None,
                 resource_ids=result.resource_ids,
+                retrieval_trace=result.trace,
             )
             try:
                 await run.observer.record_tool_call(record)
@@ -563,6 +583,7 @@ class AgentRuntime:
             # 모델이 action_id로 가리킨 이번 실행의 draft만 채택한다(MOD-01이 저장하면 UI에 공개).
             action_preview=run.prepared.get(final.action_id) if final.action_id else None,
             ticket_dependency_ids=tuple(sorted(run.ticket_refs)),
+            evidence_trace=run.evidence_trace(),
         )
 
 

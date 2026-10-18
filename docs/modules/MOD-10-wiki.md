@@ -34,3 +34,24 @@ draft→validated→published, failed/stale/retired 상태 구분. 원문 링크
 ## 2026-10-17 계약 보정
 
 Wiki 탐색은 knowledge_as_of와 사건 날짜 두 축을 보존하고 guidance의 공개일을 사건 적용일로 쓰지 않는다. gold 정본은 PDF hash/page/quote anchor이며 block은 parser revision별 정렬 산출물이다.
+
+## 구현 메모(M4, 2026-10-18)
+
+- 코드: `backend/src/agent/modules/wiki/`(build.py 순수 단계, service.py 빌드·검수·게시·후보, tables.py), 마이그레이션 0009, 운영 CLI `draft-wiki-topics`·`review-wiki-topics`·`build-wiki`·`export-wiki-review`·`apply-wiki-review`·`publish-wiki`·`wiki-status`(`backend/src/agent/app/wiki_ops.py`).
+- 주제 계획(D-45): `data/wiki/topic-plan.json`. 모델이 제목·종류만 보고 도메인별 초안을 쓰고(needs_review), 모든 문서가 들어 있는지 검사한 뒤 검수 표시한다. 검수 전 계획으로는 빌드하지 않는다.
+- page = 주제 × 권한 등급(같은 접근 정책) × (규범 시행 구간 | 안내 유효 기간). 안내 문서는 규범 구간 page에 넣지 않는다. 기여 원문은 page 입력 판본 전체다.
+- 생성: purpose=wiki_build, 원문 passage를 `<passage label=…>`로 감싸 넣고 원문 속 지시는 자료라고 명시(T-34 M4 부분). 출력은 title·summary·claims·relations(각 항목에 passage 라벨과 원문 그대로의 인용).
+- 자동 대조: 라벨이 입력 passage인지, 인용이 그 passage의 연속 구간인지(공백 정규화), 주장마다 링크가 있는지. 실패하면 문제를 알려 1회 재생성, 다시 실패하면 page를 `excluded`(problems)로 남긴다. 통과한 page만 원문과 같은 임베딩 모델·차원·입력 형식(document)으로 임베딩한다.
+- 비용 기록: build·page마다 호출 수·입력/출력 token·사용량 미확인 호출 수·임베딩 요청/입력 수. 모델·프롬프트·설정 ID·주제 계획 hash·원문 hash(page별 source_hash)를 남긴다.
+- 의미 검수(D-48): `export-wiki-review` 파일에 page·주장·인용·원문 passage 본문을 담고, 검수자가 approved/rejected·reviewer·reviewer_kind를 채워 `apply-wiki-review`로 반영한다. pending이 남으면 게시하지 않는다.
+- 게시: build가 validated이고 묶인 corpus가 현재 게시본이며 승인 page가 있을 때, 승인 page만 snapshot·포인터를 한 트랜잭션으로 바꾼다. 실패하면 이전 snapshot·포인터가 그대로다. 이전 build는 retired로 바뀌지만 snapshot은 남는다.
+- stale: 저장하지 않고 판정한다. 포인터의 snapshot이 묶인 corpus와 현재 corpus 게시본이 다르면 stale. run의 corpus와 다른 Wiki snapshot은 후보를 내지 않는다.
+- 후보(GetCandidates): 사건 날짜가 page 구간 안, 지식 시점이 기여 원문 공개 이후·안내 유효 기간 안인 page를 거리순으로 보고, MOD-05 `visible_editions`로 기여 판본이 모두 보이는 page만 5개까지 낸다(순위는 보이는 page 안에서만). ACL 변경·철회는 즉시 반영된다.
+
+### 독립 검증 반영(2026-10-18)
+
+- 주제 제목을 page 생성 입력에서 뺐다. 주제 계획은 권한 등급이 다른 문서 제목으로 만들어질 수 있어, page 제목·탐색 문장에 그 page가 받지 않은 제한 문서 이름이 섞였다(제목은 후보 계약에 포함되므로 누출로 본다).
+- 공개 날짜가 다른 안내는 page를 나눈다. 원문 값은 이스케이프해 `<passage>` 구조를 위조하지 못하게 하고, 인용 대조는 이스케이프를 되돌려 원문 글자로 한다. 숫자 중간에서 끊은 인용("1,100,000원"의 "00,000원")은 거절한다.
+- 재생성: 원문 대조 문제·잘린 출력(OUTPUT_INVALID)은 문제를 알려 1회 재생성, 일시 오류(rate limit 등)는 재생성 기회와 따로 1회 재시도. 빌드 도중 예외는 build를 failed로 바꾸고 그때까지의 사용량을 남긴다. 실패한 임베딩 요청도 시도 수에 센다.
+- 게시는 advisory lock으로 직렬화한다(동시 게시에서 두 build가 published가 되지 않게). 검수 결정에는 reviewer_kind(human/model)가 있어야 한다. 검수 파일은 build가 묶인 corpus의 원문으로 만든다.
+- health `/health/ready`의 capability: knowledge는 corpus 게시본이 있으면 ready, wiki는 ready/stale, 아니면 disabled.

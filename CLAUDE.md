@@ -4,7 +4,7 @@
 
 ## 현재 상태
 
-- M6 UI 연결까지 있다(`backend/`, `frontend/`). M6: 실제 API 연결 화면(MOD-08, T-20/21 E2E), GitHub Actions CI, Docker 재현 구성. M5: IT 티켓(MOD-12, 준비 draft·화면 수정·확인·취소, T-30~33). M3: 로컬 세션·인가(MOD-09), PDF 파싱·청크·임베딩(MOD-06), 게시·권한 검색·근거(MOD-05), raw 검색(MOD-11), 문서 인용. 남은 결정은 D-36~D-40으로 반영(manifest 검수본·빈 첫 답 1회 재호출·부분 되묻기·시제 목록·우선관계/경과조항). 100개 전체 임베딩은 Gemini 무료 티어 일일 한도(1,000건) 때문에 날을 나눠 채우는 중이고, 다 채워야 개발 DB에 게시한다. 이전 단계: MOD-04 교육 조회, MOD-07 Anthropic 어댑터(thinking 끔), MOD-03 도구 2개, MOD-02 실행 반복·상한·근거 원장, MOD-01 대화 저장·멱등 재전송·만료 회수·영속 observer·검증된 사본(CP-07 최소형)·진행 상황 스트리밍(SSE, D-29). Wiki(M4)와 평가 150문항은 아직 없다(`docs/08-development-plan.md`).
+- M4 Wiki 코드까지 있다(`backend/`, `frontend/`). M4: Wiki 빌드·원문 대조·의미 검수·원자적 게시·stale·권한 교집합 후보(MOD-10), wiki_assisted 검색·운영 fallback·엄격 실패 기록(MOD-11), 대화 전략 고정(D-45~D-48). 실제 Wiki 빌드는 100개 게시 뒤. M6: 실제 API 연결 화면(MOD-08, T-20/21 E2E), GitHub Actions CI, Docker 재현 구성. M5: IT 티켓(MOD-12, 준비 draft·화면 수정·확인·취소, T-30~33). M3: 로컬 세션·인가(MOD-09), PDF 파싱·청크·임베딩(MOD-06), 게시·권한 검색·근거(MOD-05), raw 검색(MOD-11), 문서 인용. 남은 결정은 D-36~D-40으로 반영(manifest 검수본·빈 첫 답 1회 재호출·부분 되묻기·시제 목록·우선관계/경과조항). 100개 전체 임베딩은 Gemini 무료 티어 일일 한도(1,000건) 때문에 날을 나눠 채우는 중이고, 다 채워야 개발 DB에 게시한다. 이전 단계: MOD-04 교육 조회, MOD-07 Anthropic 어댑터(thinking 끔), MOD-03 도구 2개, MOD-02 실행 반복·상한·근거 원장, MOD-01 대화 저장·멱등 재전송·만료 회수·영속 observer·검증된 사본(CP-07 최소형)·진행 상황 스트리밍(SSE, D-29). 평가셋 150문항(`eval/`, 모델 생성 문항·모델 대조 검증)은 있고, A/B 실행·최종 평가·보고서는 100개 게시 뒤다(`docs/08-development-plan.md`).
 - 실제 모델 호출은 과금된다. `ask --live`와 `pytest -m live_model`은 사용자 승인 후에만 실행한다.
 - 도구는 uv · SQLAlchemy 2 + Alembic · psycopg 3 · pytest · ruff, 프런트는 Vite + React + TS다(D-26). 서버는 비동기(D-28), Python 3.13.
 - 코드 위치: 공통 계약은 `backend/src/agent/shared/`, 업무 모듈은 `backend/src/agent/modules/<패키지>/`, 앱 조립은 `backend/src/agent/app/`. 모듈 import 방향은 `tests/test_module_boundaries.py`가 검사한다.
@@ -64,10 +64,12 @@ uv run python -m agent.cli ask "다음 주 교육 알려줘" --fixed-clock      
 uv run python -m agent.cli seed-identity                                       # 데모 조직·계정(D-30), 해시만 저장
 uv run python -m agent.cli draft-manifest [--force]                            # manifest 초안(needs_review), 기존 파일은 --force 없이 덮어쓰지 않음
 uv run python -m agent.cli validate-manifest --release                         # T-18 구성·경로·hash·관계 형식 검사
+uv run python -m agent.cli ingest --release --label dev                        # 검수 manifest로 개발 DB 게시(Gemini 무료 티어, 캐시 재사용)
+uv run python -m agent.cli wiki-status                                         # Wiki 게시 상태(stale 여부)
 uv run python -m agent.cli review-manifest [--force]                           # D-36·D-40 규칙으로 검수본 작성(원문은 읽기만)
 ```
 
-💰 과금되는 명령(승인 후에만): `ask ... --live`(실제 Haiku 호출), `uv run pytest -m live_model -v`(교육 8개 + 문서 6개 + 티켓 3개, 결과는 `LIVE_RESULTS_DIR` 또는 임시 폴더의 `live-smoke/`). 문서 smoke는 Gemini 무료 티어 임베딩도 쓴다(분당 100건, `data/staging/embeddings/` 캐시 재사용).
+💰 과금되는 명령(승인 후에만): `draft-wiki-topics`·`build-wiki`(Haiku로 Wiki 생성, build-wiki는 Gemini 임베딩도 씀), `ask ... --live`(실제 Haiku 호출), `uv run pytest -m live_model -v`(교육 8개 + 문서 6개 + 티켓 3개, 결과는 `LIVE_RESULTS_DIR` 또는 임시 폴더의 `live-smoke/`). 문서 smoke는 Gemini 무료 티어 임베딩도 쓴다(분당 100건, `data/staging/embeddings/` 캐시 재사용).
 
 API 컨테이너 확인: `docker compose --profile api up -d --build api`(마이그레이션은 자동 실행하지 않는다). 포트: API 8010, 웹 5190(8000·5173·5180은 다른 프로그램이 사용 중).
 
