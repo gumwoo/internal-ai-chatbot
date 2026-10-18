@@ -7,6 +7,7 @@ uv run python -m agent.cli eval-judge --results A.jsonl B.jsonl --live [--seed 2
 """
 
 import argparse
+import ast
 import hashlib
 import json
 import sys
@@ -29,6 +30,19 @@ _PRICE = {"claude-haiku-5-5": (0.10, 0.50)}
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     return [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()]
+
+
+# 모델 답이 아니라 공급자·과금·네트워크 쪽에서 끝난 실패. 이어하기에서 다시 돈다.
+_RETRY_CODES = frozenset({"MODEL_UPSTREAM_ERROR"})
+
+
+def _finished(row: dict[str, Any]) -> bool:
+    if row.get("error"):
+        return False
+    runs = row.get("runs") or []
+    if isinstance(runs, str):  # 이전 결과 파일은 run 목록을 문자열로 남겼다
+        runs = ast.literal_eval(runs)
+    return not any(run.get("error_code") in _RETRY_CODES for run in runs)
 
 
 def _cases(split: str) -> list[dict[str, Any]]:
@@ -90,7 +104,14 @@ async def eval_run(args: argparse.Namespace, settings: Settings) -> None:
     if out.exists():
         if not args.resume:
             sys.exit(f"{out}가 이미 있다(덮어쓰지 않는다. 이어서 하려면 --resume)")
-        done = {r["case_id"] for r in _read_jsonl(out) if not r.get("error")}
+        rows = _read_jsonl(out)
+        kept = [r for r in rows if _finished(r)]
+        if len(kept) != len(rows):
+            # 다시 돌 행은 결과 파일에서 빼 따로 보존한다(채점에 중복·인프라 실패가 섞이지 않게)
+            with out.with_name(out.stem + ".retried.jsonl").open("a", encoding="utf-8") as f:
+                f.writelines(json.dumps(r, ensure_ascii=False) + "\n" for r in rows if not _finished(r))
+            out.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in kept), encoding="utf-8")
+        done = {r["case_id"] for r in kept}
         cases = [c for c in cases if c["case_id"] not in done]
     if not args.live:
         print(

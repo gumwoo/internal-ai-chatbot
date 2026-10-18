@@ -183,6 +183,29 @@ async def test_run_refuses_to_overwrite_and_resume_skips_only_successful_cases(p
     assert json.loads(capsys.readouterr().out)["cases"] == 1  # 실패한 문항은 다시 실행 대상이다
 
 
+async def test_resume_retries_provider_failures_and_moves_them_out_of_the_results(paths, migrated, capsys):
+    settings = make_settings(database_url=migrated)
+    out = paths / "r.jsonl"
+    upstream = {**_result("EV-N-001", "raw", None), "runs": [{"error_code": "MODEL_UPSTREAM_ERROR"}]}
+    answered = {**_result("EV-N-002", "raw", "x"), "runs": str([{"error_code": None}])}
+    out.write_text("".join(json.dumps(r) + "\n" for r in (upstream, answered)), "utf-8")
+    args = argparse.Namespace(
+        strategy="raw",
+        split="dev",
+        budget=4000,
+        operational=False,
+        cases="EV-N-001,EV-N-002",
+        resume=True,
+        out=str(out),
+        live=False,
+    )
+    await eval_cli.eval_run(args, settings)
+    assert json.loads(capsys.readouterr().out)["cases"] == 1  # 공급자 실패만 다시 돈다
+    assert [r["case_id"] for r in eval_cli._read_jsonl(out)] == ["EV-N-002"]
+    retried = out.with_name("r.retried.jsonl")
+    assert [r["case_id"] for r in eval_cli._read_jsonl(retried)] == ["EV-N-001"]
+
+
 async def test_query_cache_reuses_vectors_and_keys_include_model_dimension_and_task(tmp_path):
     inner = BigramEmbedder()
     cache = CachingEmbedder(inner, tmp_path / "q.jsonl")
