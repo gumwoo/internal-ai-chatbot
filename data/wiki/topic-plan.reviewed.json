@@ -1,0 +1,359 @@
+{
+ "version": 1,
+ "status": "needs_review",
+ "generated_at": "2026-10-18T16:42:03.408113+09:00",
+ "drafted_by": {
+  "model": "claude-haiku-5-5",
+  "prompt_version": "wiki-topics-v1",
+  "input": "titles_only"
+ },
+ "notes": [],
+ "topics": [
+  {
+   "topic_key": "leave-application",
+   "title": "휴가·휴직 신청과 승인",
+   "document_keys": [
+    "DOC-004",
+    "DOC-006",
+    "DOC-007",
+    "DOC-019"
+   ],
+   "domain": "인사·근태"
+  },
+  {
+   "topic_key": "working-hours",
+   "title": "근무시간·유연근무·재택근무와 근태",
+   "document_keys": [
+    "DOC-002",
+    "DOC-008",
+    "DOC-009",
+    "DOC-010",
+    "DOC-011"
+   ],
+   "domain": "인사·근태"
+  },
+  {
+   "topic_key": "hr-basic-rules",
+   "title": "인사관리 기본 규정과 고용형태별 적용",
+   "document_keys": [
+    "DOC-001",
+    "DOC-020"
+   ],
+   "domain": "인사·근태"
+  },
+  {
+   "topic_key": "new-hire-onboarding",
+   "title": "신입·수습직원 인사 운영",
+   "document_keys": [
+    "DOC-012"
+   ],
+   "domain": "인사·근태"
+  },
+  {
+   "topic_key": "department-transfer",
+   "title": "부서 이동 및 직무 변경",
+   "document_keys": [
+    "DOC-013"
+   ],
+   "domain": "인사·근태"
+  },
+  {
+   "topic_key": "hr-records-certificates",
+   "title": "인사정보 변경 신고와 증명서 발급",
+   "document_keys": [
+    "DOC-015",
+    "DOC-016"
+   ],
+   "domain": "인사·근태"
+  },
+  {
+   "topic_key": "performance-review",
+   "title": "인사평가 운영",
+   "document_keys": [
+    "DOC-014"
+   ],
+   "domain": "인사·근태"
+  },
+  {
+   "topic_key": "harassment-reporting",
+   "title": "직장 내 괴롭힘 상담·신고",
+   "document_keys": [
+    "DOC-017"
+   ],
+   "domain": "인사·근태"
+  },
+  {
+   "topic_key": "welfare-benefits",
+   "title": "임직원 복리후생 이용",
+   "document_keys": [
+    "DOC-018"
+   ],
+   "domain": "인사·근태"
+  },
+  {
+   "topic_key": "training-application",
+   "title": "사내 교육 운영 규정과 교육 신청·취소",
+   "document_keys": [
+    "DOC-021",
+    "DOC-023",
+    "DOC-028",
+    "DOC-033"
+   ],
+   "domain": "교육·연수"
+  },
+  {
+   "topic_key": "mandatory-training",
+   "title": "필수교육 지정·이수 관리와 신규 입사자 교육",
+   "document_keys": [
+    "DOC-024",
+    "DOC-025",
+    "DOC-026",
+    "DOC-027"
+   ],
+   "domain": "교육·연수"
+  },
+  {
+   "topic_key": "training-completion",
+   "title": "교육 수료 판정·온라인 출석 인정과 불참·미수료",
+   "document_keys": [
+    "DOC-032",
+    "DOC-034",
+    "DOC-035"
+   ],
+   "domain": "교육·연수"
+  },
+  {
+   "topic_key": "external-training",
+   "title": "외부교육 승인 및 지원",
+   "document_keys": [
+    "DOC-029",
+    "DOC-030"
+   ],
+   "domain": "교육·연수"
+  },
+  {
+   "topic_key": "it-helpdesk-process",
+   "title": "IT 헬프데스크 접수·처리",
+   "document_keys": [
+    "DOC-036",
+    "DOC-037",
+    "DOC-038",
+    "DOC-060"
+   ],
+   "domain": "IT 지원"
+  },
+  {
+   "topic_key": "account-access",
+   "title": "사내 계정·비밀번호·다중인증(MFA)",
+   "document_keys": [
+    "DOC-041",
+    "DOC-043",
+    "DOC-044"
+   ],
+   "domain": "IT 지원"
+  },
+  {
+   "topic_key": "system-access-request",
+   "title": "업무시스템 접근권한과 공유 드라이브 권한 신청",
+   "document_keys": [
+    "DOC-053",
+    "DOC-056"
+   ],
+   "domain": "IT 지원"
+  },
+  {
+   "topic_key": "remote-access-vpn",
+   "title": "VPN 원격접속과 사내 Wi-Fi 접속",
+   "document_keys": [
+    "DOC-045",
+    "DOC-047",
+    "DOC-048",
+    "DOC-059"
+   ],
+   "domain": "IT 지원"
+  },
+  {
+   "topic_key": "email-messaging",
+   "title": "이메일·메신저",
+   "document_keys": [
+    "DOC-049",
+    "DOC-050",
+    "DOC-051"
+   ],
+   "domain": "IT 지원"
+  },
+  {
+   "topic_key": "meeting-office-devices",
+   "title": "화상회의·회의실 장비와 프린터·스캐너",
+   "document_keys": [
+    "DOC-052",
+    "DOC-054"
+   ],
+   "domain": "IT 지원"
+  },
+  {
+   "topic_key": "pc-asset-lifecycle",
+   "title": "PC·IT 자산 지급·회수",
+   "document_keys": [
+    "DOC-039",
+    "DOC-040",
+    "DOC-057",
+    "DOC-058"
+   ],
+   "domain": "IT 지원"
+  },
+  {
+   "topic_key": "software-approval",
+   "title": "소프트웨어 설치 승인",
+   "document_keys": [
+    "DOC-055"
+   ],
+   "domain": "IT 지원"
+  },
+  {
+   "topic_key": "infosec-policy-basics",
+   "title": "정보보안 기본정책·정보자산 등급과 보안 예외 승인",
+   "document_keys": [
+    "DOC-061",
+    "DOC-063",
+    "DOC-080"
+   ],
+   "domain": "정보보안·개인정보"
+  },
+  {
+   "topic_key": "personal-info-handling",
+   "title": "개인정보 처리 및 파기",
+   "document_keys": [
+    "DOC-065",
+    "DOC-066",
+    "DOC-067"
+   ],
+   "domain": "정보보안·개인정보"
+  },
+  {
+   "topic_key": "data-access-control",
+   "title": "접근권한 관리와 비밀번호·인증수단 규정",
+   "document_keys": [
+    "DOC-064",
+    "DOC-075",
+    "DOC-076",
+    "DOC-077",
+    "DOC-078"
+   ],
+   "domain": "정보보안·개인정보"
+  },
+  {
+   "topic_key": "file-sharing-media",
+   "title": "파일 공유 및 저장매체",
+   "document_keys": [
+    "DOC-069",
+    "DOC-070",
+    "DOC-067"
+   ],
+   "domain": "정보보안·개인정보"
+  },
+  {
+   "topic_key": "security-incident-response",
+   "title": "보안사고 신고 및 대응",
+   "document_keys": [
+    "DOC-071",
+    "DOC-072",
+    "DOC-073"
+   ],
+   "domain": "정보보안·개인정보"
+  },
+  {
+   "topic_key": "remote-work-security",
+   "title": "원격근무 및 기기 보안",
+   "document_keys": [
+    "DOC-074",
+    "DOC-073"
+   ],
+   "domain": "정보보안·개인정보"
+  },
+  {
+   "topic_key": "generative-ai-usage",
+   "title": "생성형 AI 업무 활용",
+   "document_keys": [
+    "DOC-068",
+    "DOC-063"
+   ],
+   "domain": "정보보안·개인정보"
+  },
+  {
+   "topic_key": "security-training-overdue",
+   "title": "보안교육 미이수 처리",
+   "document_keys": [
+    "DOC-079"
+   ],
+   "domain": "정보보안·개인정보"
+  },
+  {
+   "topic_key": "travel-expense",
+   "title": "출장비 정산",
+   "document_keys": [
+    "DOC-081",
+    "DOC-083",
+    "DOC-090"
+   ],
+   "domain": "총무·재무"
+  },
+  {
+   "topic_key": "corporate-card",
+   "title": "법인카드 사용 기준과 정산",
+   "document_keys": [
+    "DOC-084",
+    "DOC-085"
+   ],
+   "domain": "총무·재무"
+  },
+  {
+   "topic_key": "expense-approval",
+   "title": "구매·지출 결재와 소액 비용·경비 반려 처리",
+   "document_keys": [
+    "DOC-086",
+    "DOC-087",
+    "DOC-088",
+    "DOC-089"
+   ],
+   "domain": "총무·재무"
+  },
+  {
+   "topic_key": "electronic-approval",
+   "title": "전자결재 및 결재권한",
+   "document_keys": [
+    "DOC-091",
+    "DOC-093"
+   ],
+   "domain": "공통 업무·문서 관리"
+  },
+  {
+   "topic_key": "document-management",
+   "title": "사내 규정·문서 버전·보존과 공지 관리",
+   "document_keys": [
+    "DOC-094",
+    "DOC-095",
+    "DOC-096",
+    "DOC-100"
+   ],
+   "domain": "공통 업무·문서 관리"
+  },
+  {
+   "topic_key": "onboarding-handover",
+   "title": "신규 입사 업무 준비와 부서 이동 인수인계",
+   "document_keys": [
+    "DOC-098",
+    "DOC-099"
+   ],
+   "domain": "공통 업무·문서 관리"
+  },
+  {
+   "topic_key": "contacts-directory",
+   "title": "부서별 업무 담당자와 문의처",
+   "document_keys": [
+    "DOC-097"
+   ],
+   "domain": "공통 업무·문서 관리"
+  }
+ ]
+}

@@ -1,6 +1,7 @@
 """실제 모델 문서 smoke(💰 Anthropic 과금 + Gemini 무료 티어). `-m live_model`일 때만 돈다.
 
-- 시험 DB에 시험 corpus(8개 PDF)를 실제 Gemini 임베딩으로 게시한다. review_status·available_from은 시험 전용
+- 시험 DB에 시험 corpus(8개 PDF)를 실제 Gemini 임베딩으로 게시한다. LIVE_CORPUS=full이면 검수 manifest 100개.
+  8개일 때 review_status·available_from은 시험 전용
   값이다(P-15 미정, 실제 검수 아님). 임베딩은 data/staging 캐시를 재사용한다.
 - 문구는 보지 않는다. outcome·인용한 원본 파일·핵심 숫자 포함 여부만 확인하고, 호출별 원래 응답을 남긴다.
 """
@@ -14,9 +15,10 @@ from pathlib import Path
 
 import pytest
 
-from agent.app.corpus_ops import STAGING, prepare_corpus
+from agent.app.corpus_ops import MANIFEST_PATH, STAGING, prepare_corpus
 from agent.app.main import create_app
 from agent.modules.identity_access.service import IdentityService, load_demo_org
+from agent.modules.ingestion.manifest import load_manifest
 from agent.modules.knowledge.service import KnowledgeService
 from agent.modules.model_integration.anthropic_chat import AnthropicChatModel
 from agent.modules.model_integration.gemini_embedding import GeminiEmbeddingModel
@@ -93,12 +95,14 @@ async def live_corpus(seeded_engine, live_settings):
     operator = await IdentityService(seeded_engine, FixedClock()).resolve_operator_actor("ops-admin")
     embedder = GeminiEmbeddingModel(live_settings.gemini_api_key.get_secret_value())
     try:
+        # LIVE_CORPUS=full: 검수 manifest 100개(release)로 같은 시나리오를 돌린다(전체 문서 smoke).
+        full = os.environ.get("LIVE_CORPUS") == "full"
         corpus, report = await prepare_corpus(
-            make_test_manifest(),
+            load_manifest(MANIFEST_PATH) if full else make_test_manifest(),
             embedder,
             source_file_ids=None,
-            label="live",
-            scope="pilot",
+            label="live-full" if full else "live",
+            scope="release" if full else "pilot",
             cache_dir=STAGING / "embeddings",
         )
     finally:
