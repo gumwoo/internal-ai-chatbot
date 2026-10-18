@@ -7,7 +7,7 @@ on:
   pull_request:
 
 env:
-  APP_ENV: test
+  APP_ENV: local  # test는 DATABASE_URL도 _test DB여야 한다. CI 개발 DB는 agent_ci_dev
   AUTH_MODE: test_stub
   TEST_ACTOR_ID: test-a  # test_stub 모드의 필수 값(로컬은 .env에 있다)
   DATABASE_URL: postgresql+psycopg://agent:ci-only-password@127.0.0.1:5440/agent_ci_dev

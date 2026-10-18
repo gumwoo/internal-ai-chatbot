@@ -1,0 +1,2 @@
+eval/cases/*.jsonl text eol=lf
+eval/manifest.json text eol=lf

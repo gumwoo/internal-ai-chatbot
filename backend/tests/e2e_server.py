@@ -79,6 +79,9 @@ class RuleModel:
     async def complete_once(self, request) -> ModelResponse:
         last = request.messages[-1]
         if last.role == "tool_result":
+            # 실제 모델처럼 도구 결과 뒤 답을 쓰는 시간이 있다. 없으면 빠른 기계(CI)에서 진행 단계와 결과가
+            # 한 덩어리로 도착해 화면의 진행 표시를 시험할 수 없다.
+            await asyncio.sleep(0.3)
             call = request.messages[-2].tool_calls[0]
             result = json.loads(last.tool_results[0].content)
             return self._after(call.name, result)
