@@ -41,7 +41,7 @@
 | GET `/conversations` | limit1~50=20, offset>=0 | 200 items/total/limit/offset/has_more, 본인만 |
 | GET `/conversations/{id}` | 소유 ID | 200 표시 정보·active_run_id |
 | GET `/conversations/{id}/messages` | limit1~50=20, offset>=0 | 200 items/total/limit/offset/has_more, 현재 권한 재검증 후 가림 |
-| POST `/conversations/{id}/messages` | content(1~4000자), UUID Idempotency-Key header | 최초 동기 완료200, 동일 요청 실행 중 replay202, 유효한 다른 실행 중409 |
+| POST `/conversations/{id}/messages` | content(1~4000자, 공백만이면 422(D-44)), UUID Idempotency-Key header | 최초 동기 완료200, 동일 요청 실행 중 replay202, 유효한 다른 실행 중409 |
 | GET `/runs/{id}` | 본인 run ID | 만료 회수·현재 가시성 재검증 후200 상태·outcome·시간·usage·도구 안전 요약 |
 
 메시지 POST의 기본(`Accept: application/json`)은 단계 이벤트 없는 동기 처리다. M2 이후에는 아래 "진행 상황 스트리밍"을 선택적으로 쓴다. 어느 쪽이든 답변 본문은 권한 재확인·인용 검증·commit을 마친 뒤 한 번에 보낸다. HTTP 응답 유실·클라이언트 timeout을 서버 취소로 간주하지 않는다. 같은 사용자 입력의 재시도는 같은 키를 유지한다. MOD-01은 actor/conversation/key/content hash와 run을 원자 수락하고, 재전송은 기존 실행만 조회/재표시한다. 같은 키·다른 내용은409 MESSAGE_IDEMPOTENCY_CONFLICT다. 활성 run은 running, 종료는 completed/failed/expired다. 시작·조회·다음 수락에서 deadline 지난 running을 회수한다. 전이·늦은 완료·복구는 [실행 계약](contracts/01-run-lifecycle.md)이 기준이다. run의 내부 원인·제한 도구 인자/결과·Wiki 진단 전문을 반환하지 않는다.

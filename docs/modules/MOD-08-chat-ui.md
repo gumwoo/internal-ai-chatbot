@@ -36,3 +36,14 @@ T-20 화면/키보드/IME/작은 화면, T-21 티켓 확인·유실·캐시 제�
 draft 폼과 pending 확인을 구분한다. 편집 진입/취소는 pending을 변경하지 않고 revise 성공만 교체한다. form은 message ID로 바인딩하며 입력 중 값·대화별 composer를 보존한다. expired/cancelled/superseded를 편집으로 되살리지 않는다.
 
 편집은 action ID와 message ID에 바인딩하며 해당 폼에 포커스를 둔다. 충돌 거절에서 입력을 보존하고 현재 head를 조회한다. 만료 후 확인은 명시적인 미접수 안내와 새 준비 경로를 제공한다. 다른 대화에서 확인이 끝나면 완료 알림과 해당 대화 표시를 보존하며 복귀 시 현재 상태로 재조회한다.
+
+## 구현 메모(M6, 2026-10-18)
+
+- `frontend/`(Vite + React + TS, D-26). 개발 서버 127.0.0.1:5190이 `/api`를 API로 프록시한다(같은 출처: 세션 쿠키 Path=/api/v1·SameSite=Strict·Origin 검사).
+- 메시지는 `Accept: text/event-stream`으로 보내 서버 progress 단계만 표시하고 result를 한 번에 그린다. 202 재전송은 run 종료를 기다린 뒤 같은 키·본문으로 다시 보낸다. 같은 입력의 재시도는 같은 Idempotency-Key, 다른 입력은 새 키.
+- 티켓 카드: draft는 변경이 없어도 "내용 수정 → 저장"(revise)로 pending을 만든다. 확인은 fields를 보내지 않고 같은 키를 재사용한다. 응답 유실·오류 뒤에는 GET action으로 실제 상태를 읽고, current_action_id를 따라 최신 내용을 보여 준다. 확인 전에는 "접수 완료"를 표시하지 않는다. 만료는 미접수 안내.
+- 멱등키 범위: 메시지는 (대화, 입력), 수정은 (action, version, 입력), 확인은 (action, version)에 묶는다. 네트워크 유실(결과 모름)은 같은 키로 다시 보내고, 서버가 실패로 끝낸 메시지 요청(오류 응답)은 다시 보낼 때 새 키를 쓴다(같은 키는 같은 실패를 돌려준다).
+- 바꾼 것 없는 pending 저장은 revise를 보내지 않고 GET으로 현재 상태만 읽는다. 수정 응답이 유실되면 GET action으로 superseded·current_action_id를 따라가, 최신 action이 보낸 입력과 같으면 저장된 것으로 보여 준다. ACTION_SUPERSEDED는 입력을 지우지 않고 최신 action을 불러온다. ACTION_HEAD_CONFLICT는 그 초안을 더 저장할 수 없게 하고(저장 버튼 끔) 최신 접수 내용 확인·새 요청을 안내한다.
+- 확인·저장·취소는 렌더 전 두 번째 클릭도 막는다(같은 틱 두 번 클릭에도 요청 1건). 답을 기다리는 동안에는 대화 전환·새 대화를 막고, 늦게 온 이전 대화의 메시지 목록은 버린다. 401은 카드·상세 패널에서도 로그인으로 보낸다. PDF 링크는 서버가 준 같은 출처 경로(`/api/v1/`)만 연다. 긴 문자열은 줄을 바꿔 가로로 넘치지 않는다.
+- 로그아웃·세션 만료 때 화면 상태를 통째로 버린다(업무 화면을 새로 만든다). 상세 패널은 Esc·뒤로로 닫고 연 버튼으로 포커스를 돌려준다. 한글 조합 중 Enter는 보내지 않는다.
+- E2E: `frontend/e2e/flows.spec.ts`(Playwright, 설치된 Chrome) 11개. 화면 문구뿐 아니라 실제로 나간 요청 수(IME 0건, 반복 확인 1건, 변경 없는 저장 0건)와 받은 SSE 본문(progress 뒤 result)을 확인한다. 백엔드는 `backend/tests/e2e_server.py`(규칙 기반 가짜 모델, 시험 DB, 실제 세션, 읽을 때마다 1ms 흐르는 시계)로 띄운다.

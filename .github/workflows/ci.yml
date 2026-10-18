@@ -1,0 +1,87 @@
+# 백엔드 테스트·lint, 명세 검사, 프런트 타입 검사·빌드, 브라우저 E2E(가짜 모델, 과금 없음).
+# 실제 모델 호출(live_model)은 CI에서 돌리지 않는다(과금·키 필요).
+name: ci
+
+on:
+  push:
+  pull_request:
+
+env:
+  APP_ENV: test
+  AUTH_MODE: test_stub
+  DATABASE_URL: postgresql+psycopg://agent:ci-only-password@127.0.0.1:5440/agent_ci_dev
+  TEST_DATABASE_URL: postgresql+psycopg://agent:ci-only-password@127.0.0.1:5440/agent_test
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: pgvector/pgvector:0.8.7-pg18-trixie
+        env:
+          POSTGRES_USER: agent
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: agent_ci_dev
+        ports: ["5440:5432"]
+        options: >-
+          --health-cmd "pg_isready -U agent -d agent_ci_dev" --health-interval 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+      - name: 테스트 DB 만들기
+        run: PGPASSWORD=ci-only-password psql -h 127.0.0.1 -p 5440 -U agent -d agent_ci_dev -c "CREATE DATABASE agent_test"
+      - name: lint
+        working-directory: backend
+        run: uv sync --locked && uv run ruff check . && uv run ruff format --check .
+      - name: 마이그레이션·테스트
+        working-directory: backend
+        run: uv run alembic -x target=test upgrade head && uv run pytest -q
+
+  specs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: 명세 검사
+        run: SPEC_RESULTS_DIR="${{ runner.temp }}/spec-results" python -B scripts/check_specs.py
+
+  frontend:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: pgvector/pgvector:0.8.7-pg18-trixie
+        env:
+          POSTGRES_USER: agent
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: agent_ci_dev
+        ports: ["5440:5432"]
+        options: >-
+          --health-cmd "pg_isready -U agent -d agent_ci_dev" --health-interval 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+      - name: 테스트 DB 만들기
+        run: PGPASSWORD=ci-only-password psql -h 127.0.0.1 -p 5440 -U agent -d agent_ci_dev -c "CREATE DATABASE agent_test"
+      - name: 백엔드 의존성
+        working-directory: backend
+        run: uv sync --locked
+      - name: 타입 검사·빌드
+        working-directory: frontend
+        run: npm ci && npm run typecheck && npm run build
+      - name: 브라우저 E2E(T-20/21)
+        working-directory: frontend
+        env:
+          CI: "1"
+          PLAYWRIGHT_CHANNEL: chrome
+        run: npx playwright test

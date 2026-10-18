@@ -25,6 +25,9 @@ def _no_nul(value: str | None) -> str | None:
     # PostgreSQL text는 NUL을 저장하지 못한다. 저장 실패(재시도 가능 503)가 아니라 입력 오류(422)로 거절한다.
     if value is not None and "\x00" in value:
         raise ValueError("NUL 문자는 쓸 수 없다")
+    # D-44(P-14 C): 원문은 바꾸지 않고, 공백만 있는 값은 거절한다(의미 없는 모델 호출 방지).
+    if value is not None and not value.strip():
+        raise ValueError("공백만 있는 값은 쓸 수 없다")
     return value
 
 

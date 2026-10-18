@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web-e2e",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set API_ORIGIN=http://127.0.0.1:8011&& cd frontend && npm run dev"],
+      "port": 5190,
+      "url": "http://127.0.0.1:5190"
+    }
+  ]
+}

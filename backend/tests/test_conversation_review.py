@@ -474,6 +474,12 @@ async def test_http_boundaries_and_headers(seeded_engine, migrated):
         )
         conv = title_ok.json()["id"]
         nul_content = await _post(client, conv, "안\x00녕")
+        # D-44(P-14 C): 공백만 있는 제목·메시지는 422(원문은 바꾸지 않는다).
+        blank_title = await client.post(
+            "/api/v1/conversations", json={"title": "   "}, headers={"Origin": ORIGIN}
+        )
+        blank_content = await _post(client, conv, " \n\t ")
+        assert (blank_title.status_code, blank_content.status_code) == (422, 422)
         max_content = await _post(client, conv, "가" * 4000)
         run_id = max_content.json()["run_id"]
         unknown_query = await client.get("/api/v1/conversations", params={"user_id": "test-b"})

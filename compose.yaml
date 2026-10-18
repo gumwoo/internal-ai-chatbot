@@ -24,12 +24,14 @@ services:
 
   api:
     # 평소 개발은 로컬 uvicorn으로 한다. 컨테이너 실행 확인이 필요할 때만 --profile api로 띄운다.
-    profiles: ["api"]
+    # 재현 데모(--profile demo)는 AUTH_MODE=local_session으로 실제 로그인을 쓴다.
+    profiles: ["api", "demo"]
     build: ./backend
     environment:
       APP_ENV: local
-      AUTH_MODE: test_stub
+      AUTH_MODE: ${AUTH_MODE:-test_stub}
       TEST_ACTOR_ID: ${TEST_ACTOR_ID:-test-a}
+      OPERATOR_USER_ID: ${OPERATOR_USER_ID:-ops-admin}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-change-me-local-only}@db:5432/agent_dev
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5190,http://127.0.0.1:5190}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
@@ -40,6 +42,35 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  seed:
+    # 재현 데모용 1회 실행: 개발 DB 마이그레이션, 데모 조직·지원 범위, 교육 fixture(재실행해도 중복 없음).
+    profiles: ["demo"]
+    build: ./backend
+    environment:
+      APP_ENV: local
+      AUTH_MODE: local_session
+      OPERATOR_USER_ID: ops-admin
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-change-me-local-only}@db:5432/agent_dev
+    command:
+      - sh
+      - -c
+      - >-
+        /app/.venv/bin/alembic upgrade head &&
+        /app/.venv/bin/python -m agent.cli seed-identity &&
+        /app/.venv/bin/python -m agent.cli seed-trainings --mode fixed_status
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    # 직원 웹(MOD-08): 정적 빌드 + /api 프록시. http://127.0.0.1:5190
+    profiles: ["demo"]
+    build: ./frontend
+    ports:
+      - "127.0.0.1:5190:5190"
+    depends_on:
+      - api
 
 volumes:
   db-data:
