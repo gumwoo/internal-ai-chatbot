@@ -138,6 +138,28 @@ async def test_holdout_requires_a_recorded_freeze_with_the_same_budget(paths, mi
         await eval_cli.eval_freeze(argparse.Namespace(budget=8000, reason="바꿈", force=False), settings)
 
 
+async def test_full_context_baseline_runs_holdout_only_at_the_d50_budget(paths, migrated):
+    settings = make_settings(database_url=migrated)
+    await eval_cli.eval_freeze(argparse.Namespace(budget=4000, reason="dev", force=False), settings)
+    run = argparse.Namespace(
+        strategy="full_context_reference",
+        split="holdout",
+        budget=4000,
+        operational=False,
+        cases=None,
+        resume=False,
+        out=None,
+        live=False,
+    )
+    with pytest.raises(SystemExit, match="D-50"):
+        await eval_cli.eval_run(run, settings)  # A/B 동결 예산이 아니라 기준선 예산
+    run.budget = eval_cli.FULL_CONTEXT_BUDGET
+    with pytest.raises(
+        SystemExit, match="질문 시각"
+    ):  # 동결 검사를 지나 문항 읽기까지 간다(시험 holdout은 비어 있음)
+        await eval_cli.eval_run(run, settings)
+
+
 async def test_run_refuses_to_overwrite_and_resume_skips_only_successful_cases(paths, migrated, capsys):
     settings = make_settings(database_url=migrated)
     out = paths / "r.jsonl"

@@ -21,6 +21,7 @@ EVAL_MANIFEST = REPO_ROOT / "eval" / "manifest.json"
 SOURCES_INDEX = REPO_ROOT / "data" / "staging" / "eval-sources" / "index.json"
 RESULTS_DIR = REPO_ROOT / "data" / "staging" / "eval-results"
 FREEZE = RESULTS_DIR / "freeze.json"
+FULL_CONTEXT_BUDGET = 150_000  # D-50
 QUERY_CACHE = REPO_ROOT / "data" / "staging" / "embeddings" / "eval-query-cache.jsonl"
 # 표시용 가격(USD/100만 토큰). cli._PRICE_PER_MTOK와 같은 출처. 실제 청구액이 아니다.
 _PRICE = {"claude-haiku-5-5": (0.10, 0.50)}
@@ -69,7 +70,11 @@ async def eval_run(args: argparse.Namespace, settings: Settings) -> None:
     from agent.shared.clock import FixedClock
     from agent.shared.contracts import ExecutionPolicy
 
-    if args.split in ("holdout", "all"):
+    if args.split in ("holdout", "all") and args.strategy == "full_context_reference":
+        # 전체 문맥 기준선은 A/B 예산 동결과 무관하게 D-50의 고정 예산으로만 돈다.
+        if args.budget != FULL_CONTEXT_BUDGET:
+            sys.exit(f"전체 문맥 기준선은 D-50 예산 {FULL_CONTEXT_BUDGET}으로만 실행한다")
+    elif args.split in ("holdout", "all"):
         # holdout은 dev로 예산을 동결한 뒤에만 실행한다(docs/13 K9).
         frozen = json.loads(FREEZE.read_text(encoding="utf-8")) if FREEZE.exists() else None
         if frozen is None or frozen.get("budget") != args.budget:
