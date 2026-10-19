@@ -4,11 +4,11 @@
 
 ## 현재 상태
 
-- M4 Wiki 코드까지 있다(`backend/`, `frontend/`). M4: Wiki 빌드·원문 대조·의미 검수·원자적 게시·stale·권한 교집합 후보(MOD-10), wiki_assisted 검색·운영 fallback·엄격 실패 기록(MOD-11), 대화 전략 고정(D-45~D-48). 실제 Wiki 빌드는 100개 게시 뒤. M6: 실제 API 연결 화면(MOD-08, T-20/21 E2E), GitHub Actions CI, Docker 재현 구성. M5: IT 티켓(MOD-12, 준비 draft·화면 수정·확인·취소, T-30~33). M3: 로컬 세션·인가(MOD-09), PDF 파싱·청크·임베딩(MOD-06), 게시·권한 검색·근거(MOD-05), raw 검색(MOD-11), 문서 인용. 남은 결정은 D-36~D-40으로 반영(manifest 검수본·빈 첫 답 1회 재호출·부분 되묻기·시제 목록·우선관계/경과조항). 100개 전체 임베딩은 Gemini 무료 티어 일일 한도(1,000건) 때문에 날을 나눠 채우는 중이고, 다 채워야 개발 DB에 게시한다. 이전 단계: MOD-04 교육 조회, MOD-07 Anthropic 어댑터(thinking 끔), MOD-03 도구 2개, MOD-02 실행 반복·상한·근거 원장, MOD-01 대화 저장·멱등 재전송·만료 회수·영속 observer·검증된 사본(CP-07 최소형)·진행 상황 스트리밍(SSE, D-29). 평가셋 150문항(`eval/`, 모델 생성 문항·모델 대조 검증)은 있고, A/B 실행·최종 평가·보고서는 100개 게시 뒤다(`docs/08-development-plan.md`).
+- M1~M6 코드와 최종 평가까지 끝났다(`backend/`, `frontend/`, `docs/report/final-evaluation.md`). 개발 DB에 100개 문서·Wiki(문서 43개 범위)가 게시돼 있다. holdout 100문항 규칙 정답 A raw 0.60 · B wiki_assisted 0.42 · 전체 문맥 기준선 0.59(실측, D-58). 평가 결과 파일은 `data/staging/eval-results/`, holdout 예산 동결은 `freeze.json`(4000). 날짜 검증은 표지 v5(D-56). 단계별 기록은 `docs/08-development-plan.md`.
 - 실제 모델 호출은 과금된다. `ask --live`와 `pytest -m live_model`은 사용자 승인 후에만 실행한다.
 - 도구는 uv · SQLAlchemy 2 + Alembic · psycopg 3 · pytest · ruff, 프런트는 Vite + React + TS다(D-26). 서버는 비동기(D-28), Python 3.13.
 - 코드 위치: 공통 계약은 `backend/src/agent/shared/`, 업무 모듈은 `backend/src/agent/modules/<패키지>/`, 앱 조립은 `backend/src/agent/app/`. 모듈 import 방향은 `tests/test_module_boundaries.py`가 검사한다.
-- 모델은 대화 Claude Haiku 5.5, 임베딩 `gemini-embedding-2`, judge Gemini 무료 티어다(D-25·D-27). 키는 사용자가 `.env`에 넣으며 키 이름은 `.env.example`을 따른다.
+- 모델은 대화 Claude Haiku 5.5, 임베딩 `gemini-embedding-2`(유료 계정, D-53), judge `gemini-3.8-flash`(D-54, `JUDGE_MODEL` 환경 변수)다. 키는 사용자가 `.env`에 넣으며 키 이름은 `.env.example`을 따른다.
 
 ## 명세 위치
 

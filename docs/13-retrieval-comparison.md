@@ -112,7 +112,7 @@ D-25/D-27에 따라 답변은 Claude Haiku 5.5, judge는 다른 계열인 Gemini
 
 **패킹 순서.** 긴 문맥에서 중간에 놓인 근거를 덜 쓰는 현상이 보고됐으므로 packing_order를 설정 ID로 고정하고 A/B에 같은 규칙을 적용한다. 순서 효과는 dev에서 진단만 하며 holdout을 보고 순서를 바꾸지 않는다.
 
-**재정렬(후속 공통 실험).** 주 실험(wiki-contribution-vector-v1)에는 reranker가 없다. 추가할 때는 별도 비교 ID로 넓은 후보 집합→같은 reranker 재정렬→같은 token 예산을 A의 원문 후보와 B의 확장 원문 후보에 똑같이 적용한다. 결과는 {A, B}×{재정렬 없음, 있음}으로 나눠 Wiki 효과와 재정렬 효과를 섞지 않는다. D-22에 따라 지금은 실행하지 않고, dev 예산 스윕에서 hard_negative anchor 인용 오답이 확인되면 사용자 확인 뒤 추가한다. holdout을 본 뒤 추가하지 않는다. 판단 기준·후보 수·reranker 모델·한국어 지원·지연은 O-12에서 정한다.
+**재정렬(후속 공통 실험).** 주 실험(wiki-contribution-vector-v1)에는 reranker가 없다. 추가할 때는 별도 비교 ID로 넓은 후보 집합→같은 reranker 재정렬→같은 token 예산을 A의 원문 후보와 B의 확장 원문 후보에 똑같이 적용한다. 결과는 {A, B}×{재정렬 없음, 있음}으로 나눠 Wiki 효과와 재정렬 효과를 섞지 않는다. D-22에 따라 지금은 실행하지 않고, dev 예산 스윕에서 hard_negative anchor 인용 오답이 확인되면 사용자 확인 뒤 추가한다. holdout을 본 뒤 추가하지 않는다. D-58로 추가하지 않기로 했다(dev hard negative 인용 0.10, 오답 대부분이 답변 단계).
 
 **전체 문맥 기준선(대조군, D-22로 계획).** 비교 ID는 full-context-reference-v1이다. 운영 전략이 아니라 "검색을 더 잘해도 넘기 어려운 수준"과 비용을 보는 대조군이다.
 
@@ -123,6 +123,6 @@ D-25/D-27에 따라 답변은 Claude Haiku 5.5, judge는 다른 계열인 Gemini
 - 상한과 순서: final_context_token_limit 대신 모델 입력 한도에서 시스템·도구·답변 예약분을 뺀 값만 상한으로 둔다. packing_order는 A/B와 같다.
 - 실행 가능성: 먼저 문항별 actor×사건 조합의 허용 원문 token 수를 같은 tokenizer로 실측한다. 모델 입력 한도, 모델 호출 timeout 20초, run 60초 중 하나라도 넘으면 그 문항은 infeasible로 기록하고 품질 점수와 분리해 분모를 공개한다. 기준선을 위해 실행 상한이나 필터를 바꾸지 않는다.
 - 캐시: 제한 원문은 actor 필터 뒤에만 넣는다. prompt cache는 같은 actor·snapshot·필터 조합 안에서만 재사용한다.
-- 해석: 실측 결과와 실행 가능 범위는 O-12에 기록하며 A/B 결론을 대신하지 않는다.
+- 해석: 실측 결과와 실행 가능 범위는 D-58·[최종 보고서](report/final-evaluation.md)에 기록하며 A/B 결론을 대신하지 않는다.
 
 **하지 않는 것.** 절대 유사도 임계값으로 근거를 자르지 않는다. 질문마다 근거 수를 자동으로 정하는 adaptive cutoff는 MVP 범위 밖이며 도입하면 별도 비교 ID로 측정한다.

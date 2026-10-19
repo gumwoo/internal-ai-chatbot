@@ -12,7 +12,7 @@
 | LangGraph | 영속 실행·중단/재개·복잡한 분기가 실제 필요할 때. 부작용 멱등성 유지 |
 | 온라인 Wiki LLM 탐색 | 초기 B와 별도 전략으로 비용/품질 실험 |
 | Hybrid | 원문 Recall 실패가 확인됐을 때 A/B 공통의 별도 비교 ID로 추가([비교 프로토콜](13-retrieval-comparison.md)) |
-| Reranker | dev 예산 스윕에서 hard_negative anchor 인용 오답이 확인되고 사용자가 확인한 경우에만, holdout 전에 A/B 공통의 별도 비교 ID로 추가(D-22, O-12) |
+| Reranker | 추가하지 않기로 했다(D-58: dev hard negative 인용 0.10, 오답 대부분이 답변 단계). 다시 검토하려면 새 평가 버전에서 dev로 판단한다(D-22) |
 | 문서 관리 UI | CLI 운영에서 검수/게시/회수가 불편해질 때 |
 | SSO·객체 저장소·큐 | 실제 사용자/동시성·운영 환경 요구가 생겼을 때 |
 | GPU 서빙·Kubernetes | 별도 모델/인프라 목표가 생겼을 때. 현재 필수 아님 |
