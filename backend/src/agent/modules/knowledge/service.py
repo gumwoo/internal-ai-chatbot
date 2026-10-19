@@ -374,6 +374,31 @@ class KnowledgeService:
             rows = (await conn.execute(text(_COVERS_SQL), params)).mappings().all()
         return any(_row_allowed(actor, row["policy"]) for row in rows)
 
+    async def normative_periods(
+        self, actor: ActorContext, snapshot_id: str, document_key: str, *, knowledge_as_of: datetime
+    ) -> list[tuple[date, date | None, str]]:
+        """이 문서 키의 공개·게시 규범 판본 시행 구간 (effective_from, effective_to(미포함), version).
+
+        D-67: 사건 날짜를 확정하지 못했을 때 판본별로 원문을 함께 주기 위한 판본 목록.
+        권한은 normative_covers와 같다.
+        """
+        if not _allowed(actor, "knowledge.search"):
+            return []
+        params = {
+            **_acl_params(actor),
+            "snapshot_id": uuid.UUID(snapshot_id),
+            "document_key": document_key,
+            "knowledge_as_of": knowledge_as_of,
+        }
+        async with self._engine.connect() as conn:
+            rows = (await conn.execute(text(_PERIODS_SQL), params)).mappings().all()
+        periods = {
+            (row["effective_from"], row["effective_to"], row["version"])
+            for row in rows
+            if row["effective_from"] is not None and _row_allowed(actor, row["policy"])
+        }
+        return sorted(periods, key=lambda p: p[0])
+
     async def edition_relations(self, edition_ids: set[str]) -> dict[str, dict[str, Any]]:
         """판본의 검수된 관계(transition_relations·authority_relations).
 
@@ -984,6 +1009,22 @@ WHERE m.snapshot_id = :snapshot_id
   AND e.available_from <= :knowledge_as_of
   AND e.effective_from <= CAST(:as_of_date AS date)
   AND (e.effective_to IS NULL OR CAST(:as_of_date AS date) < e.effective_to)
+"""
+    + _ACL_CLAUSE
+)
+
+_PERIODS_SQL = (
+    """
+SELECT e.effective_from, e.effective_to, e.version, a.policy
+FROM snapshot_members m
+JOIN parsed_artifacts p ON p.artifact_id = m.artifact_id
+JOIN document_editions e ON e.edition_id = p.edition_id
+JOIN resource_acl a ON a.document_key = e.document_key
+WHERE m.snapshot_id = :snapshot_id
+  AND e.document_key = :document_key
+  AND e.document_role = 'normative'
+  AND e.edition_state <> 'withdrawn'
+  AND e.available_from <= :knowledge_as_of
 """
     + _ACL_CLAUSE
 )

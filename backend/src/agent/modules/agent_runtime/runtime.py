@@ -127,6 +127,9 @@ class _Run:
     # 이미 문맥에 넣은 (그룹, 사건, 날짜 기준, 날짜) → 그때 붙인 citation_id. 같은 사건의 같은 검색 반복만
     # 재사용한다. 사건·날짜가 다르면 근거 연결을 합치지 않는다(05-retrieval-assembly 3항).
     seen_groups: dict[tuple, list[str]] = field(default_factory=dict)
+    # 원문 예산을 이미 쓴 support_group ID. 같은 그룹을 다른 사건 문맥(판본별 결과 뒤 날짜 재검색 등)으로
+    # 다시 받으면 인용 ID는 새로 주되 같은 원문이므로 예산은 다시 세지 않는다(D-67).
+    charged_groups: set[str] = field(default_factory=set)
     # 현재 사용자 질문(사건 날짜 인용 대조용).
     message: str = ""
     # 검색 호출별 resolution·되묻기·미지원(서버 결론 매핑에 쓴다).
@@ -737,6 +740,7 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
             "event_key": data.get("event_key"),
             "date_basis": data.get("date_basis"),
             "transition_pending": data.get("transition_pending"),
+            "edition_split": data.get("edition_split"),
         }
     )
     limit = run.context.policy.final_context_token_limit
@@ -746,15 +750,26 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
     context_key = (data.get("event_key"), data.get("date_basis"), data.get("as_of_date"))
     if data.get("normative_gap"):
         run.normative_gap_contexts.add(context_key)
+
+    def group_context(group: dict[str, Any]) -> tuple:
+        # D-67: 판본별로 함께 준 결과는 그룹마다 사건 날짜(그 판본의 시행 구간 안)가 다르다.
+        return (
+            data.get("event_key"),
+            data.get("date_basis"),
+            group.get("as_of_date") or data.get("as_of_date"),
+        )
+
     for index, group in enumerate(groups):
         group_id = group.get("group_id")
         passages = group.get("passages", [])
-        key = (group_id, *context_key)
+        group_as_of = group.get("as_of_date") or data.get("as_of_date")
+        key = (group_id, *group_context(group))
         if key in run.seen_groups:
             ids = run.seen_groups[key]
             kept_groups.append(
                 {
                     "group_id": group_id,
+                    "as_of_date": group_as_of,
                     "passages": [
                         {**{k: p.get(k) for k in _PASSAGE_VIEW_KEYS}, "citation_id": cid}
                         for p, cid in zip(passages, ids, strict=False)
@@ -762,23 +777,26 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
                 }
             )
             continue
-        cost = sum(int(p.get("token_estimate", 0)) for p in passages)
+        cost = 0 if group_id in run.charged_groups else sum(int(p.get("token_estimate", 0)) for p in passages)
         if run.evidence_tokens + cost > limit:
             dropped_ids = [
                 g.get("group_id")
                 for g in groups[index:]
-                if (g.get("group_id"), *context_key) not in run.seen_groups
+                if (g.get("group_id"), *group_context(g)) not in run.seen_groups
             ]
-            if index == 0:
+            if index == 0 and not data.get("edition_split"):
                 run.required_group_missing = True
                 first = passages[0]["citation_id"] if passages else ""
                 run.missing_required_calls.add(first.split("-", 1)[0])
+            # D-67: 판본별 결과의 첫 그룹이 예산에 못 들어가도 답 전체를 보류하지 않는다. 그 사건의 원문을
+            # 인용하지 못하므로 서버가 그 사건의 날짜를 묻는 문구를 붙인다(_edition_split_notes).
             break
         run.evidence_tokens += cost
+        run.charged_groups.add(group_id)
         for passage in passages:
             run.citations[passage["citation_id"]] = {
                 **passage,
-                "as_of_date": data.get("as_of_date"),
+                "as_of_date": group_as_of,
                 "date_basis": data.get("date_basis"),
                 "event_key": data.get("event_key"),
                 "prospective": data.get("prospective"),
@@ -789,6 +807,7 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
         kept_groups.append(
             {
                 "group_id": group_id,
+                "as_of_date": group_as_of,
                 "passages": [{k: p.get(k) for k in _PASSAGE_VIEW_KEYS} for p in passages],
             }
         )
@@ -804,11 +823,15 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
         "year_inferred": bool((data.get("date_evidence") or {}).get("year_inferred")),
         # D-61: 사건 기준 규정인데 날짜가 없어 오늘을 사건 날짜로 본 경우(답에 밝힌다)
         "assumed_today": (data.get("date_evidence") or {}).get("source") == "assumed_today",
-        "clarification": data.get("clarification"),
+        # D-67: 판본별 결과의 되묻기 문구는 서버 보정용이라 모델에 보내지 않는다(되묻지 말고 나눠 답하게).
+        "clarification": None if data.get("edition_split") else data.get("clarification"),
         "unsupported": data.get("unsupported"),
         "normative_gap": data.get("normative_gap"),
         "authority_relations": data.get("authority_relations") or [],
         "transition_pending": data.get("transition_pending"),
+        # D-67: 날짜를 확정하지 못해 판본별 원문을 함께 줬다(그룹의 as_of_date가 그 판본의 날짜).
+        # 대상 문서 키는 서버 판정용이라 모델에 보내지 않는다.
+        "edition_split": _edition_split_view(data.get("edition_split")),
         "groups": kept_groups,
     }
     if dropped_ids:
@@ -840,9 +863,22 @@ def _server_outcome(run: _Run, final: FinalCandidate, citation_ids: list[str], t
     cited_calls = {c.split("-", 1)[0] for c in citation_ids}
     if run.missing_required_calls - cited_calls:
         return Outcome.INSUFFICIENT_EVIDENCE, _with_pending(run, _BUDGET_ABSTAIN)
+    dated = _dated_contexts(run)
+    splits = [
+        r
+        for r in run.search_results
+        if r.get("edition_split") and (r.get("event_key"), r.get("date_basis")) not in dated
+    ]
+    if splits and not citation_ids and not training_ids:
+        # D-67: 판본별 원문을 받고도 아무 원문도 인용하지 않은 답은 어느 판본인지 근거가 없다. 되묻는다.
+        return Outcome.NEEDS_CLARIFICATION, splits[0]["clarification"]["prompt"]
     if citation_ids or training_ids:
         # D-39(P-18 B): 확인된 사건은 답하고, 날짜를 확인하지 못한 사건의 되묻기 문구를 서버가 덧붙인다.
         pending = [p for p in _pending_clarifications(run) if p not in final.answer]
+        # D-67: 판본별로 함께 준 사건에서 일부 판본만 인용했으면,
+        # 다른 판본이 적용될 수 있다고 서버가 덧붙인다.
+        pending += [n for n in _edition_split_notes(run, splits, citation_ids) if n not in final.answer]
+        pending = list(dict.fromkeys(pending))  # 되묻기 문구가 D-39 문구와 같을 수 있다
         if pending:
             return Outcome.ANSWERED, "\n\n".join([final.answer, *pending])
         return None
@@ -853,6 +889,48 @@ def _server_outcome(run: _Run, final: FinalCandidate, citation_ids: list[str], t
             return Outcome.NEEDS_CLARIFICATION, clarification["prompt"]
         unsupported = next((r["unsupported"] for r in run.search_results if r["unsupported"]), None)
         return Outcome.INSUFFICIENT_EVIDENCE, (unsupported or {}).get("safe_message") or _BUDGET_ABSTAIN
+
+
+def _edition_split_notes(run: _Run, splits: list[dict[str, Any]], citation_ids: list[str]) -> list[str]:
+    """D-67: 판본별로 함께 준 사건 중, 규범 원문을 모든 판본에서 인용하지 않은 사건의 안내 문구.
+
+    그 사건의 원문을 하나도 인용하지 않았으면 날짜 되묻기 문구, 일부 판본만 인용했으면 다른 판본 안내다.
+
+    모델이 한 판본만 골라 답해도(날짜를 확정할 근거 없이) 사용자가 다른 판본의 적용 가능성을 알게 한다.
+    """
+    notes: list[str] = []
+    for split in splits:  # 같은 사건을 날짜로 다시 확인한 결과는 호출 쪽에서 이미 뺐다(_dated_contexts)
+        editions = split["edition_split"]["editions"]
+        wanted = {e["as_of_date"] for e in editions}
+        cited = {
+            run.citations[c].get("as_of_date")
+            for c in citation_ids
+            if c in run.citations
+            and run.citations[c].get("document_role") == "normative"
+            and run.citations[c].get("document_key") == split["edition_split"].get("document_key")
+            and run.citations[c].get("event_key") == split.get("event_key")
+            and run.citations[c].get("date_basis") == split.get("date_basis")
+        }
+        if wanted <= cited:
+            continue
+        if not cited:
+            # 이 사건의 원문을 하나도 쓰지 않았다(다른 사건만 답함):
+            # 그 사건의 날짜를 묻는다(D-39와 같은 문구).
+            notes.append(split["clarification"]["prompt"])
+            continue
+        missing = [
+            f"사건이 {e['effective_from']}부터 {e['effective_to']} 전까지이면 {e['version']} 판본이"
+            if e["effective_to"]
+            else f"사건이 {e['effective_from']} 이후이면 {e['version']} 판본이"
+            for e in editions
+            if e["as_of_date"] not in cited
+        ]
+        notes.append(
+            "사건 날짜를 확인하지 못했습니다. "
+            + ", ".join(missing)
+            + " 적용됩니다. 날짜를 알려 주시면 그 판본으로 안내하겠습니다."
+        )
+    return list(dict.fromkeys(notes))  # 같은 사건을 날짜 없이 여러 번 검색해도 문구는 한 번
 
 
 def _normative_gap_withhold(run: _Run, citation_ids: list[str]) -> str | None:
@@ -894,8 +972,31 @@ def _pending_clarifications(run: _Run) -> list[str]:
     return prompts
 
 
+def _edition_split_view(split: dict[str, Any] | None) -> dict[str, Any] | None:
+    """모델에 보이는 판본별 결과 표시(대상 문서 키 제외)."""
+    if not split:
+        return None
+    return {k: v for k, v in split.items() if k != "document_key"}
+
+
+def _dated_contexts(run: _Run) -> set[tuple]:
+    """판본별 결과가 아니라 날짜로 해결된 사건 문맥 (event_key, date_basis)."""
+    return {
+        (r.get("event_key"), r.get("date_basis"))
+        for r in run.search_results
+        if r["resolution"] == "resolved" and not r.get("edition_split")
+    }
+
+
 def _with_pending(run: _Run, text: str) -> str:
-    pending = [p for p in _pending_clarifications(run) if p not in text]
+    # 서버 문구로 답을 바꿀 때는 판본별로 함께 준 사건(D-67)의 원문도 쓰이지 않으므로 그 사건의 날짜도 묻는다.
+    resolved = _dated_contexts(run)
+    splits = [
+        r["clarification"]["prompt"]
+        for r in run.search_results
+        if r.get("edition_split") and (r.get("event_key"), r.get("date_basis")) not in resolved
+    ]
+    pending = [p for p in dict.fromkeys([*_pending_clarifications(run), *splits]) if p not in text]
     return "\n\n".join([text, *pending])
 
 
@@ -933,6 +1034,8 @@ def _citation_dto(passage: dict[str, Any]) -> dict[str, Any]:
         "source_role": passage.get("source_role") or "base",
         "year_inferred": bool((passage.get("date_evidence") or {}).get("year_inferred")),
         "assumed_today": (passage.get("date_evidence") or {}).get("source") == "assumed_today",
+        # D-67: as_of_date가 사용자 사건 날짜가 아니라 판본별 결과의 판본 기준일이다
+        "edition_split": (passage.get("date_evidence") or {}).get("source") == "edition_split",
         "page_spans": spans,
         "quote": text if len(text) <= 300 else text[:300] + "…",
         "evidence_url": f"/api/v1/evidence/{passage['passage_id']}",

@@ -109,7 +109,11 @@ async def test_baseline_needs_the_same_date_clarification_as_a(org):
         snapshot_id=corpus,
         strategy="full_context_reference",
     )
-    assert result.resolution == "needs_clarification" and result.groups == ()
+    # D-67: A와 같은 날짜 처리 — 날짜를 모르면 되묻지 않고 판본별 원문을 함께 준다(판본을 고르지 않는다)
+    assert result.resolution == "resolved" and result.edition_split is not None
+    assert {g.as_of_date.isoformat() for g in result.groups} == {
+        e["as_of_date"] for e in result.edition_split["editions"]
+    }
 
 
 async def test_eval_runner_runs_the_baseline_with_a_large_budget(org, migrated, tmp_path):

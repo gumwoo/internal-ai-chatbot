@@ -482,6 +482,7 @@ def search_view(result: RetrievalResult, ordinal: int) -> dict[str, Any]:
         "normative_gap": result.normative_gap,
         "authority_relations": list(result.authority_relations),
         "transition_pending": result.transition_pending,
+        "edition_split": result.edition_split,
         "groups": [],
     }
     counter = 0
@@ -511,5 +512,8 @@ def search_view(result: RetrievalResult, ordinal: int) -> dict[str, Any]:
                     "token_estimate": passage.token_estimate,
                 }
             )
-        data["groups"].append({"group_id": group.group_id, "rank": group.rank, "passages": passages})
+        entry = {"group_id": group.group_id, "rank": group.rank, "passages": passages}
+        if group.as_of_date is not None:
+            entry["as_of_date"] = group.as_of_date.isoformat()
+        data["groups"].append(entry)
     return data

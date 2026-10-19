@@ -26,7 +26,8 @@ from agent.shared.clock import KST
 # m7-assume-today-1: 사건 기준 규정을 오늘 날짜로 본 경우(assumed_today) 답에 밝힌다(D-61).
 # m7-answer-1: 조건·예외·후속 절차를 함께 쓰기, 모호해도 먼저 검색(holdout 오답 분석의 사실 누락·검색 없는 되묻기).
 # m7-answer-2: 규칙 번호를 티켓 규칙(14~17)과 겹치지 않게 18·19로, 다른 판본 숫자는 비교를 물을 때만(D-64 검증).
-PROMPT_VERSION = "m7-answer-2"
+# m7-answer-3: 날짜를 확정하지 못하면 판본별로 조건을 나눠 답한다(edition_split, D-67).
+PROMPT_VERSION = "m7-answer-3"
 
 _CACHE_FIELDS = ("id", "code", "title", "starts_at", "ends_at", "location", "status")
 
@@ -78,6 +79,7 @@ _DOCUMENT_RULES = """
 9. 검색 결과 resolution이 needs_clarification이면 clarification.prompt의 내용으로 사용자에게 날짜를 되묻는다(outcome=needs_clarification). unsupported면 안내할 수 없는 이유를 짧게 말한다(outcome=insufficient_evidence).
 10. 검색 결과에 evidence_budget_exceeded가 있으면 필요한 원문을 다 받지 못한 것이다. 받은 원문으로 결론이 서지 않으면 근거가 부족하다고 답한다. 답에는 검색 결과 원문에 있는 금액·기한·조건만 쓰고, 쓴 원문의 citation_id를 citation_ids에 넣는다. 결과가 없거나 원문으로 결론을 낼 수 없으면 근거가 부족하다고 답한다(outcome=insufficient_evidence). 안내(FAQ·매뉴얼, document_role=guidance)는 규정을 바꾸지 못한다. 안내가 규정과 다르면 규정을 따르고 차이를 밝힌다. 규정(normative)끼리 다르거나 공지가 규정과 다른데 결과에 어느 쪽이 우선인지 적혀 있지 않으면 한쪽을 고르지 말고 양쪽 원문을 모두 인용해 서로 다르다는 것과 확정할 수 없다는 것을 알린다. 결과에 normative_gap이 있으면 그 날짜에 적용되는 규정 판본이 없는 것이다. 안내 문서로 금액·한도·권리·의무를 확정하지 말고 normative_gap.safe_message의 내용으로 답한다(outcome=insufficient_evidence).
 18. 답에는 질문에 직접 걸린 조건·예외와 그다음 절차(기한을 넘기면 어떻게 되는지, 예외 승인을 누가 하는지, 다시 신청·이수하는 방법)를 원문에 있는 대로 함께 쓴다. 질문과 관계없는 배경 규정은 늘어놓지 않는다. 적용되지 않는 다른 판본·다른 조항의 금액·기한은 사용자가 비교를 물었을 때만 쓴다.
+20. 결과에 edition_split이 있으면 사건 날짜를 확정하지 못해 서버가 판본별 원문을 함께 준 것이다. 되묻지 말고, 각 그룹의 as_of_date·version으로 판본을 구분해 "○월 ○일 이전이면 종전 기준 …, 이후면 현행 기준 …"처럼 시행일(effective_from)을 경계로 조건을 나눠 답한다(outcome=answered). 판본 사이에 차이가 없으면 하나로 답한다. 끝에 날짜를 알려 주면 하나로 정해 줄 수 있다고 덧붙인다.
 19. 무엇을 묻는지 모호해도(어느 교육·장애·문서인지 등) 규정·절차 질문이면 먼저 검색하고, 검색 결과로 답할 수 있는 일반 규칙이 있으면 그것으로 답한다. 결과를 본 뒤에도 갈래가 나뉘어 답이 달라질 때만 되묻는다.
 12. 결과의 authority_relations는 원문에 적힌 문서 간 관계다(defers_to=그 주제는 to_title 문서를 따른다, precedes=to_title 문서를 먼저 확인한다, limited_by=to_title 문서의 범위 안에서만 가능하다). 문서 간 우선관계는 이것만 쓰고, 적혀 있지 않은 우선관계를 지어내지 않는다. passage의 source_role=transition은 반대편 판본의 경과조항으로, 서버가 사건 조건을 확인해 붙인 것이다. 기본 원문과 함께 설명한다.
 13. 결재·계정처럼 경과조항에 같은 사건의 다른 날짜(예: 상신일)가 필요하면 서버가 그 날짜를 되묻는다. 사용자가 그 날짜를 말했으면 search_documents의 other_events에 date_basis·as_of_date·date_quote(날짜 하나 + 바로 뒤 사건 동사, 예: "9월 28일에 상신한")를 넣는다. 상신은 신청일(request_date)이다.

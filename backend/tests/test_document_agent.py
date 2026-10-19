@@ -83,6 +83,21 @@ class Capturing(FakeModelClient):
         ]
 
 
+def assert_edition_split(data: dict, reason: str = "missing_date") -> None:
+    """D-67: 날짜를 확정하지 못했으면 되묻지 않고 판본별 원문을 함께 준다(어느 판본도 고르지 않는다)."""
+    split = data["edition_split"]
+    assert data["resolution"] == "resolved" and split["reason"] == reason
+    assert "document_key" not in split  # 대상 문서 키는 서버 판정용(모델 보기에서 뺀다)
+    days = {e["as_of_date"] for e in split["editions"]}
+    normative_days = {
+        g["as_of_date"]
+        for g in data["groups"]
+        if any(p["document_role"] == "normative" for p in g["passages"])
+    }
+    assert len(days) == 2 and days <= normative_days  # 종전·현행 규범 원문이 모두 들어온다
+    assert data["assumed_today"] is False and data["clarification"] is None  # 날짜 가정·되묻기 문구 없음
+
+
 @pytest.fixture
 async def published(seeded_engine):
     await load_demo_org(seeded_engine, FIXTURE_NOW)
@@ -221,8 +236,8 @@ async def test_missing_event_date_returns_clarification_not_today(published, mig
         # 날짜 없는 현재형("한도가 얼마야?")은 D-61로 오늘 판본을 쓴다. 과거 단서가 있으면 여전히 묻는다.
         _, response = await _ask(client, "예전에 신청한 외부교육 한도가 얼마였어?")
     data = model.tool_payloads()[0]["data"]
-    assert data["resolution"] == "needs_clarification" and data["groups"] == []
-    assert data["clarification"]["required_event_type"] == "training_start"
+    assert_edition_split(data)  # D-67: 되묻지 않고 판본별 원문(모델은 그래도 되물을 수 있다)
+    assert data["edition_split"]["event_type"] == "training_start"
     assert response.json()["outcome"] == "needs_clarification" and response.json()["citations"] == []
 
 
@@ -400,8 +415,9 @@ async def test_event_basis_without_date_asks_instead_of_using_today(published, m
     async with api_client(_app(migrated, model)) as client:
         await _ask(client, "9월 29일에 시작한 외부교육 한도")
     data = model.tool_payloads()[0]["data"]
-    assert data["resolution"] == "needs_clarification" and data["groups"] == []
-    assert data["clarification"]["reason"] == "missing_date"
+    assert_edition_split(data)
+    # 판본을 번갈아 둔다: 근거 예산이 작아도 앞쪽 그룹에 두 판본이 모두 들어간다
+    assert {g["as_of_date"] for g in data["groups"][:2]} == {"2026-09-30", "2026-10-16"}
 
 
 @pytest.mark.parametrize(
@@ -431,8 +447,7 @@ async def test_current_basis_on_event_regulation_assumes_today_only_for_present_
         assert "외부교육비 지원 규정" in normative
         assert data["date_basis"] == "training_start" and data["as_of_date"] == "2026-10-16"
     else:
-        assert data["resolution"] == "needs_clarification" and data["groups"] == []
-        assert data["clarification"]["reason"] == "missing_date"
+        assert_edition_split(data)  # 오늘로 가정하지 않고 판본별 원문(D-67)
 
 
 @pytest.mark.parametrize(
@@ -460,9 +475,7 @@ async def test_event_basis_without_date_assumes_today_for_present_questions(
         }
         assert "외부교육비 지원 규정" in normative
     else:
-        assert (
-            data["resolution"] == "needs_clarification" and data["clarification"]["reason"] == "missing_date"
-        )
+        assert_edition_split(data)
 
 
 async def test_assume_today_is_not_used_after_a_clarification_in_the_same_run(published, migrated):
@@ -475,7 +488,7 @@ async def test_assume_today_is_not_used_after_a_clarification_in_the_same_run(pu
         await _ask(client, "외부교육 1회 지원 한도가 얼마예요?")
     first, second = (p["data"] for p in model.tool_payloads()[:2])
     assert first["resolution"] == "needs_clarification"
-    assert second["resolution"] == "needs_clarification" and second["groups"] == []
+    assert_edition_split(second)  # 되묻기를 지우는 "오늘 가정"은 하지 않고, 판본별 원문만 준다
 
 
 async def test_assume_today_is_blocked_by_a_date_in_an_earlier_assistant_message(published, migrated):
@@ -486,7 +499,173 @@ async def test_assume_today_is_blocked_by_a_date_in_an_earlier_assistant_message
         conv, _ = await _ask(client, "안녕")
         await _ask(client, "그 교육 한도는?", conversation=conv)
     data = model.tool_payloads()[0]["data"]
-    assert data["resolution"] == "needs_clarification"
+    assert_edition_split(data)  # 오늘 교육으로 보지 않는다
+
+
+class CitingEditions(Capturing):
+    """검색 결과를 보고 판본(as_of_date)마다 규범 원문 하나씩을 인용해 답한다.
+
+    which: 인용할 판본 날짜 집합(None이면 모든 판본).
+    """
+
+    def __init__(self, script, which=None):
+        super().__init__(script)
+        self.which = which
+
+    async def complete_once(self, request):
+        if self._script and self._script[0] == "CITE":
+            self._script.popleft()
+            self.requests.append(request)
+            payload = json.loads(request.messages[-1].tool_results[-1].content)["data"]
+            chosen: dict[str, str] = {}
+            for group in payload["groups"]:
+                day = group.get("as_of_date")
+                normative = [p for p in group["passages"] if p["document_role"] == "normative"]
+                if normative and day not in chosen and (self.which is None or day in self.which):
+                    chosen[day] = normative[0]["citation_id"]
+            return final("판본별로 나눠 답합니다.", citations=list(chosen.values()))
+        return await super().complete_once(request)
+
+
+@pytest.mark.parametrize(("which", "note"), [(None, False), ({"2026-10-16"}, True)])
+async def test_edition_split_answer_gets_a_server_note_only_when_an_edition_is_left_out(
+    published, migrated, which, note
+):
+    """D-67: 판본별 원문을 받은 답이 모든 판본을 인용하면 그대로,
+    한 판본만 인용하면 다른 판본 안내를 붙인다."""
+    search = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "training_start"})
+    model = CitingEditions([tool_turn(search), "CITE"], which=which)
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "지난번에 들은 외부교육 1회 지원 한도가 얼마였죠?")
+    body = response.json()
+    assert response.status_code == 200 and body["outcome"] == "answered"
+    assert ("사건 날짜를 확인하지 못했습니다" in body["answer"]) is note
+    if note:  # 인용하지 않은 종전 판본의 적용 기간을 밝힌다
+        assert "2025-01-01부터 2026-10-01 전까지이면 제1차 개정 (2025.01.01) 판본" in body["answer"]
+    # 화면은 이 날짜를 사용자 사건 날짜가 아니라 판본 기준일로 보여 준다
+    assert all(c["edition_split"] for c in body["citations"])
+    # 인용마다 그 판본의 날짜가 남는다(사용자가 말한 날짜처럼 보이지 않게 판본 날짜 그대로)
+    assert {c["as_of_date"] for c in body["citations"]} == (which or {"2026-09-30", "2026-10-16"})
+
+
+async def test_edition_split_dropped_by_budget_does_not_abstain_the_whole_answer(
+    published, migrated, monkeypatch
+):
+    """D-67: 판본별 결과의 첫 그룹이 예산에 못 들어가도 다른 질문의 답은 보류하지 않는다.
+    그 사건의 원문은 쓰지 못했으므로 그 사건의 날짜를 묻는 문구가 붙는다."""
+    from agent.shared import contracts
+    from agent.shared.tokens import estimate_tokens
+
+    probe = Capturing([tool_turn(IT_TABLE), final("답")])
+    async with api_client(_app(migrated, probe)) as client:
+        await _ask(client, "티켓 상태")
+    first_group = probe.tool_payloads()[0]["data"]["groups"][0]["passages"]
+    limit = sum(estimate_tokens(p["text"]) for p in first_group)  # 티켓 표의 첫 그룹만 들어가는 예산
+    monkeypatch.setattr(contracts.ExecutionPolicy, "__init__", _policy_init(final_context_token_limit=limit))
+    split = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "training_start"})
+    model = Capturing([tool_turn(IT_TABLE, split), final("상태는 표와 같습니다", citations=["c1-1"])])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "티켓 상태랑 지난번에 들은 외부교육 한도 알려 주세요")
+    table, edition = model.tool_payloads()
+    assert table["data"]["groups"] and edition["data"]["edition_split"] and edition["data"]["groups"] == []
+    body = response.json()
+    assert body["outcome"] == "answered" and body["answer"].startswith("상태는 표와 같습니다")
+    assert "교육 시작일" in body["answer"]  # 그 사건은 날짜를 묻는다
+
+
+async def test_edition_split_note_is_skipped_when_the_same_event_is_dated_later(published, migrated):
+    """D-67: 같은 사건을 뒤에서 날짜로 다시 검색해 확인했으면 판본 안내·되묻기 문구를 붙이지 않는다."""
+    split = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "training_start"})
+    model = CitingEditions([tool_turn(split), tool_turn(SEARCH_OLD), "CITE"])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "지난번 외부교육 한도요. 9월 29일에 시작한 교육이에요")
+    first, dated = model.tool_payloads()
+    assert first["data"]["edition_split"] and dated["data"]["edition_split"] is None
+    body = response.json()
+    assert body["outcome"] == "answered" and body["answer"] == "판본별로 나눠 답합니다."
+    assert {c["as_of_date"] for c in body["citations"]} == {"2026-09-29"}
+
+
+async def test_server_abstain_does_not_ask_for_an_event_dated_later(published, migrated, monkeypatch):
+    """D-67: 서버 문구로 답을 바꿀 때도, 뒤에서 날짜로 확인한 사건의 날짜는 다시 묻지 않는다."""
+    from agent.shared import contracts
+    from agent.shared.tokens import estimate_tokens
+
+    split = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "training_start"})
+    message = "지난번 외부교육 한도와 티켓 상태요. 9월 29일에 시작한 교육이에요"
+    probe = Capturing([tool_turn(split), tool_turn(SEARCH_OLD), final("답")])
+    async with api_client(_app(migrated, probe)) as client:
+        await _ask(client, message)
+    groups = {g["group_id"]: g for payload in probe.tool_payloads() for g in payload["data"]["groups"]}
+    limit = sum(estimate_tokens(p["text"]) for g in groups.values() for p in g["passages"])
+    dated = next(
+        p["citation_id"]
+        for g in probe.tool_payloads()[1]["data"]["groups"]
+        for p in g["passages"]
+        if p["document_role"] == "normative"
+    )
+    # 두 검색은 들어가고 마지막 티켓 표 검색의 대표 그룹은 예산 밖이다 → 서버가 결론을 보류한다
+    monkeypatch.setattr(contracts.ExecutionPolicy, "__init__", _policy_init(final_context_token_limit=limit))
+    model = Capturing(
+        [tool_turn(split), tool_turn(SEARCH_OLD), tool_turn(IT_TABLE), final("답", citations=[dated])]
+    )
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, message)
+    assert model.tool_payloads()[2]["data"]["groups"] == []
+    body = response.json()
+    assert body["outcome"] == "insufficient_evidence"
+    assert "교육 시작일" not in body["answer"]
+
+
+async def test_same_group_received_again_for_a_dated_event_is_not_charged_twice(
+    published, migrated, monkeypatch
+):
+    """D-67 검증 지적: 판본별 결과 뒤 같은 사건을 날짜로 다시 검색하면 같은 그룹이 새 인용 ID로 다시 온다.
+    같은 원문이므로 근거 예산은 다시 세지 않는다(예산 때문에 날짜가 확인된 원문이 빠지지 않게)."""
+    from agent.shared import contracts
+    from agent.shared.tokens import estimate_tokens
+
+    split = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "training_start"})
+    message = "지난번 외부교육 한도요. 9월 29일에 시작한 교육이에요"
+    probe = Capturing([tool_turn(split), final("답")])
+    async with api_client(_app(migrated, probe)) as client:
+        await _ask(client, message)
+    split_groups = probe.tool_payloads()[0]["data"]["groups"]
+    limit = sum(
+        estimate_tokens(p["text"]) for g in split_groups for p in g["passages"]
+    )  # 판본별 결과만 들어감
+    monkeypatch.setattr(contracts.ExecutionPolicy, "__init__", _policy_init(final_context_token_limit=limit))
+    model = Capturing([tool_turn(split), tool_turn(SEARCH_OLD), final("답")])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, message)
+    first, dated = model.tool_payloads()
+    shared = {g["group_id"] for g in first["data"]["groups"]} & {
+        g["group_id"] for g in dated["data"]["groups"]
+    }
+    assert dated["data"]["groups"] and dated["data"]["groups"][0]["group_id"] in shared
+    first_ids = {p["citation_id"] for g in first["data"]["groups"] for p in g["passages"]}
+    assert not first_ids & {p["citation_id"] for g in dated["data"]["groups"] for p in g["passages"]}
+
+
+async def test_edition_split_is_not_used_for_unsupported_or_explicit_far_dates(published, migrated):
+    """D-67은 날짜를 확정하지 못한 경우만이다. 확인된 날짜는 그 판본 하나로 검색한다."""
+    search = (
+        "search_documents",
+        {
+            "query": "외부교육비 1회 과정 지원 한도",
+            "date_basis": "training_start",
+            "as_of_date": "2026-09-29",
+            "date_quote": "9월 29일에 시작한",
+        },
+    )
+    model = Capturing([tool_turn(search), final("답")])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, "9월 29일에 시작한 외부교육 한도")
+    data = model.tool_payloads()[0]["data"]
+    assert data["edition_split"] is None and data["as_of_date"] == "2026-09-29"
+    assert {
+        p["version"] for g in data["groups"] for p in g["passages"] if p["document_role"] == "normative"
+    } == {"제1차 개정 (2025.01.01)"}
 
 
 async def test_event_basis_mismatch_filters_other_event_regulations(published, migrated):

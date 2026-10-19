@@ -294,7 +294,8 @@ async def _covered_citation(migrated) -> str:
     async with api_client(_app(migrated, probe)) as client:
         await _ask(client, TWO_TOPICS)
     covered, trip = probe.tool_payloads()
-    assert trip["data"]["resolution"] == "needs_clarification"
+    # D-67: 날짜 없는 출장은 되묻지 않고 판본별 원문을 준다(되묻기 문구는 서버 보정용으로만 남는다)
+    assert trip["data"]["resolution"] == "resolved" and trip["data"]["edition_split"] is not None
     return next(p["citation_id"] for g in covered["data"]["groups"] for p in g["passages"])
 
 

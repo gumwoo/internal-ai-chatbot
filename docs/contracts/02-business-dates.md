@@ -39,7 +39,7 @@ source_kind=user_message는 MOD-01이 본인 user 메시지 구간과 run 고정
 | needs_clarification | passages=[], clarification={reason,required_event_type,event_key,prompt}; 미확정 사건일 null |
 | unsupported | passages=[], clarification=null, unsupported={reason,safe_message}; 미확정 날짜 null |
 
-추가 질문 reason=missing_date/conflicting_dates/ambiguous_event/basis_mismatch/ambiguous_date/range_spans_editions. unsupported reason=future_knowledge/event_out_of_horizon/unsupported_event_type. MOD-03은 정상 도구 결과로 전달하고 MOD-02는 unsupported를 outcome=insufficient_evidence로 매핑한다(메시지 성공 HTTP200). 잘못된 달력 날짜는 검증/추가 확인이며 임의 날짜 보정 금지다.
+추가 질문 reason=missing_date/conflicting_dates/ambiguous_event/basis_mismatch/ambiguous_date/range_spans_editions. 단, 날짜가 없거나(missing_date) 사건 역할 대조에 실패한(basis_mismatch) 검색과 current·explicit_date 검색의 사건 기준 규범은 그 규범 문서의 판본별 결과를 함께 주는 resolved로 바꾼다(D-67): `edition_split={event_type,reason,editions:[{version,effective_from,effective_to,as_of_date}]}`, 그룹마다 `as_of_date`, clarification은 모델에 보이지 않는다. 판본별 검색이 하나라도 resolved가 아니거나 오늘을 포함하는 판본이 없으면 원래 되묻기다. ambiguous_date(연도·시제·범위가 모호하거나 없는 날짜)는 그대로 되묻는다. unsupported reason=future_knowledge/event_out_of_horizon/unsupported_event_type. MOD-03은 정상 도구 결과로 전달하고 MOD-02는 unsupported를 outcome=insufficient_evidence로 매핑한다(메시지 성공 HTTP200). 잘못된 달력 날짜는 검증/추가 확인이며 임의 날짜 보정 금지다.
 
 ## 월·범위·연도 생략 표현
 
@@ -48,6 +48,7 @@ source_kind=user_message는 MOD-01이 본인 user 메시지 구간과 run 고정
 - 구간이 둘 이상의 판본에 걸치면 needs_clarification(range_spans_editions)이다. 단, 그 경계에 검수된 transition_relations가 있고 질문이 경계 전후 처리 자체를 묻는다면 기본 판본+경과조항 support_group으로 resolved한다.
 - 연도가 없는 날짜("9월 29일")는 사용자 문장의 시제로 연도를 정한다(D-24, [정책 선택](../15-policy-options.md) P-05 B). 완료 표현("출발한", "다녀온")은 knowledge_as_of 이전의 가장 가까운 날짜, 예정 표현("갈", "시작하는")은 이후90일 이내의 가장 가까운 날짜다. 시제가 불명확하거나 두 해석이 다른 판본으로 이어지면 ambiguous_date로 되묻는다. 추론한 연도는 date_evidence에 `year_inferred=true`로 남기고 답변에 "2026년으로 보고 답합니다"처럼 표시한다. 시제·역할 표지 목록은 O-13 확정 전 임시 목록이다([P-05 보충](../15-policy-options.md#p-05-o13)). 인용 안의 날짜는 하나이며, 사건 역할과 시제는 날짜 뒤에 붙은 그 사건의 동사·명사에서만 본다("11월 2일 출장을 신청했"의 "신청했"은 출장일의 시제가 아니다). 연도 표지·범위는 인용이 든 문장 전체에서 보고, 목록 밖 표현·범위·떨어진 연도 표지·가정·이력 메시지의 상대 날짜·시작일 기준의 끝 역할 표현은 모두 되묻는다. 인용이 숫자 일부만 가리키면("1월 1일" ⊂ "11월 1일") 대조 실패다. 인용은 모델에 보낸 이력 창 안의 사용자 메시지에서만 찾는다.
 - 날짜를 말하지 않은 현재형 질문이 사건 기준 규정에 걸리면 사건 날짜를 질문 시각의 날짜로 본다. 사용자 문장에 날짜나 과거 단서("다녀온", "지난번", "예전")가 있으면 이렇게 가정하지 않고 되묻는다(D-61). 가정했다는 것은 date_evidence와 답변에 남긴다. 날짜 인용이 날짜·조사로만 끝나면("11월 12일부터") 같은 문장의 인용 뒤 말에서 사건 역할·시제를 본다(D-63).
+- 과거 단서 등으로 오늘로 가정하지 않은 날짜 없는 질문은 판본을 고르지 않고 판본별 원문을 함께 준다(D-67). 답은 시행일을 경계로 "그 전이면 종전 판본, 그 뒤면 현행 판본"처럼 나누고, 날짜를 알려 주면 그 판본으로 안내한다고 밝힌다.
 
 ## 문장 조건과 검증
 

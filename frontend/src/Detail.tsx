@@ -79,7 +79,12 @@ function CitationBody({ detail, data }: { detail: Extract<Detail, { kind: "citat
       <dl className="fields">
         <div><dt>판본</dt><dd>{c.version}{past ? " (종전 판본)" : ""}</dd></div>
         <div><dt>시행</dt><dd>{c.effective_from ?? "?"} ~ {c.effective_to ?? "현재"}</dd></div>
-        <div><dt>적용 기준</dt><dd>{DATE_BASES[c.date_basis ?? "current"] ?? c.date_basis} {c.as_of_date ?? ""}{c.year_inferred ? " (연도는 서버가 추론)" : ""}</dd></div>
+        {c.edition_split ? (
+          // D-67: 사건 날짜를 확인하지 못해 판본별로 함께 준 원문이다. 날짜는 사건 날짜가 아니라 판본 기준일이다.
+          <div><dt>적용 기준</dt><dd>{DATE_BASES[c.date_basis ?? "current"] ?? c.date_basis} 미확인 (판본 기준일 {c.as_of_date ?? ""})</dd></div>
+        ) : (
+          <div><dt>적용 기준</dt><dd>{DATE_BASES[c.date_basis ?? "current"] ?? c.date_basis} {c.as_of_date ?? ""}{c.year_inferred ? " (연도는 서버가 추론)" : ""}</dd></div>
+        )}
         {c.source_role === "transition" && <div><dt>구분</dt><dd>반대편 판본의 경과조항</dd></div>}
         <div><dt>쪽</dt><dd>{page}쪽</dd></div>
       </dl>

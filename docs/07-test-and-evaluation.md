@@ -82,6 +82,8 @@ T-20/21 구현(M6): `frontend/e2e/flows.spec.ts`. 실제 요청 수·SSE 본문�
 
 T-15: 복귀일이 먼저 나오는 문장에서도 출장 시작일 선택, 작년/분리된 명시 연도, 불명확 날짜 추가 확인. T-20/21: IT/교육 의도 경계, 새 질문으로 재질문 탈출, 서울/경기, 날짜별 교육 조회, 만료 클릭 미접수 안내, 배경 완료 알림, 충돌 입력 보존, 대상 폼 포커스.
 
+T-15(D-67, 2026-10-19): 날짜를 확인하지 못한 사건 기준 질문은 판본별 결과(resolved, 판본 2개의 as_of_date, 순위 교차, 모델 날짜 미사용), 판본별 결과를 인용하지 않은 답은 되묻기, 일부 판본만 인용하면 다른 판본 안내 문구, 그 사건을 인용하지 않으면 날짜 되묻기 문구, 뒤에서 날짜로 확인된 사건은 문구 없음, 미지원·90일 밖 날짜는 판본별 결과로 바꾸지 않음. 독립 검증 반영: 대표일로 경과조항을 붙이지 않음, 끝난 단일 판본은 되묻기, 90일 안 장래 판본 포함·밖은 제외, ambiguous_date는 되묻기, 기준선은 전부, 다른 문서 인용은 판본 인용으로 세지 않음, 3판본 문구, 문구 중복 제거, 예산 한 번만, 인용 DTO 표시. `backend/tests/test_document_agent.py`·`test_event_dates.py`·`test_edition_split.py`·`test_relations.py`·`test_conflicts_and_gaps.py`·`test_full_context.py`.
+
 T-31/32: code point 출처·닫힌 template/normalization, 복수 root 준비의 직접 원본/밀려난 head 이중 관계, 최초 head row 삽입 경쟁, cancel 후 ID/revision. T-17/29: IT-045/046 안내 판본, 원규정 공백 시 결론 보류, 반대편 판본 경과조항의 조건·현재 ACL.
 
 T-27/35:5개 초과 gold 보존, 공통 token 예산·다중 사건 병합, Wiki 주제/프롬프트 holdout 전 동결·judge 블라인딩. dev 예산 스윕 곡선과 동결 근거 기록, Recall@pool/Recall@budget·evidence-in-context·hard_negative 오답 보고, 재정렬·전체 문맥 기준선은 별도 비교 ID로만 실행. 정적 시안 결과는 서버/실제 RAG 검증과 구분한다.

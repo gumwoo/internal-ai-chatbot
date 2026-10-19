@@ -124,6 +124,26 @@ async def test_transition_clause_needs_both_events_and_is_attached_when_conditio
     assert len({p["text"] for p in flat}) == len(flat)
 
 
+async def test_edition_split_does_not_use_its_representative_date_as_a_transition_condition(
+    related, migrated
+):
+    """D-67 검증 지적: 판본별 재검색의 날짜(판본 대표일)는 확인된 사건 날짜가 아니다. 그 날짜로 경과조항
+    조건을 충족했다고 보지 않고, 승인일을 묻는 후속 문구를 남긴다."""
+    other = {"date_basis": "request_date", "as_of_date": "2026-09-28", "date_quote": "9월 28일에 상신한"}
+    search = (
+        "search_documents",
+        {
+            "query": "결재 처리 상태 최종 승인 반려 회수",
+            "date_basis": "approval_date",
+            "other_events": [other],
+        },
+    )
+    data = await _data(migrated, search, "9월 28일에 상신한 결재 문서는 최종 승인 기준이 어떻게 돼요?")
+    assert data["resolution"] == "resolved" and data["edition_split"]
+    assert all(role == "base" for _, role, _ in _roles(data))
+    assert data["transition_pending"]["required_event_type"] == "approval_date"
+
+
 async def test_transition_is_not_attached_when_a_known_condition_fails(related, migrated):
     # 상신이 10/1 이후면 조건 밖이다(붙이지 않음).
     other = {"date_basis": "request_date", "as_of_date": "2026-10-02", "date_quote": "10월 2일에 상신했고"}

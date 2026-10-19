@@ -7,7 +7,15 @@ import pytest
 
 from agent.modules.agent_runtime.dates import verify_event_date
 from tests.conftest import api_client
-from tests.test_document_agent import Capturing, _app, _ask, final, published, tool_turn  # noqa: F401
+from tests.test_document_agent import (  # noqa: F401
+    Capturing,
+    _app,
+    _ask,
+    assert_edition_split,
+    final,
+    published,
+    tool_turn,
+)
 
 TODAY = date(2026, 10, 16)
 
@@ -72,8 +80,9 @@ async def test_forged_today_date_without_user_origin_asks_instead(published, mig
         # 날짜 없는 현재형이면 D-61로 오늘을 쓰므로, 과거 단서가 있는 질문으로 모델 날짜를 무시하는지 본다.
         _, response = await _ask(client, "예전에 들은 외부교육 한도가 얼마였어?")
     data = model.tool_payloads()[0]["data"]
-    assert data["resolution"] == "needs_clarification" and data["groups"] == []
-    assert response.status_code == 502  # 원장에 없는 인용(c1-1)은 거절
+    # D-67: 모델이 넣은 날짜는 쓰지 않고 판본별 원문을 준다. 한 판본만 인용하면 서버가 다른 판본을 알린다.
+    assert_edition_split(data)
+    assert response.status_code == 200 and "사건 날짜를 확인하지 못했습니다" in response.json()["answer"]
 
 
 async def test_citation_carries_server_normalized_date_and_year_flag(published, migrated):
@@ -306,7 +315,9 @@ async def test_assistant_message_cannot_be_date_source_and_ambiguous_asks_with_y
         conv, _ = await _ask(client, "안녕")
         _, response = await _ask(client, "그 교육 한도는?", conversation=conv)
     data = model.tool_payloads()[0]["data"]
-    assert data["resolution"] == "needs_clarification" and response.json()["outcome"] == "needs_clarification"
+    # D-67: 판본별 원문을 받았지만 인용 없이 답했으므로 서버가 되묻기로 바꾼다
+    assert_edition_split(data)
+    assert response.json()["outcome"] == "needs_clarification"
     ambiguous = (
         "search_documents",
         {
@@ -337,7 +348,8 @@ async def test_date_basis_reaches_the_role_check_end_to_end(published, migrated)
     model = Capturing([tool_turn(search), final("숙박비 한도")])
     async with api_client(_app(migrated, model)) as client:
         _, response = await _ask(client, "10월 1일에 신청한 출장 숙박비 한도")
-    assert model.tool_payloads()[0]["data"]["resolution"] == "needs_clarification"
+    # D-67: 출장일이 아닌 신청일이라 판본별 원문을 주고, 인용 없는 답은 서버가 되묻기로 바꾼다
+    assert_edition_split(model.tool_payloads()[0]["data"], reason="basis_mismatch")
     assert response.json()["outcome"] == "needs_clarification"
 
 

@@ -40,6 +40,7 @@ export interface Citation {
   as_of_date: string | null;
   date_basis: string | null;
   year_inferred: boolean;
+  edition_split?: boolean;
   source_role?: string;
   prospective: boolean;
   page_spans: { page: number }[];
