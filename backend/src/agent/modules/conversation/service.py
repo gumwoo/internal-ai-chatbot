@@ -926,4 +926,5 @@ def _usage(result: ExecutionResult) -> dict[str, Any]:
         "complete": usage.complete,
         "model_attempts": usage.model_attempts,
         "empty_answer_retries": usage.empty_answer_retries,
+        "no_search_retries": usage.no_search_retries,
     }

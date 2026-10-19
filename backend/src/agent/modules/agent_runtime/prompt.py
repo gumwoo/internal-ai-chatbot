@@ -132,6 +132,12 @@ EMPTY_ANSWER_RETRY = (
 )
 
 
+NO_SEARCH_RETRY = (
+    "[서버 안내] 검색하지 않고 되묻거나 근거가 부족하다고 답했습니다. 규정·절차 질문이면 먼저 search_documents로 "
+    "검색하고, 그 결과로 답하거나 결과를 본 뒤에도 필요하면 되묻으세요."
+)
+
+
 def neutralize(message: str) -> str:
     """사용자가 쓴 서버 표시 문자열("[대화 자료]" 등)을 서버 블록과 섞이지 않게 괄호를 바꾼다."""
     for marker in _MARKERS:

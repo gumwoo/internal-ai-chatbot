@@ -95,6 +95,8 @@ class RunUsage:
     model_attempts: int
     # D-37: 첫 응답이 도구 없이 빈 답이라 서버가 다시 부른 횟수(0 또는 1). run 기록에 남긴다.
     empty_answer_retries: int = 0
+    # D-65: 문서 검색이 가능한데 검색 없이 되묻기·근거 부족으로 끝낸 첫 응답을 다시 부른 횟수(0 또는 1).
+    no_search_retries: int = 0
 
 
 @dataclass(frozen=True)

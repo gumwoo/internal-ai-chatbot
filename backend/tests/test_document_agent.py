@@ -489,6 +489,43 @@ async def test_assume_today_is_blocked_by_a_date_in_an_earlier_assistant_message
     assert data["resolution"] == "needs_clarification"
 
 
+@pytest.mark.parametrize(
+    ("script_tail", "expected_requests", "retried"),
+    [
+        # 검색 없이 되물었다 → 한 번 검색을 강제해 다시 부른다
+        ("search", 3, True),
+        # 다시 불러도 검색 없이 되물으면 그대로 끝낸다(한 번만)
+        ("ask_again", 2, True),
+    ],
+)
+async def test_unsearched_clarification_is_retried_once_with_forced_tool(
+    published, migrated, script_tail, expected_requests, retried
+):
+    """D-65: 문서 검색이 가능한데 검색 없이 되묻기·근거 부족으로 끝낸 첫 응답은 한 번 검색을 강제한다."""
+    from agent.modules.agent_runtime.prompt import NO_SEARCH_RETRY
+
+    search = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "current"})
+    first = final("어떤 교육인지 알려 주시겠어요?", outcome="needs_clarification")
+    tail = [tool_turn(search), final("답")] if script_tail == "search" else [first]
+    model = Capturing([first, *tail])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, "외부교육 지원 한도가 얼마예요?")
+    assert len(model.requests) == expected_requests
+    assert model.requests[1].tool_choice == "any"
+    assert model.requests[1].messages[-1].text == NO_SEARCH_RETRY
+    engine, _, _ = published
+    usage = await _scalar(engine, "SELECT usage FROM agent_runs")
+    assert usage["no_search_retries"] == 1 and retried
+
+
+async def test_unsearched_answer_is_not_retried(published, migrated):
+    """D-65는 되묻기·근거 부족만 다시 부른다(도구 없이 답할 수 있는 질문의 answered는 그대로)."""
+    model = Capturing([final("안녕하세요. 무엇을 도와드릴까요?")])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, "안녕")
+    assert len(model.requests) == 1
+
+
 async def test_event_basis_mismatch_filters_other_event_regulations(published, migrated):
     """S4: 출장 시작일 기준 검색에 교육 시작일 기준 규정(ED-030/031)이 섞이지 않는다."""
     search = (
