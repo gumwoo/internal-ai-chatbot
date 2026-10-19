@@ -246,6 +246,10 @@ def verify_event_date(
     if item.kind in ("full", "year_md") and len(_YEAR_MARKERS.findall(sentence)) > 1:
         return _fail("ambiguous_date", "year_marker_not_supported")
     tail = quote[item.end :]  # 날짜 뒤에 붙은 말: 역할·시제는 여기서만 본다
+    if _ONLY_PARTICLE.fullmatch(tail):
+        # 모델이 인용을 날짜·조사까지만 잘랐다("11월 12일부터"). 같은 문장의 인용 뒤 말에서 역할·시제를 본다.
+        # 날짜와 사건 사이 검사(다른 사건·절 끊김·다른 때)는 그대로 적용된다(D-63).
+        tail = tail + after
     if _HYPOTHETICAL.search(tail + after):
         return _fail("ambiguous_date", "hypothetical")
     role = _ROLES.get(date_basis or "")
@@ -464,18 +468,51 @@ def _safe(year: int, month: int, day: int) -> date | None:
 
 
 # D-61: 날짜 없이 현재형으로 묻는 사건 기준 질문은 사건 날짜를 오늘로 본다. 과거 단서가 있으면 묻는다.
-_EARLIER_WORDS = re.compile(r"(?<![가-힣])(지난\s*번|저번|지난|예전|작년|재작년|전에|그때|당시)")
+_EARLIER_WORDS = re.compile(
+    r"(?<![가-힣])(지난\s*번|저번|지난|지지난|예전|작년|재작년|전년|전에|그때|당시|종전)"
+    r"|이전 ?기준|개정 ?전|며칠 ?전|\d+\s*(일|주|달|개월|년)\s*(전|만에)"
+)
+# 날짜 비슷한 표현(월만, 명절): 정확한 날짜는 아니어도 사건이 오늘이 아닐 수 있다.
+_LOOSE_DATE = re.compile(
+    r"(?<!\d)\d{1,2}\s*월(?!\s*\d)|추석|설날|설 연휴|연휴|(?<![가-힣])(다음|다다음)\s*(주|달)"
+)
+# 사건이 끝난 뒤의 일(정산·환급·복귀 뒤 청구): 사건은 이미 지났다.
+_AFTER_EVENT = re.compile(r"정산|환급|돌아와서|다녀와서|복귀 ?(후|해서|하고)|끝나고|마치고|수료 ?후")
+# 날짜·조사만 남은 인용 꼬리(D-63)
+_ONLY_PARTICLE = re.compile(r"\s*(에|에는|에도|부터|에서|의|로|으로|까지|쯤)?\s*")
 
 
-def assume_today_check(message: str, history_user_messages: tuple[str, ...], today: date) -> dict[str, Any]:
+def assume_today_check(
+    message: str,
+    history_user_messages: tuple[str, ...],
+    today: date,
+    other_history: tuple[str, ...] = (),
+) -> dict[str, Any]:
     """current 기준 검색에서 사건 기준 규정이 걸렸을 때, 사건 날짜를 오늘로 가정해도 되는가.
 
     허용: 이번 메시지와 이력의 본인 메시지에 날짜 표현이 없고, 이번 메시지에 과거 단서(완료 표지·과거 어미·
     "지난번·예전·작년")가 없다. 그 밖에는 되묻는다(조용히 틀린 판본보다 되묻기가 낫다).
     """
-    if any(_find_dates(m, today) for m in (message, *history_user_messages)):
+
+    def dated(text: str) -> bool:
+        # "오늘"은 가정하려는 날짜 자체라 날짜 표현으로 세지 않는다.
+        return any(f.kind != "relative" or f.value != today for f in _find_dates(text, today))
+
+    # other_history: 이력의 assistant 메시지. "그 교육"이 앞서 안내한 날짜의 교육을 가리킬 수 있어
+    # 날짜만 본다(과거 단서는 사용자 메시지에서만).
+    if any(dated(m) or _LOOSE_DATE.search(m) for m in (message, *history_user_messages, *other_history)):
         return {"allowed": False, "reason": "date_in_messages"}
-    cleaned = _NOT_PAST.sub(" ", message)
-    if _COMPLETED.search(message) or _PAST_STRONG.search(cleaned) or _EARLIER_WORDS.search(message):
-        return {"allowed": False, "reason": "past_cue"}
+    for text in (
+        message,
+        *history_user_messages,
+    ):  # 이력의 과거 단서도 본다("지난달 출장 다녀왔어요" 뒤 "한도는?")
+        cleaned = _NOT_PAST.sub(" ", text)
+        if (
+            _COMPLETED.search(text)
+            or _PAST_STRONG.search(cleaned)
+            or _has_weak_past(cleaned)
+            or _EARLIER_WORDS.search(text)
+            or _AFTER_EVENT.search(text)
+        ):
+            return {"allowed": False, "reason": "past_cue"}
     return {"allowed": True, "reason": None, "markers": TENSE_MARKERS_VERSION}

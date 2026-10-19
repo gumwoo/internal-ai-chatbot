@@ -611,11 +611,17 @@ def _field_origins(run: _Run, proposal: ToolCallProposal) -> dict[str, Any] | No
     if arguments.get("date_basis", "current") != "current":
         origins["as_of_date"] = _verify_event(run, arguments)
     # D-61: 날짜 없는 현재형 질문이면 사건 날짜를 오늘로 볼 수 있다(current·사건 기준 모두).
-    origins["assume_today"] = assume_today_check(
-        run.message,
-        tuple(m.text for m in _visible_history(run) if m.role == "user"),
-        run.context.current_time.astimezone(KST).date(),
-    )
+    # 이번 실행에서 이미 날짜를 되물었다면 다시 검색해도 오늘로 가정하지 않는다(되묻기가 지워지지 않게).
+    if any(r.get("resolution") == "needs_clarification" for r in run.search_results):
+        origins["assume_today"] = {"allowed": False, "reason": "pending_clarification"}
+    else:
+        history = _visible_history(run)
+        origins["assume_today"] = assume_today_check(
+            run.message,
+            tuple(m.text for m in history if m.role == "user"),
+            run.context.current_time.astimezone(KST).date(),
+            other_history=tuple(m.text for m in history if m.role != "user" and m.text),
+        )
     others = arguments.get("other_events")
     for index, event in enumerate(others if isinstance(others, list) else []):
         if isinstance(event, dict):
@@ -926,6 +932,7 @@ def _citation_dto(passage: dict[str, Any]) -> dict[str, Any]:
         "event_key": passage.get("event_key"),
         "source_role": passage.get("source_role") or "base",
         "year_inferred": bool((passage.get("date_evidence") or {}).get("year_inferred")),
+        "assumed_today": (passage.get("date_evidence") or {}).get("source") == "assumed_today",
         "page_spans": spans,
         "quote": text if len(text) <= 300 else text[:300] + "…",
         "evidence_url": f"/api/v1/evidence/{passage['passage_id']}",

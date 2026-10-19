@@ -465,6 +465,30 @@ async def test_event_basis_without_date_assumes_today_for_present_questions(
         )
 
 
+async def test_assume_today_is_not_used_after_a_clarification_in_the_same_run(published, migrated):
+    """D-61 검증 ⑥: 날짜를 되물은 뒤 current로 다시 검색해도 오늘로 가정해 되묻기를 지우지 않는다."""
+    # 교육 시작일 기준 규정을 출장 시작일 기준으로 물으면 basis_mismatch로 되묻는다(첫 검색).
+    wrong_basis = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "trip_start"})
+    current = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "current"})
+    model = Capturing([tool_turn(wrong_basis), tool_turn(current), final("답")])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, "외부교육 1회 지원 한도가 얼마예요?")
+    first, second = (p["data"] for p in model.tool_payloads()[:2])
+    assert first["resolution"] == "needs_clarification"
+    assert second["resolution"] == "needs_clarification" and second["groups"] == []
+
+
+async def test_assume_today_is_blocked_by_a_date_in_an_earlier_assistant_message(published, migrated):
+    """D-61: 앞서 안내한 날짜의 교육("그 교육")을 오늘 교육으로 보지 않는다."""
+    search = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "current"})
+    model = Capturing([final("9월 29일에 시작한 외부교육이 있습니다"), tool_turn(search), final("답")])
+    async with api_client(_app(migrated, model)) as client:
+        conv, _ = await _ask(client, "안녕")
+        await _ask(client, "그 교육 한도는?", conversation=conv)
+    data = model.tool_payloads()[0]["data"]
+    assert data["resolution"] == "needs_clarification"
+
+
 async def test_event_basis_mismatch_filters_other_event_regulations(published, migrated):
     """S4: 출장 시작일 기준 검색에 교육 시작일 기준 규정(ED-030/031)이 섞이지 않는다."""
     search = (

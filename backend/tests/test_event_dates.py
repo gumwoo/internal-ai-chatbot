@@ -69,7 +69,8 @@ async def test_forged_today_date_without_user_origin_asks_instead(published, mig
     )
     model = Capturing([tool_turn(forged), final("한도는 150만 원", citations=["c1-1"])])
     async with api_client(_app(migrated, model)) as client:
-        _, response = await _ask(client, "외부교육 한도가 얼마야?")
+        # 날짜 없는 현재형이면 D-61로 오늘을 쓰므로, 과거 단서가 있는 질문으로 모델 날짜를 무시하는지 본다.
+        _, response = await _ask(client, "예전에 들은 외부교육 한도가 얼마였어?")
     data = model.tool_payloads()[0]["data"]
     assert data["resolution"] == "needs_clarification" and data["groups"] == []
     assert response.status_code == 502  # 원장에 없는 인용(c1-1)은 거절
@@ -175,7 +176,7 @@ def test_supported_trip_and_training_expressions(quote, message, today, expected
             "11월 2일 출장을 신청했어요. 숙박비 한도는?",
             TODAY,
             "trip_start",
-            "role_not_after_date",
+            "other_event_verb",  # D-63: 잘린 인용은 뒤 말을 보고, 그 말의 "신청했"이 다른 사건이라 묻는다
         ),
         (
             "11월 2일 출장 결재 받았는데",
@@ -462,7 +463,7 @@ def test_v5_markers_resolve_natural_phrasing(quote, message, basis, expected):
     [
         # 사건 동사가 아닌 과거 어미가 있으면 창 규칙을 쓰지 않는다(올해 11월 3일을 고르면 틀린다).
         ("11월 3일 교육 참가는", "11월 3일 교육 참가는 했는데", None, "tense_unclear"),
-        ("11월 3일", "11월 3일 회의는 끝났어요", None, "tense_unclear"),
+        ("11월 3일 회의는", "11월 3일 회의는 끝났어요", None, "tense_unclear"),
         # 완료·예정이 섞이면 창 규칙도 쓰지 않는다
         ("9월 29일 출발 예정이었던", "9월 29일 출발 예정이었던 출장", None, "tense_unclear"),
         # 시작 기준이 아니면 "부터"는 여전히 범위다
@@ -1775,3 +1776,95 @@ def test_assume_today_only_for_dateless_present_questions(message, history, allo
 
     check = assume_today_check(message, history, TODAY)
     assert check["allowed"] is allowed and check["reason"] == reason
+
+
+# --- D-61 독립 검증 반례(2026-10-19): 과거 사건을 오늘로 가정하지 않는다. False가 되묻기다.
+# 허용돼야 하지만 되묻는 표현(불필요한 되묻기, 안전 쪽)은 현재 값 그대로 고정한다. ---
+@pytest.mark.parametrize(
+    ("message", "history", "allowed"),
+    [
+        ("9월 출장 숙박비 한도가 얼마예요?", (), False),  # 월만 있는 날짜(일 없음)
+        ("9월 말에 간 출장 숙박비 한도는요?", (), False),  # 간(과거 관형) 확인용
+        ("추석 연휴 출장 숙박비 한도는요?", (), False),  # 명절·기간 표현
+        ("3주 전 출장 숙박비 한도가 얼마예요?", (), False),  # 'N주 전'(전에 아님)
+        ("며칠전에 출장 숙박비 한도는요?", (), False),  # 붙여 쓴 '전에'
+        ("지지난주 출장 숙박비 한도는요?", (), False),  # '지지난' lookbehind
+        ("전년도 외부교육 지원 한도는요?", (), False),  # 전년도
+        ("개정 전 외부교육 지원 한도는요?", (), False),  # 개정 전
+        ("이전 기준으로 출장 숙박비 한도는요?", (), False),  # 이전
+        ("출장 다녀와서 정산하려는데 숙박비 한도가 얼마예요?", (), False),  # 다녀와서
+        ("출장에서 돌아와서 숙박비 청구하려는데 한도는요?", (), False),  # 돌아와서
+        ("출장비 정산하려는데 숙박비 한도가 얼마예요?", (), False),  # 정산=사건 이후
+        ("교육 끝나고 환급받으려면 한도가 얼마예요?", (), False),  # 끝나고
+        ("수강한 외부교육 환급 한도가 얼마예요?", (), False),  # -한 관형형(약한 과거)
+        ("참가한 세미나 교육비 한도는요?", (), False),  # 참가한
+        ("방문한 고객사 출장 숙박비 한도는요?", (), False),  # 방문한
+        ("결제한 교육비 지원 한도는요?", (), False),  # 결제한
+        ("숙박비 한도가 얼마예요?", ("지난달에 부산 출장 다녀왔어요",), False),  # 과거 단서가 이력에만
+        ("그럼 숙박비는요?", ("9월에 출장 다녀왔는데 교통비는?",), False),  # 이력 과거+월만
+        ("다음 주 출장 가기로 했는데 숙박비 한도는요?", (), False),  # '했는데'(예정 결정)
+        ("출장 숙박비 한도가 궁금했는데 얼마예요?", (), False),  # '궁금했는데'
+        ("대결자가 처리해도 됨?", (), True),  # 음슴체 '됨'(띄움)
+        ("대결 처리 가능함?", (), False),  # 음슴체 '함'
+        ("규정 찾아봤는데 못 찾았어요. 출장 숙박비 한도는요?", (), False),  # 검색 행위의 과거
+        ("팀장님이 그러셨는데 대결자가 처리해도 되나요?", (), False),  # 말한 때의 과거
+        ("출장 숙박비 한도는요?", ("11월 3일 교육 신청 방법 알려줘",), False),  # 이력의 다른 사건 날짜
+        ("대결자가 처리해도 되나요?", ("오늘 교육 뭐 있어?",), True),  # 이력의 '오늘'
+        ("오늘 기준 출장 숙박비 한도는요?", (), True),  # '오늘 기준'=현행 질문
+        ("이번 출장 숙박비랑 지난번 교육비 환급 한도는요?", (), False),  # 다중 사건: 한쪽만 과거
+        ("아직 안 갔어요", ("출장 숙박비 한도는요?",), False),  # 되묻기 답 '안 갔어요'
+    ],
+)
+def test_assume_today_independent_review_cases(message, history, allowed):
+    from agent.modules.agent_runtime.dates import assume_today_check
+
+    assert assume_today_check(message, history, TODAY)["allowed"] is allowed
+
+
+@pytest.mark.parametrize(
+    ("quote", "message", "basis", "expected", "problem"),
+    [
+        # D-63: 모델이 인용을 날짜·조사까지만 잘라도 같은 문장의 뒤 말에서 사건·시제를 본다
+        (
+            "11월 12일부터",
+            "11월 12일부터 1박 2일로 대전 출장을 가는데 숙박비는요?",
+            "trip_start",
+            date(2026, 11, 12),
+            None,
+        ),
+        (
+            "11월 5일부터",
+            "11월 5일부터 부산으로 2박 3일 출장을 가요. 숙박비는요?",
+            "trip_start",
+            date(2026, 11, 5),
+            None,
+        ),
+        (
+            "9월 28일부터",
+            "9월 28일부터 10월 2일까지 부산으로 출장을 다녀왔어요. 숙박비는요?",
+            "trip_start",
+            date(2026, 9, 28),
+            None,
+        ),
+        (
+            "10월 5일에",
+            "10월 5일에 시작한 집합교육 재시험 되나요?",
+            "training_start",
+            date(2026, 10, 5),
+            None,
+        ),
+        # 뒤 말에 절 끊김·다른 사건이 끼면 여전히 되묻는다
+        (
+            "11월 2일",
+            "11월 2일 이사하고 다음 주에 출장 가요. 일비는?",
+            "trip_start",
+            None,
+            "date_in_other_clause",
+        ),
+        ("11월 2일에", "11월 2일에 신청한 출장 숙박비는요?", "trip_start", None, "other_event_verb"),
+    ],
+)
+def test_clipped_quote_reads_the_rest_of_the_sentence(quote, message, basis, expected, problem):
+    origin = verify_event_date(quote, None, message, (), TODAY, date_basis=basis)
+    assert (origin.value if origin.verified else None) == expected, origin.evidence
+    assert origin.evidence.get("problem") == problem
