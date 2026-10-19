@@ -62,7 +62,7 @@ class GeminiJudgeModel:
         meta = getattr(response, "usage_metadata", None)
         usage = Usage(
             input_tokens=getattr(meta, "prompt_token_count", None),
-            output_tokens=getattr(meta, "candidates_token_count", None),
+            output_tokens=_output_tokens(meta),
             complete=meta is not None,
         )
         try:
@@ -84,6 +84,14 @@ class GeminiJudgeModel:
         client = self._client
         if client is not None and hasattr(client, "aio"):
             await client.aio.aclose()
+
+
+def _output_tokens(meta: object | None) -> int | None:
+    """출력 token = 답 + 사고(thinking). 사고 token도 출력으로 과금되므로 함께 센다(D-59)."""
+    answer = getattr(meta, "candidates_token_count", None)
+    if answer is None:
+        return None
+    return answer + (getattr(meta, "thoughts_token_count", None) or 0)
 
 
 def _failure(status: int | None) -> ModelFailure:

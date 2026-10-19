@@ -23,6 +23,9 @@ SOURCES_INDEX = REPO_ROOT / "data" / "staging" / "eval-sources" / "index.json"
 RESULTS_DIR = REPO_ROOT / "data" / "staging" / "eval-results"
 FREEZE = RESULTS_DIR / "freeze.json"
 FULL_CONTEXT_BUDGET = 150_000  # D-50
+# judge 출력 상한. gemini-3.8-flash는 사고(thinking) token도 이 상한에 넣어
+# 1024이면 긴 판정의 JSON이 잘렸다(D-59).
+JUDGE_MAX_OUTPUT_TOKENS = 4096
 QUERY_CACHE = REPO_ROOT / "data" / "staging" / "embeddings" / "eval-query-cache.jsonl"
 # 표시용 가격(USD/100만 토큰). cli._PRICE_PER_MTOK와 같은 출처. 실제 청구액이 아니다.
 _PRICE = {"claude-haiku-5-5": (0.10, 0.50)}
@@ -304,7 +307,9 @@ async def eval_judge(args: argparse.Namespace, settings: Settings) -> None:
     key = settings.gemini_api_key.get_secret_value() if settings.gemini_api_key else None
     chat = GeminiJudgeModel(api_key=key)
     config = ModelConfig(
-        model=settings.judge_model, max_output_tokens=1024, config_version=JUDGE_PROMPT_VERSION
+        model=settings.judge_model,
+        max_output_tokens=JUDGE_MAX_OUTPUT_TOKENS,
+        config_version=JUDGE_PROMPT_VERSION,
     )
     out = Path(args.out) if args.out else RESULTS_DIR / "judge.jsonl"
     mapping_path = out.with_suffix(".mapping.json")

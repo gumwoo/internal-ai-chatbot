@@ -58,6 +58,7 @@ class Judge:
 
     async def complete_once(self, request):
         Judge.calls += 1
+        Judge.max_output_tokens = request.model_config.max_output_tokens
         if Judge.calls <= Judge.fail_first:
             raise ModelCallError(ModelFailure.RATE_LIMITED)
         verdict = {
@@ -115,6 +116,7 @@ async def test_judge_retries_failed_rows_and_keeps_ids_stable_across_inputs(path
     assert ok == {"raw|strict|b4000", "wiki_assisted|strict|b4000"} and len(mapping) == 2
     merged = eval_cli._judge_by_answer([str(out)])
     assert all("judge_error" not in v for v in merged.values()) and len(merged) == 2
+    assert Judge.max_output_tokens >= 4096  # 사고 token까지 담는 상한(1024에서는 판정 JSON이 잘렸다)
 
 
 async def test_holdout_requires_a_recorded_freeze_with_the_same_budget(paths, migrated):
