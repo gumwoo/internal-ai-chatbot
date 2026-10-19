@@ -461,3 +461,21 @@ def _safe(year: int, month: int, day: int) -> date | None:
         return date(year, month, day)
     except ValueError:
         return None
+
+
+# D-61: 날짜 없이 현재형으로 묻는 사건 기준 질문은 사건 날짜를 오늘로 본다. 과거 단서가 있으면 묻는다.
+_EARLIER_WORDS = re.compile(r"(?<![가-힣])(지난\s*번|저번|지난|예전|작년|재작년|전에|그때|당시)")
+
+
+def assume_today_check(message: str, history_user_messages: tuple[str, ...], today: date) -> dict[str, Any]:
+    """current 기준 검색에서 사건 기준 규정이 걸렸을 때, 사건 날짜를 오늘로 가정해도 되는가.
+
+    허용: 이번 메시지와 이력의 본인 메시지에 날짜 표현이 없고, 이번 메시지에 과거 단서(완료 표지·과거 어미·
+    "지난번·예전·작년")가 없다. 그 밖에는 되묻는다(조용히 틀린 판본보다 되묻기가 낫다).
+    """
+    if any(_find_dates(m, today) for m in (message, *history_user_messages)):
+        return {"allowed": False, "reason": "date_in_messages"}
+    cleaned = _NOT_PAST.sub(" ", message)
+    if _COMPLETED.search(message) or _PAST_STRONG.search(cleaned) or _EARLIER_WORDS.search(message):
+        return {"allowed": False, "reason": "past_cue"}
+    return {"allowed": True, "reason": None, "markers": TENSE_MARKERS_VERSION}

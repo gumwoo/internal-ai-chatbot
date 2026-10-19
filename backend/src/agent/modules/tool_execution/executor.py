@@ -416,6 +416,7 @@ class ToolExecutor:
             date_evidence=origin.get("evidence") or {},
             event_key=args.event_key,
             verified_events=_verified_events(call.field_origins or {}, args),
+            assume_today=bool(((call.field_origins or {}).get("assume_today") or {}).get("allowed")),
             **({"top_k": args.top_k} if args.top_k else {}),
         )
         try:

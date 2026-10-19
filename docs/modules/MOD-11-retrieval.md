@@ -44,7 +44,7 @@ guidance의 유효 안내 판본 선택→기본 규범→검수 경과조항 �
 
 - raw만 구현했다(config `raw-exact-cosine-v1`, 후보 20). 임베딩은 질의도 MOD-05가 MOD-07로 만든다(MOD-11은 MOD-07을 직접 부르지 않는다).
 - LookupApplicableBasis는 날짜 필터 없이 가장 가까운 판본 1개의 검수 메타데이터만 본다(처음 3개로 두었다가 실제 모델 smoke에서 관련 없는 규정 때문에 되묻기가 과해 줄였다). 그 판본이 규범이고 사건 기준(교육 시작일 등)을 요구하는데 date_basis가 current/explicit_date면 needs_clarification(missing_date)을 돌려준다. 상위 몇 개를 볼지는 구현 설정이며 dev 실험에서 조정할 수 있다.
-- 사건 기준 규범은 질문의 date_basis가 대응표와 맞을 때만 남긴다. general_reference·per_claim 규범과 안내는 날짜 기준과 무관하게 남긴다.
+- 사건 기준 규범은 질문의 date_basis가 대응표와 맞을 때만 남긴다. current 질문에 사건 기준 규범이 걸리고 MOD-02가 `assume_today`를 허용하면(D-61), 검색 요청을 그 사건 기준·오늘 날짜로 바꿔 같은 규칙으로 고른다. general_reference·per_claim 규범과 안내는 날짜 기준과 무관하게 남긴다.
 - 그룹(support_group)은 대표 후보의 코사인 거리 순, 같은 거리는 passage ID 순이다. 경과조항 확장(ExpandTransitionEvidence)은 검수된 transition_relations가 아직 없어(P-15) 구현하지 않았다.
 - 규범 공백(T-17, 2026-10-18): 판본 후보 전체에서 이 날짜 기준에 대응하는 가장 가까운 규범(per_claim 제외)이 그 날짜를 포함하는 공개 판본을 갖지 않으면 `normative_gap`을 결과에 표시한다. 사건 기준 질문에 그 기준의 규범이 없고 다른 사건 기준 규범만 있으면 basis_mismatch로 되묻는다. 안내 passage는 남기고 결론 보류는 MOD-02가 한다. 우선관계(authority_relations) 표시와 경과조항 확장은 D-40으로 구현했다(아래).
 - 경과조항 확장·우선관계(D-40, 2026-10-18): 기본 그룹의 판본에 transition_relations가 있고 그 application_basis가 이번 date_basis와 같으면, 알려진 사건 조건이 맞을 때만 진행한다. 빠진 사건 날짜는 되묻고, 모두 맞으면 반대편 판본 조항을 같은 그룹에 source_role=transition으로 붙인다. 결과의 authority_relations는 대상 문서가 보이는 관계만이다(제한 문서의 존재를 드러내지 않음).

@@ -1755,3 +1755,23 @@ def test_event_noun_after_its_own_verb_is_not_a_request_date():
         TODAY,
     )
     assert origin.verified and origin.value == date(2026, 9, 21)
+
+
+@pytest.mark.parametrize(
+    ("message", "history", "allowed", "reason"),
+    [
+        ("대결자가 인사발령도 처리해도 되나요?", (), True, None),
+        ("출장 숙박비 한도가 얼마예요?", (), True, None),
+        ("출장 숙박비 기준 바뀌었나요?", (), True, None),  # 규정 변경 질문은 사건의 과거가 아니다
+        ("지난번 출장 숙박비 청구 가능해요?", (), False, "past_cue"),
+        ("출장 다녀왔는데 숙박비는요?", (), False, "past_cue"),
+        ("예전에 들은 교육 한도는요?", (), False, "past_cue"),
+        ("11월 3일 출장 숙박비는요?", (), False, "date_in_messages"),
+        ("그 출장 숙박비는요?", ("11월 3일 출장 가요",), False, "date_in_messages"),
+    ],
+)
+def test_assume_today_only_for_dateless_present_questions(message, history, allowed, reason):
+    from agent.modules.agent_runtime.dates import assume_today_check
+
+    check = assume_today_check(message, history, TODAY)
+    assert check["allowed"] is allowed and check["reason"] == reason

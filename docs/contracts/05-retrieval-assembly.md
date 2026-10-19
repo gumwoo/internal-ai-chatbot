@@ -29,7 +29,7 @@ event_conditions는 조건마다 application_basis 닫힌 값의 사건 종류�
 | processing_date | processing_date | 처리 |
 | per_claim | 해당 claim의 위7개 값에 따른 date_basis | 복합 FAQ/해설; 부모만으로 날짜 확정 금지 |
 
-미확인 값은 published application_basis에 넣지 않고 review_status=needs_review다. 한 조항이 신청일과 처리일을 함께 필요로 하면 claim 조건에 두 evidence를 모두 요구한다. date_basis를 편의상 current로 바꾸지 않는다. CT-03은 processing_date 사건과 source refs를 보존한다.
+미확인 값은 published application_basis에 넣지 않고 review_status=needs_review다. 한 조항이 신청일과 처리일을 함께 필요로 하면 claim 조건에 두 evidence를 모두 요구한다. date_basis를 편의상 current로 바꾸지 않는다. 반대로 current 질문에 사건 기준 규범이 걸리면, MOD-02가 사용자 문장에 날짜·과거 단서가 없다고 확인한 경우에만 사건 날짜를 오늘로 보고 그 사건 기준으로 검색한다(D-61, `date_evidence.source=assumed_today`, 결과 `assumed_today=true`). 그 밖에는 사건 날짜를 되묻는다. CT-03은 processing_date 사건과 source refs를 보존한다.
 
 ## 여러 검색 결과 병합
 

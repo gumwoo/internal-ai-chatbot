@@ -24,7 +24,7 @@ from agent.modules.agent_runtime.contracts import (
     Outcome,
     RunUsage,
 )
-from agent.modules.agent_runtime.dates import verify_event_date
+from agent.modules.agent_runtime.dates import assume_today_check, verify_event_date
 from agent.modules.agent_runtime.prompt import (
     EMPTY_ANSWER_RETRY,
     PROMPT_VERSION,
@@ -610,6 +610,12 @@ def _field_origins(run: _Run, proposal: ToolCallProposal) -> dict[str, Any] | No
     origins: dict[str, Any] = {}
     if arguments.get("date_basis", "current") != "current":
         origins["as_of_date"] = _verify_event(run, arguments)
+    else:
+        origins["assume_today"] = assume_today_check(
+            run.message,
+            tuple(m.text for m in _visible_history(run) if m.role == "user"),
+            run.context.current_time.astimezone(KST).date(),
+        )
     others = arguments.get("other_events")
     for index, event in enumerate(others if isinstance(others, list) else []):
         if isinstance(event, dict):
@@ -790,6 +796,8 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
     view = {
         **{k: data.get(k) for k in ("resolution", "date_basis", "as_of_date", "event_key", "prospective")},
         "year_inferred": bool((data.get("date_evidence") or {}).get("year_inferred")),
+        # D-61: 사건 기준 규정인데 날짜가 없어 오늘을 사건 날짜로 본 경우(답에 밝힌다)
+        "assumed_today": (data.get("date_evidence") or {}).get("source") == "assumed_today",
         "clarification": data.get("clarification"),
         "unsupported": data.get("unsupported"),
         "normative_gap": data.get("normative_gap"),

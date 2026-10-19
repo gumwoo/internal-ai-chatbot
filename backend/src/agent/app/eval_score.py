@@ -40,6 +40,10 @@ def norm(text: str) -> str:
     return _SPACE.sub("", text or "")
 
 
+# rule-v2(D-60): 질문에 나온 숫자는 금지 숫자로 보지 않는다(질문 금액을 되짚은 정답을 오답으로 세던 문제).
+SCORING_VERSION = "rule-v2"
+
+
 def numbers(text: str) -> set[str]:
     """숫자 사실 토큰. 날짜는 표기와 무관하게 'MM-DD'(연도는 따로), 'N만 원'은 원 단위 정수로 맞춘다."""
     found: set[str] = set()
@@ -163,9 +167,13 @@ def score_case(
     answer_numbers = numbers(answer)
     number_recall = (len(fact_numbers & answer_numbers) / len(fact_numbers)) if fact_numbers else None
     # 한 자리 수는 기권 안내·날짜에 흔해 금지 판정에서 뺀다(오답으로 몰지 않게).
+    # 질문에 나온 숫자(사용자가 말한 금액·날짜)를 답이 되짚는 것은 금지 주장이 아니다(rule-v2).
+    question_numbers = set().union(*(numbers(t) for t in case.get("turns") or []))
     forbidden_numbers = {
         n
-        for n in set().union(*(numbers(f) for f in case["forbidden_claims"])) - all_fact_numbers
+        for n in set().union(*(numbers(f) for f in case["forbidden_claims"]))
+        - all_fact_numbers
+        - question_numbers
         if len(n.replace("-", "")) >= 2
     }
     forbidden_number_hit = bool(forbidden_numbers & answer_numbers)
@@ -209,6 +217,7 @@ def score_case(
     config = result.get("config") or {}
     return {
         "case_id": case["case_id"],
+        "scoring_version": SCORING_VERSION,
         "split": case["split"],
         "category": case["category"],
         "strategy": result["strategy"],

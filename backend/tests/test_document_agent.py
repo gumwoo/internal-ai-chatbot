@@ -218,7 +218,8 @@ async def test_missing_event_date_returns_clarification_not_today(published, mig
     search = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "current"})
     model = Capturing([tool_turn(search), final("언제 시작하는 교육인가요?", outcome="needs_clarification")])
     async with api_client(_app(migrated, model)) as client:
-        _, response = await _ask(client, "외부교육 한도가 얼마야?")
+        # 날짜 없는 현재형("한도가 얼마야?")은 D-61로 오늘 판본을 쓴다. 과거 단서가 있으면 여전히 묻는다.
+        _, response = await _ask(client, "예전에 신청한 외부교육 한도가 얼마였어?")
     data = model.tool_payloads()[0]["data"]
     assert data["resolution"] == "needs_clarification" and data["groups"] == []
     assert data["clarification"]["required_event_type"] == "training_start"
@@ -401,6 +402,37 @@ async def test_event_basis_without_date_asks_instead_of_using_today(published, m
     data = model.tool_payloads()[0]["data"]
     assert data["resolution"] == "needs_clarification" and data["groups"] == []
     assert data["clarification"]["reason"] == "missing_date"
+
+
+@pytest.mark.parametrize(
+    ("message", "assumed"),
+    [
+        ("외부교육 1회 과정 지원 한도가 얼마예요?", True),  # 날짜 없는 현재형: 오늘로 본다(D-61)
+        ("지난번에 들은 외부교육 1회 지원 한도가 얼마였죠?", False),  # 과거 단서: 묻는다
+        ("9월 29일 외부교육 1회 지원 한도는요?", False),  # 날짜가 있으면 사건 기준으로 다시 검색해야 한다
+    ],
+)
+async def test_current_basis_on_event_regulation_assumes_today_only_for_present_questions(
+    published, migrated, message, assumed
+):
+    """D-61: current 기준 검색에 사건 기준 규정(교육 시작일)이 걸리면
+    날짜 없는 현재형 질문만 오늘 판본으로 답한다."""
+    search = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "current"})
+    model = Capturing([tool_turn(search), final("답")])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, message)
+    data = model.tool_payloads()[0]["data"]
+    if assumed:
+        assert data["resolution"] == "resolved" and data["assumed_today"] is True
+        # 사건 기준 규범 원문이 실제로 들어온다(current 필터에 걸려 안내만 남으면 안 된다).
+        normative = {
+            p["title"] for g in data["groups"] for p in g["passages"] if p["document_role"] == "normative"
+        }
+        assert "외부교육비 지원 규정" in normative
+        assert data["date_basis"] == "training_start" and data["as_of_date"] == "2026-10-16"
+    else:
+        assert data["resolution"] == "needs_clarification" and data["groups"] == []
+        assert data["clarification"]["reason"] == "missing_date"
 
 
 async def test_event_basis_mismatch_filters_other_event_regulations(published, migrated):

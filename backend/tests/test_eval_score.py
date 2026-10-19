@@ -119,6 +119,28 @@ def test_one_matching_citation_is_not_enough_when_facts_or_forbidden_numbers_fai
     assert missing["number_recall"] == 0.5 and not missing["rule_correct"]
 
 
+def test_question_numbers_are_not_forbidden_numbers():
+    # rule-v2(D-60): 사용자가 말한 금액을 답이 되짚어도 금지 주장이 아니다(holdout EV-E-002·EV-A-014 재현).
+    case = {
+        **CASE,
+        "turns": ["수강료가 180만 원인 외부교육, 한도 넘는 부분은?"],
+        "required_facts": ["1회 과정 한도는 100만 원"],
+        "forbidden_claims": ["180만 원 전액 지원된다"],
+    }
+    answer = "수강료 180만 원 중 한도 100만 원까지만 지원되고 80만 원은 개인 부담입니다."
+    scored = score_case(case, result("raw", answer, ["p-old"], ["p-old"], ["p-old"]), PASSAGES, SOURCES)
+    assert not scored["forbidden_number_hit"] and scored["rule_correct"]
+    assert scored["scoring_version"] == "rule-v2"
+    # 질문에 없는 금지 숫자는 여전히 오답이다.
+    wrong = score_case(
+        {**case, "forbidden_claims": ["180만 원 전액, 150만 원 한도"]},
+        result("raw", "한도는 150만 원이고 100만 원 이상은 재무 검토", ["p-old"], ["p-old"], ["p-old"]),
+        PASSAGES,
+        SOURCES,
+    )
+    assert wrong["forbidden_number_hit"] and not wrong["rule_correct"]
+
+
 def test_hard_negatives_by_group_and_recall_split():
     wrong = score(result("wiki_assisted", "한도는 150만 원입니다.", ["p-new"], ["p-old", "p-new"], ["p-new"]))
     assert wrong["hard_negative_cited"] and wrong["hard_negative_in_context"] and not wrong["rule_correct"]

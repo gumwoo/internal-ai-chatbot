@@ -72,6 +72,9 @@ class SearchRequest:
     date_evidence: dict[str, Any] = field(default_factory=dict)
     # 경과조항 조건용 다른 사건 날짜(MOD-02가 사용자 문장으로 검증한 값만). {date_basis: date}
     verified_events: dict[str, date] = field(default_factory=dict)
+    # D-61: current 기준인데 사건 기준 규정이 걸리면, MOD-02가 사용자 문장으로 허용한 경우에만
+    # 오늘을 사건 날짜로 본다.
+    assume_today: bool = False
 
 
 @dataclass(frozen=True)
@@ -228,7 +231,13 @@ class RetrievalService:
             for h in hints[:_BASIS_LOOKUP_TOP]
             if h.document_role == "normative" and h.application_basis in EVENT_BASES
         ]
-        if required and request.date_basis in ("current", "explicit_date"):
+        if required and request.date_basis == "current" and request.assume_today:
+            # 날짜 없이 현재형으로 물었다(D-61). 사건 날짜를 오늘로 보고, 이후 필터·판본·공백 판정은
+            # 그 사건 기준으로 한다(current 그대로 두면 사건 기준 규범 원문이 걸러진다).
+            request = replace(request, date_basis=required[0], as_of_date=today)
+            base = {**base, "date_basis": required[0]}
+            evidence = {"source": "assumed_today", "event_basis": required[0]}
+        elif required and request.date_basis in ("current", "explicit_date"):
             # 사건 기준 규정인데 사건 날짜가 없다. 제한 문서의 이름은 드러내지 않고 필요한 사건 종류만 묻는다.
             return RetrievalResult(
                 "needs_clarification",
