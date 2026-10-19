@@ -102,13 +102,22 @@ _PLANNED_HINT = re.compile(r"미리|앞으로")
 # 연결어미로 끝나는 말(-고·-면·-서·-며·-다가·-데·-니까·-지만, "에서"는 조사라 뺀다), "아니고·말고".
 _CLAUSE_BREAK = re.compile(
     r"([가-힣](고|면|며|다가|데|니까|지만|라서|해서)|(휴가|외근|재택|연차|출장|교육|회의)(이)?라"
-    r"|(?:(?!에)[가-힣])서)(?=[\s,]|$)|아니|말고"
+    r"|(?:(?!에)[가-힣])서)(?=[\s,]|$)|아니|말고|대로(?![가-힣])"
 )
 # 기준점·어림·다른 때("이후", "전날", "무렵", "다음 주", "이틀 뒤"), 일만 있는 날짜("5일에", "1박 2일"은 뺀다)
 _OTHER_TIME = re.compile(
     r"이후|이전|전에|전날|전후|무렵|즈음|(?<![가-힣])(쯤|경|후|뒤|전)(?![가-힣])|다음 ?주|다음 ?달|이번 ?주"
     r"|이번 ?달|주말|다음 ?날|이튿날|며칠|일주일|(이틀|사흘|나흘) ?(뒤|후|전)|\d+ ?일 ?(뒤|후|전)"
     r"|(?<!박 )(?<!박)(?<!월 )(?<!월)(?<![\d.])\d{1,2}\s*일(?!\s*(간|동안))"
+    r"|[월화수목금토일]요일|그 ?주|다음 ?[월화수목금토일](?![가-힣])|대신"  # D-63 검증: 요일·"대신"
+)
+# 날짜와 사건 사이의 규정 변경 말("9월 1일부터 바뀐 출장 규정"): 날짜는 사건일이 아니라 시행일이다(D-63 검증).
+_REGULATION_CHANGE = re.compile(
+    r"바뀐|바뀌는|바뀔|시행된|시행되는|시행될|개정된|개정되는|적용된|적용되는|변경된"
+)
+# 다른 사람의 사건("팀장님 출장 가시는데"): 높임 주어·어미가 날짜와 사건 사이나 사건 뒤에 있다.
+_OTHER_ACTOR = re.compile(
+    r"[가-힣]님(이|은|께서|도)?(?![가-힣])|(가|하|오|다녀오)시(는|ㄹ|면|고|니|던)|가셨|하셨|셨"
 )
 # 신청·결재 기준에서 날짜 뒤가 다른 사건 명사면("11월 20일 교육 신청") 날짜는 그 사건의 날짜다
 _EVENT_NOUN = re.compile(r"출장|교육|과정|연수|휴가|연차|반차|외근|재택|휴직|워크숍|세미나|행사")
@@ -249,7 +258,16 @@ def verify_event_date(
     if _ONLY_PARTICLE.fullmatch(tail):
         # 모델이 인용을 날짜·조사까지만 잘랐다("11월 12일부터"). 같은 문장의 인용 뒤 말에서 역할·시제를 본다.
         # 날짜와 사건 사이 검사(다른 사건·절 끊김·다른 때)는 그대로 적용된다(D-63).
-        tail = tail + after
+        # 이어 보는 범위는 첫 쉼표·"그리고·근데" 앞까지다(다른 절의 시제를 가져오지 않게).
+        extension = re.split(r"[,，]|그리고|그런데|근데", after, maxsplit=1)[0]
+        others = _find_dates(extension, today)
+        # 시작 기준 "M월 D일부터 … M월 D일까지"의 끝 날짜만 허용한다(D-56과 같은 규칙).
+        range_end = start_range or (date_basis in _START_BASES and tail.strip() == "부터")
+        if others and not (range_end and all(extension[f.end :].lstrip().startswith("까지") for f in others)):
+            return _fail("basis_mismatch", "multiple_dates_in_sentence")
+        if _OTHER_ACTOR.search(extension):
+            return _fail("basis_mismatch", "other_actor")
+        tail = tail + extension
     if _HYPOTHETICAL.search(tail + after):
         return _fail("ambiguous_date", "hypothetical")
     role = _ROLES.get(date_basis or "")
@@ -265,6 +283,8 @@ def verify_event_date(
             return _fail("basis_mismatch", "other_event_verb")
         if date_basis not in _START_BASES and _EVENT_NOUN.search(lead):
             return _fail("basis_mismatch", "other_event_noun")
+        if _REGULATION_CHANGE.search(lead):
+            return _fail("basis_mismatch", "regulation_date")
         if _CLAUSE_BREAK.search(lead) or _OTHER_TIME.search(lead):
             return _fail("basis_mismatch", "date_in_other_clause")
     elif _OTHER_TIME.search(tail[:12]):

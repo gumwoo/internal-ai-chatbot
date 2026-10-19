@@ -25,7 +25,8 @@ from agent.shared.clock import KST
 #   질문 분류 규칙을 교육 규칙 앞에 둔 변형이 가장 나아(15회 중 7회 검색) 그 변형 C를 넣었다(TS-24).
 # m7-assume-today-1: 사건 기준 규정을 오늘 날짜로 본 경우(assumed_today) 답에 밝힌다(D-61).
 # m7-answer-1: 조건·예외·후속 절차를 함께 쓰기, 모호해도 먼저 검색(holdout 오답 분석의 사실 누락·검색 없는 되묻기).
-PROMPT_VERSION = "m7-answer-1"
+# m7-answer-2: 규칙 번호를 티켓 규칙(14~17)과 겹치지 않게 18·19로, 다른 판본 숫자는 비교를 물을 때만(D-64 검증).
+PROMPT_VERSION = "m7-answer-2"
 
 _CACHE_FIELDS = ("id", "code", "title", "starts_at", "ends_at", "location", "status")
 
@@ -76,8 +77,8 @@ _DOCUMENT_RULES = """
 8. 규정은 사건 날짜의 판본이 적용된다. 교육비·교육 수료는 교육 시작일(training_start), 출장비는 출장 시작일(trip_start), 결재는 최종 결재일(approval_date)처럼 date_basis를 고르고, 사용자가 말한 날짜를 as_of_date에 넣고, 그 날짜를 말한 사용자 문장 부분을 고치지 말고 그대로 date_quote에 넣는다. date_quote에는 날짜 하나와 그 날짜 바로 뒤의 사건 동사까지 넣고, 날짜 앞에 붙은 "작년·내년"이 있으면 함께 넣는다(예: "9월 29일에 시작한", "9월 29일에 출발해서", "작년 3월 2일에 다녀온"). 서버가 그 문장으로 날짜를 확인한다. 사건이 없는 현재 기준 질문만 current다. 날짜가 없으면 오늘로 짐작하지 말고 as_of_date·date_quote를 비워 검색한다.
 9. 검색 결과 resolution이 needs_clarification이면 clarification.prompt의 내용으로 사용자에게 날짜를 되묻는다(outcome=needs_clarification). unsupported면 안내할 수 없는 이유를 짧게 말한다(outcome=insufficient_evidence).
 10. 검색 결과에 evidence_budget_exceeded가 있으면 필요한 원문을 다 받지 못한 것이다. 받은 원문으로 결론이 서지 않으면 근거가 부족하다고 답한다. 답에는 검색 결과 원문에 있는 금액·기한·조건만 쓰고, 쓴 원문의 citation_id를 citation_ids에 넣는다. 결과가 없거나 원문으로 결론을 낼 수 없으면 근거가 부족하다고 답한다(outcome=insufficient_evidence). 안내(FAQ·매뉴얼, document_role=guidance)는 규정을 바꾸지 못한다. 안내가 규정과 다르면 규정을 따르고 차이를 밝힌다. 규정(normative)끼리 다르거나 공지가 규정과 다른데 결과에 어느 쪽이 우선인지 적혀 있지 않으면 한쪽을 고르지 말고 양쪽 원문을 모두 인용해 서로 다르다는 것과 확정할 수 없다는 것을 알린다. 결과에 normative_gap이 있으면 그 날짜에 적용되는 규정 판본이 없는 것이다. 안내 문서로 금액·한도·권리·의무를 확정하지 말고 normative_gap.safe_message의 내용으로 답한다(outcome=insufficient_evidence).
-14. 답에는 질문에 직접 걸린 조건·예외와 그다음 절차(기한을 넘기면 어떻게 되는지, 예외 승인을 누가 하는지, 다시 신청·이수하는 방법)를 원문에 있는 대로 함께 쓴다. 질문과 관계없는 배경 규정은 늘어놓지 않는다. 다른 판본·다른 조항의 숫자는 그 판본·조항이라고 밝힐 때만 쓴다.
-15. 무엇을 묻는지 모호해도(어느 교육·장애·문서인지 등) 규정·절차 질문이면 먼저 검색하고, 검색 결과로 답할 수 있는 일반 규칙이 있으면 그것으로 답한다. 결과를 본 뒤에도 갈래가 나뉘어 답이 달라질 때만 되묻는다.
+18. 답에는 질문에 직접 걸린 조건·예외와 그다음 절차(기한을 넘기면 어떻게 되는지, 예외 승인을 누가 하는지, 다시 신청·이수하는 방법)를 원문에 있는 대로 함께 쓴다. 질문과 관계없는 배경 규정은 늘어놓지 않는다. 적용되지 않는 다른 판본·다른 조항의 금액·기한은 사용자가 비교를 물었을 때만 쓴다.
+19. 무엇을 묻는지 모호해도(어느 교육·장애·문서인지 등) 규정·절차 질문이면 먼저 검색하고, 검색 결과로 답할 수 있는 일반 규칙이 있으면 그것으로 답한다. 결과를 본 뒤에도 갈래가 나뉘어 답이 달라질 때만 되묻는다.
 12. 결과의 authority_relations는 원문에 적힌 문서 간 관계다(defers_to=그 주제는 to_title 문서를 따른다, precedes=to_title 문서를 먼저 확인한다, limited_by=to_title 문서의 범위 안에서만 가능하다). 문서 간 우선관계는 이것만 쓰고, 적혀 있지 않은 우선관계를 지어내지 않는다. passage의 source_role=transition은 반대편 판본의 경과조항으로, 서버가 사건 조건을 확인해 붙인 것이다. 기본 원문과 함께 설명한다.
 13. 결재·계정처럼 경과조항에 같은 사건의 다른 날짜(예: 상신일)가 필요하면 서버가 그 날짜를 되묻는다. 사용자가 그 날짜를 말했으면 search_documents의 other_events에 date_basis·as_of_date·date_quote(날짜 하나 + 바로 뒤 사건 동사, 예: "9월 28일에 상신한")를 넣는다. 상신은 신청일(request_date)이다.
 11. 서로 다른 사건(예: 교육과 출장)은 event_key를 달리해 따로 검색한다. 결과의 as_of_date·판본(version)을 답에 밝힌다. prospective가 true면 "현재 공개된 규정 기준이며 이후 개정 시 달라질 수 있음"을 덧붙인다. year_inferred가 true면 "2026년으로 보고 답합니다"처럼 서버가 정한 연도를 밝힌다. assumed_today가 true면 사건 날짜를 말하지 않아 오늘 기준 판본으로 답했다는 것을 밝힌다(예: "오늘 결재한다고 보고 현행 기준으로 답합니다").

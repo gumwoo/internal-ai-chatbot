@@ -1868,3 +1868,86 @@ def test_clipped_quote_reads_the_rest_of_the_sentence(quote, message, basis, exp
     origin = verify_event_date(quote, None, message, (), TODAY, date_basis=basis)
     assert (origin.value if origin.verified else None) == expected, origin.evidence
     assert origin.evidence.get("problem") == problem
+
+
+# --- D-63 독립 검증 반례(2026-10-19): 잘린 인용 확장이 다른 날짜·요일·규정 시행일·다른 사람의 사건을
+# 이 사건의 날짜로 받지 않는다. None은 되묻기 ---
+@pytest.mark.parametrize(
+    ("quote", "message", "basis", "expected"),
+    [
+        (
+            "11월 12일",
+            "11월 12일 대신 11월 20일에 출장 가요. 숙박비는요?",
+            "trip_start",
+            None,
+        ),  # A1 다른 날짜(대신)
+        (
+            "11월 12일에서",
+            "11월 12일에서 11월 20일로 출장 날짜를 옮길 예정이에요. 숙박비는요?",
+            "trip_start",
+            None,
+        ),  # A2 다른 날짜(변경)
+        (
+            "11월 12일",
+            "11월 12일 대신 12월 3일에 교육 시작해요. 지원 한도는?",
+            "training_start",
+            None,
+        ),  # A3 다른 날짜(교육)
+        ("11월 12일", "11월 12일 그 주 금요일에 출장 가요. 숙박비는요?", "trip_start", None),  # B1 요일
+        ("11월 12일", "11월 12일 다음 금요일에 출장 가요. 일비는?", "trip_start", None),  # B2 요일
+        (
+            "9월 1일부터",
+            "9월 1일부터 바뀐 출장 규정으로 숙박비 한도는요?",
+            "trip_start",
+            None,
+        ),  # C1 규정 시행일
+        (
+            "10월 1일부터",
+            "10월 1일부터 시행된 교육 지원 규정 한도는?",
+            "training_start",
+            None,
+        ),  # C2 규정 시행일
+        ("11월 2일에", "11월 2일에 공지된 출장 숙박비 한도 알려주세요", "trip_start", None),  # C3 공지일
+        (
+            "11월 12일",
+            "11월 12일 출장, 저번에 갔을 때랑 숙박비 같아요?",
+            "trip_start",
+            None,
+        ),  # D1 다른 출장 과거
+        (
+            "11월 12일에",
+            "11월 12일에 출장 가는 거 작년이랑 같은 호텔 써도 돼요?",
+            "trip_start",
+            None,
+        ),  # D2 다른 출장 과거
+        (
+            "11월 12일 출장",
+            "11월 12일 출장, 저번에 갔을 때랑 숙박비 같아요?",
+            "trip_start",
+            None,
+        ),  # D3 대조(전체 인용)
+        ("11월 12일쯤", "11월 12일쯤 출장 가요. 숙박비는요?", "trip_start", None),  # E1 쯤 붙임
+        ("11월 12일", "11월 12일 쯤 출장 가요. 숙박비는요?", "trip_start", None),  # E2 쯤 띄움(대조)
+        (
+            "11월 12일에",
+            "11월 12일에 팀장님 출장 가시는데 저는 언제 가야 하나요?",
+            "trip_start",
+            None,
+        ),  # F1 다른 사람
+        (
+            "11월 12일",
+            "11월 12일 워크숍 마치는 대로 바로 출장 가요",
+            "trip_start",
+            None,
+        ),  # F2 다른 사건 명사(시작기준)
+        (
+            "11월 12일에",
+            "11월 12일에 회의 끝나면 연차 써도 돼요?",
+            None,
+            date(2026, 11, 12),
+        ),  # G1 기준 없음 잘림
+    ],
+)
+def test_clipped_quote_independent_review_cases(quote, message, basis, expected):
+    origin = verify_event_date(quote, None, message, (), TODAY, date_basis=basis)
+    assert (origin.value if origin.verified else None) == expected, origin.evidence
