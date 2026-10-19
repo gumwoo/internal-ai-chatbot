@@ -27,7 +27,6 @@ from agent.modules.agent_runtime.contracts import (
 from agent.modules.agent_runtime.dates import assume_today_check, verify_event_date
 from agent.modules.agent_runtime.prompt import (
     EMPTY_ANSWER_RETRY,
-    NO_SEARCH_RETRY,
     PROMPT_VERSION,
     conversation_data,
     neutralize,
@@ -99,7 +98,6 @@ class _Run:
     observer: ExecutionObserver
     model_attempts: int = 0
     empty_answer_retries: int = 0
-    no_search_retries: int = 0
     # M5: 이번 run에서 조회한 티켓(답의 의존 자원)과 준비한 root draft 미리보기(action_id → preview).
     ticket_refs: dict[str, dict[str, Any]] = field(default_factory=dict)
     prepared: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -147,7 +145,6 @@ class _Run:
             self.usage_complete,
             self.model_attempts,
             self.empty_answer_retries,
-            self.no_search_retries,
         )
 
     def allowed_trainings(self) -> dict[str, dict[str, Any]]:
@@ -245,25 +242,6 @@ def _empty_first_answer(run: _Run, response: ModelResponse, tools) -> bool:
         return False
     answer = candidate.get("answer")
     return isinstance(answer, str) and not answer.strip()
-
-
-def _unsearched_abstain(run: _Run, response: ModelResponse, names: set[str]) -> bool:
-    """D-65: 문서 검색이 가능한데 도구를 하나도 부르지 않고 되묻기·근거 부족으로 끝낸 첫 응답인가.
-
-    holdout 오답 분석: 규정 질문에 검색 없이 "어떤 교육인지" 등을 먼저 되물었다
-    (검색했으면 일반 규칙으로 답할 수 있었다).
-    """
-    candidate = response.final_candidate
-    if (
-        "search_documents" not in names
-        or run.tool_proposals
-        or run.empty_answer_retries
-        or run.no_search_retries
-    ):
-        return False
-    if not isinstance(candidate, dict):
-        return False
-    return candidate.get("outcome") in ("needs_clarification", "insufficient_evidence")
 
 
 def _fill_empty_clarification(run: _Run, candidate: dict[str, Any]) -> tuple[dict[str, Any], str]:
@@ -404,14 +382,6 @@ class AgentRuntime:
                 messages.append(response.as_assistant_message())
                 messages.append(ModelMessage(role="user", text=EMPTY_ANSWER_RETRY))
                 tool_choice = "any"  # D-41: 다시 부를 때는 도구 호출을 강제한다(P-16 C의 일부)
-                continue
-            if not response.wants_tools and _unsearched_abstain(run, response, names):
-                # D-65: 검색 없이 되묻기·보류로 끝냈다. 한 번 검색을 강제해 다시 부른다.
-                run.no_search_retries += 1
-                logger.info("검색 없는 되묻기·보류 재호출 run_id=%s", run.context.run_id)
-                messages.append(response.as_assistant_message())
-                messages.append(ModelMessage(role="user", text=NO_SEARCH_RETRY))
-                tool_choice = "any"
                 continue
             if not response.wants_tools:
                 return await self._finish(run, response)
