@@ -90,6 +90,50 @@ def paths(tmp_path, monkeypatch):
     return tmp_path
 
 
+class ContentJudge:
+    """답 문장에 "정답"이 있으면 correct, 아니면 incorrect로 판정한다."""
+
+    def __init__(self, api_key=None):
+        pass
+
+    async def complete_once(self, request):
+        good = "정답" in request.messages[0].text
+        verdict = {
+            "facts": [],
+            "exceptions": [],
+            "forbidden_violated": False,
+            "unsupported_claim": False,
+            "abstained": True,
+            "verdict": "correct" if good else "incorrect",
+            "reason": "x",
+        }
+        return ModelResponse((), verdict, "gemini-test", "eval_judge", "judge-v1", Usage(10, 5, True))
+
+    async def aclose(self):
+        pass
+
+
+async def test_score_attaches_judge_by_answer_content_not_by_label(paths, migrated, monkeypatch, capsys):
+    """D-66: 같은 설정 라벨의 두 실행(개선 전후)이 서로의 judge 판정을 덮어쓰지 않는다."""
+    monkeypatch.setattr("agent.modules.model_integration.gemini_chat.GeminiJudgeModel", ContentJudge)
+    settings = make_settings(database_url=migrated, judge_model="gemini-test")
+    before, after = paths / "before.jsonl", paths / "after.jsonl"
+    before.write_text(json.dumps(_result("EV-N-001", "raw", "오답 문장"), ensure_ascii=False) + "\n", "utf-8")
+    after.write_text(json.dumps(_result("EV-N-001", "raw", "정답 문장"), ensure_ascii=False) + "\n", "utf-8")
+    judge = paths / "judge.jsonl"
+    await eval_cli.eval_judge(
+        argparse.Namespace(results=[str(before), str(after)], seed=7, out=str(judge), live=True), settings
+    )
+    verdicts = []
+    for path in (before, after):
+        out = paths / f"score-{path.stem}.json"
+        await eval_cli.eval_score(
+            argparse.Namespace(results=[str(path)], judge=[str(judge)], judge_seed=7, out=str(out)), settings
+        )
+        verdicts.append(json.loads(out.read_text(encoding="utf-8"))["scores"][0]["judge"]["verdict"])
+    assert verdicts == ["incorrect", "correct"]
+
+
 async def test_judge_retries_failed_rows_and_keeps_ids_stable_across_inputs(paths, migrated):
     settings = make_settings(database_url=migrated, judge_model="gemini-test")
     a = paths / "a.jsonl"

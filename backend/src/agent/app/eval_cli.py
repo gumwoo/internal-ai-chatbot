@@ -174,6 +174,35 @@ async def eval_freeze(args: argparse.Namespace, settings: Settings) -> None:
     print(json.dumps(record, ensure_ascii=False))
 
 
+def _judge_item(result: dict[str, Any], case: dict[str, Any], passages: dict[str, Any]) -> dict[str, Any]:
+    """judge 입력 한 건(eval-judge와 eval-score가 같은 내용으로 answer_id를 만든다)."""
+    from agent.app.eval_judge import judge_text
+    from agent.app.eval_score import config_label
+
+    final = result["turns"][-1] if result.get("turns") else {}
+    gold = [a["quote"] for group in case["evidence_sets"] for a in group]
+    # 시스템이 인용한 원문은 잘린 미리보기가 아니라 passage 본문 전체를 준다(근거 없는 주장 오판 방지).
+    cited = [
+        passages[c["passage_id"]].text if c.get("passage_id") in passages else c.get("quote", "")
+        for c in final.get("citations", [])
+    ]
+    return {
+        "case_id": case["case_id"],
+        "label": config_label(result),
+        "text": judge_text(case, final.get("answer") or "", cited, gold),
+    }
+
+
+def _judge_rows(judge_paths: list[str]) -> dict[str, dict[str, Any]]:
+    """answer_id → 판정. 성공한 판정을 실패보다 우선한다."""
+    rows: dict[str, dict[str, Any]] = {}
+    for path in judge_paths:
+        for row in _read_jsonl(Path(path)):
+            if "judge_error" not in row or row["answer_id"] not in rows:
+                rows[row["answer_id"]] = row
+    return rows
+
+
 def _judge_by_answer(judge_paths: list[str]) -> dict[tuple[str, str], dict[str, Any]]:
     """judge 결과를 (case_id, label)로 모은다. 성공한 판정만 쓰고, 실패는 따로 센다."""
     merged: dict[tuple[str, str], dict[str, Any]] = {}
@@ -203,9 +232,14 @@ async def eval_score(args: argparse.Namespace, settings: Settings) -> None:
     finally:
         await engine.dispose()
     scores = [score_case(cases[r["case_id"]], r, passages, sources) for r in results]
-    judged = _judge_by_answer(args.judge or [])
-    for s in scores:
-        verdict = judged.get((s["case_id"], s["label"]))
+    from agent.app.eval_judge import answer_id
+
+    # 판정은 답 내용(answer_id)으로 붙인다. (case_id, label)로 붙이면 같은 설정 라벨의 다른 실행
+    # (예: 개선 전후)이 서로의 판정을 덮어쓴다(D-66).
+    judged = _judge_rows(args.judge or [])
+    for result, s in zip(results, scores, strict=True):
+        item = _judge_item(result, cases[result["case_id"]], passages)
+        verdict = judged.get(answer_id(item["case_id"], item["label"], item["text"], args.judge_seed))
         s["judge"] = (
             None
             if verdict is None
@@ -267,9 +301,8 @@ async def eval_score(args: argparse.Namespace, settings: Settings) -> None:
 
 
 async def eval_judge(args: argparse.Namespace, settings: Settings) -> None:
-    from agent.app.eval_judge import JUDGE_PROMPT_VERSION, blind_order, judge_one, judge_text
+    from agent.app.eval_judge import JUDGE_PROMPT_VERSION, blind_order, judge_one
     from agent.app.eval_run import load_passages, result_passage_ids
-    from agent.app.eval_score import config_label
     from agent.modules.model_integration.gemini_chat import GeminiJudgeModel
     from agent.modules.model_integration.ports import ModelConfig
     from agent.shared.db import make_engine
@@ -283,23 +316,7 @@ async def eval_judge(args: argparse.Namespace, settings: Settings) -> None:
         passages = await load_passages(engine, result_passage_ids(results))
     finally:
         await engine.dispose()
-    items = []
-    for result in results:
-        case = cases[result["case_id"]]
-        final = result["turns"][-1] if result.get("turns") else {}
-        gold = [a["quote"] for group in case["evidence_sets"] for a in group]
-        # 시스템이 인용한 원문은 잘린 미리보기가 아니라 passage 본문 전체를 준다(근거 없는 주장 오판 방지).
-        cited = [
-            passages[c["passage_id"]].text if c.get("passage_id") in passages else c.get("quote", "")
-            for c in final.get("citations", [])
-        ]
-        items.append(
-            {
-                "case_id": case["case_id"],
-                "label": config_label(result),
-                "text": judge_text(case, final.get("answer") or "", cited, gold),
-            }
-        )
+    items = [_judge_item(result, cases[result["case_id"]], passages) for result in results]
     ordered = blind_order(items, args.seed)
     if not args.live:
         print(
@@ -371,6 +388,9 @@ def register(sub) -> dict[str, Any]:
     score = sub.add_parser("eval-score", help="실행 결과를 gold와 규칙 채점한다(과금 없음)")
     score.add_argument("--results", nargs="+", required=True)
     score.add_argument("--judge", nargs="*", help="eval-judge 결과 파일(같은 이름의 .mapping.json 필요)")
+    score.add_argument(
+        "--judge-seed", type=int, default=20261018, help="eval-judge에 쓴 seed(answer_id 계산)"
+    )
     score.add_argument("--out")
     judge = sub.add_parser("eval-judge", help="judge 보조 판정(Gemini 무료 티어, --live 없으면 dry-run)")
     judge.add_argument("--results", nargs="+", required=True)
