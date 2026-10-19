@@ -116,6 +116,9 @@ class ContentJudge:
 async def test_score_attaches_judge_by_answer_content_not_by_label(paths, migrated, monkeypatch, capsys):
     """D-66: 같은 설정 라벨의 두 실행(개선 전후)이 서로의 judge 판정을 덮어쓰지 않는다."""
     monkeypatch.setattr("agent.modules.model_integration.gemini_chat.GeminiJudgeModel", ContentJudge)
+    index = paths / "index.json"  # 원문 색인은 저장소에 없다(data/staging은 git 제외, CI에서도 없음)
+    index.write_text("[]", encoding="utf-8")
+    monkeypatch.setattr(eval_cli, "SOURCES_INDEX", index)
     settings = make_settings(database_url=migrated, judge_model="gemini-test")
     before, after = paths / "before.jsonl", paths / "after.jsonl"
     before.write_text(json.dumps(_result("EV-N-001", "raw", "오답 문장"), ensure_ascii=False) + "\n", "utf-8")
