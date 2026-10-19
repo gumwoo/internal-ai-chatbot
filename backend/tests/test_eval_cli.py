@@ -140,6 +140,22 @@ async def test_holdout_requires_a_recorded_freeze_with_the_same_budget(paths, mi
         await eval_cli.eval_freeze(argparse.Namespace(budget=8000, reason="바꿈", force=False), settings)
 
 
+async def test_holdout2_also_requires_the_frozen_budget(paths, migrated):
+    settings = make_settings(database_url=migrated)
+    run = argparse.Namespace(
+        strategy="raw",
+        split="holdout2",
+        budget=8000,
+        operational=False,
+        cases=None,
+        resume=False,
+        out=None,
+        live=False,
+    )
+    with pytest.raises(SystemExit, match="동결"):
+        await eval_cli.eval_run(run, settings)
+
+
 async def test_full_context_baseline_runs_holdout_only_at_the_d50_budget(paths, migrated):
     settings = make_settings(database_url=migrated)
     await eval_cli.eval_freeze(argparse.Namespace(budget=4000, reason="dev", force=False), settings)

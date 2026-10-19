@@ -200,6 +200,14 @@ class RetrievalService:
         if request.date_basis == "current":
             as_of = today
             evidence = {"source": "run_accepted_at"}
+        elif (
+            request.as_of_date is None
+            and request.assume_today
+            and request.date_problem in (None, "missing_date")
+        ):
+            # 사건 기준으로 물었지만 날짜를 말하지 않은 현재형 질문(D-61): 사건 날짜를 오늘로 본다.
+            as_of = today
+            evidence = {"source": "assumed_today", "event_basis": request.date_basis}
         elif request.as_of_date is None:
             reason = request.date_problem or "missing_date"
             return RetrievalResult(

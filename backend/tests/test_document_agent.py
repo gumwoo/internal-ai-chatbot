@@ -435,6 +435,36 @@ async def test_current_basis_on_event_regulation_assumes_today_only_for_present_
         assert data["clarification"]["reason"] == "missing_date"
 
 
+@pytest.mark.parametrize(
+    ("message", "assumed"),
+    [
+        ("외부교육 신청하려는데 1회 지원 한도가 얼마예요?", True),
+        ("작년에 들은 외부교육 지원 한도는요?", False),
+    ],
+)
+async def test_event_basis_without_date_assumes_today_for_present_questions(
+    published, migrated, message, assumed
+):
+    """D-61: 모델이 사건 기준(training_start)으로 날짜 없이 검색해도
+    현재형 질문이면 오늘을 사건 날짜로 본다."""
+    search = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "training_start"})
+    model = Capturing([tool_turn(search), final("답")])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, message)
+    data = model.tool_payloads()[0]["data"]
+    if assumed:
+        assert data["resolution"] == "resolved" and data["assumed_today"] is True
+        assert data["as_of_date"] == "2026-10-16"
+        normative = {
+            p["title"] for g in data["groups"] for p in g["passages"] if p["document_role"] == "normative"
+        }
+        assert "외부교육비 지원 규정" in normative
+    else:
+        assert (
+            data["resolution"] == "needs_clarification" and data["clarification"]["reason"] == "missing_date"
+        )
+
+
 async def test_event_basis_mismatch_filters_other_event_regulations(published, migrated):
     """S4: 출장 시작일 기준 검색에 교육 시작일 기준 규정(ED-030/031)이 섞이지 않는다."""
     search = (

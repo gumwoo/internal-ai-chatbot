@@ -86,7 +86,7 @@ def check_case(case: dict, sources: dict) -> list[str]:
         return problems
     if case["category"] not in PLAN:
         problems.append(f"{cid}: category {case['category']}")
-    if case["split"] not in ("dev", "holdout"):
+    if case["split"] not in ("dev", "holdout", "holdout2"):  # holdout2: eval-v2 새 검증셋
         problems.append(f"{cid}: split {case['split']}")
     if case["expected_outcome"] not in OUTCOMES:
         problems.append(f"{cid}: expected_outcome {case['expected_outcome']}")

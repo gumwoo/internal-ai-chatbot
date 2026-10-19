@@ -610,12 +610,12 @@ def _field_origins(run: _Run, proposal: ToolCallProposal) -> dict[str, Any] | No
     origins: dict[str, Any] = {}
     if arguments.get("date_basis", "current") != "current":
         origins["as_of_date"] = _verify_event(run, arguments)
-    else:
-        origins["assume_today"] = assume_today_check(
-            run.message,
-            tuple(m.text for m in _visible_history(run) if m.role == "user"),
-            run.context.current_time.astimezone(KST).date(),
-        )
+    # D-61: 날짜 없는 현재형 질문이면 사건 날짜를 오늘로 볼 수 있다(current·사건 기준 모두).
+    origins["assume_today"] = assume_today_check(
+        run.message,
+        tuple(m.text for m in _visible_history(run) if m.role == "user"),
+        run.context.current_time.astimezone(KST).date(),
+    )
     others = arguments.get("other_events")
     for index, event in enumerate(others if isinstance(others, list) else []):
         if isinstance(event, dict):
