@@ -9,6 +9,16 @@
   "cases/holdout.jsonl": {
    "cases": 100,
    "sha256": "d7a68d0367747a87a1acfca9734d8cb54e6487b6775159e2b16172c9d5e37656"
+  },
+  "cases/holdout2.jsonl": {
+   "cases": 95,
+   "sha256": "710255517a4f1c96ce92365cdaf8bb76d43271535f2f7eff1a824460d92c8eda",
+   "eval_version": "eval-v2",
+   "created_at": "2026-10-19",
+   "generation": "모델 생성 문항: 서브에이전트 3개(h1 단일·예외 37, h2 복수 문서 27, h3 개정·근거 없음·권한 36)가 원문·명세만 보고 작성. 시스템 답변·평가 결과·오답 분석은 보지 않음",
+   "verification": "다른 서브에이전트 3개(v1~v3)가 정답 근거를 원문과 대조: ok 64·fix 31·drop 5(복수 문서 불필요 4, 기존 문항과 중복 1). scripts/check_eval.py 오류 0",
+   "human_review": "없음",
+   "purpose": "eval-v1 holdout을 본 뒤 개선(D-60~D-63)했으므로 최종 측정은 이 새 문항으로 한다(D-62)"
   }
  },
  "corpus_files_sha256": "497964379efe73cb3961aa2531925fbc1e0da9b4e9b704b67cbdb72a93a73dc2",
