@@ -14,6 +14,7 @@ from agent.modules.model_integration.ports import (
     ModelResponse,
     Usage,
 )
+from agent.modules.retrieval.service import RETRIEVER_CONFIG_ID
 from tests.conftest import make_settings
 from tests.knowledge_fixtures import BigramEmbedder
 
@@ -40,7 +41,11 @@ def _result(case_id, strategy, answer):
         "category": "no_evidence",
         "strategy": strategy,
         "strict": True,
-        "config": {"budget": 4000},
+        # D-72: 원문 검색 결과에는 실행한 검색 설정 ID가 남는다(다른 설정의 결과에 이어 쓰지 않는다)
+        "config": {
+            "budget": 4000,
+            **({"retriever_config_id": RETRIEVER_CONFIG_ID} if strategy == "raw" else {}),
+        },
         "turns": [{"status": 200, "outcome": "insufficient_evidence", "answer": answer, "citations": []}],
         "runs": [],
         "tools": [],
@@ -166,6 +171,28 @@ async def test_judge_retries_failed_rows_and_keeps_ids_stable_across_inputs(path
     assert Judge.max_output_tokens >= 4096  # 사고 token까지 담는 상한(1024에서는 판정 JSON이 잘렸다)
 
 
+async def test_resume_refuses_a_results_file_from_another_retriever_config(paths, migrated):
+    """D-72: 검색 설정이 다른 결과 파일에 이어 쓰면 같은 라벨로 섞인다.
+    v1 결과(설정 ID 없음)에도 이어 쓰지 않는다."""
+    settings = make_settings(database_url=migrated)
+    out = paths / "old.jsonl"
+    # v1에는 retriever_config_id가 없다
+    old = {**_result("EV-S-001", "raw", "답"), "config": {"budget": 4000}}
+    out.write_text(json.dumps(old, ensure_ascii=False) + "\n", encoding="utf-8")
+    run = argparse.Namespace(
+        strategy="raw",
+        split="dev",
+        budget=4000,
+        operational=False,
+        cases=None,
+        resume=True,
+        out=str(out),
+        live=False,
+    )
+    with pytest.raises(SystemExit, match="다른 검색 설정"):
+        await eval_cli.eval_run(run, settings)
+
+
 async def test_holdout_requires_a_recorded_freeze_with_the_same_budget(paths, migrated):
     settings = make_settings(database_url=migrated)
     run = argparse.Namespace(
@@ -187,7 +214,7 @@ async def test_holdout_requires_a_recorded_freeze_with_the_same_budget(paths, mi
         await eval_cli.eval_freeze(argparse.Namespace(budget=8000, reason="바꿈", force=False), settings)
 
 
-@pytest.mark.parametrize("split", ["holdout2", "holdout3"])
+@pytest.mark.parametrize("split", ["holdout2", "holdout3", "holdout4"])
 async def test_new_holdouts_also_require_the_frozen_budget(paths, migrated, split):
     """holdout2(D-62)·holdout3(D-70)도 동결 예산으로만 실행한다."""
     settings = make_settings(database_url=migrated)

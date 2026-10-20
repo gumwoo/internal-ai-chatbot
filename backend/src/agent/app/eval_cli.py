@@ -23,7 +23,7 @@ SOURCES_INDEX = REPO_ROOT / "data" / "staging" / "eval-sources" / "index.json"
 RESULTS_DIR = REPO_ROOT / "data" / "staging" / "eval-results"
 FREEZE = RESULTS_DIR / "freeze.json"
 FULL_CONTEXT_BUDGET = 150_000  # D-50
-HELD_OUT = frozenset({"holdout", "holdout2", "holdout3", "all"})  # 동결 예산으로만 실행하는 split
+HELD_OUT = frozenset({"holdout", "holdout2", "holdout3", "holdout4", "all"})  # 동결 예산으로만 실행하는 split
 # judge 출력 상한. gemini-3.8-flash는 사고(thinking) token도 이 상한에 넣어
 # 1024이면 긴 판정의 JSON이 잘렸다(D-59).
 JUDGE_MAX_OUTPUT_TOKENS = 4096
@@ -49,11 +49,23 @@ def _finished(row: dict[str, Any]) -> bool:
     return not any(run.get("error_code") in _RETRY_CODES for run in runs)
 
 
+def _retriever_config(args: argparse.Namespace) -> str | None:
+    """원문 검색 설정 ID(D-72). Wiki·기준선은 실행 trace의 값을 본다."""
+    from agent.modules.retrieval.service import RETRIEVER_CONFIG_ID
+
+    return RETRIEVER_CONFIG_ID if args.strategy == "raw" else None
+
+
 def _cases(split: str) -> list[dict[str, Any]]:
     # holdout2: eval-v2 새 검증셋(옛 holdout을 본 뒤 개선했으므로 최종 측정은 새 문항으로 한다, D-62)
     # holdout3: eval-v3(holdout2를 보고 D-67~D-69를 고쳤으므로 그 효과는 새 문항으로 잰다, D-70)
+    # holdout4: 복수 문서 확인 셋(holdout3를 보고 D-71·D-72를 고쳤으므로 새 문항으로 확인한다, D-73)
     if split == "all":
-        names = [n for n in ("dev", "holdout", "holdout2", "holdout3") if (CASES_DIR / f"{n}.jsonl").exists()]
+        names = [
+            n
+            for n in ("dev", "holdout", "holdout2", "holdout3", "holdout4")
+            if (CASES_DIR / f"{n}.jsonl").exists()
+        ]
     else:
         names = [split]
     return [c for name in names for c in _read_jsonl(CASES_DIR / f"{name}.jsonl")]
@@ -114,6 +126,10 @@ async def eval_run(args: argparse.Namespace, settings: Settings) -> None:
         if not args.resume:
             sys.exit(f"{out}가 이미 있다(덮어쓰지 않는다. 이어서 하려면 --resume)")
         rows = _read_jsonl(out)
+        mixed = {(r.get("config") or {}).get("retriever_config_id") for r in rows} - {_retriever_config(args)}
+        if mixed:
+            # D-72: 검색 설정이 다른 결과에 이어 쓰면 같은 라벨로 섞인다(v1 결과에는 이 값이 없다).
+            sys.exit(f"{out}는 다른 검색 설정({sorted(map(str, mixed))})의 결과다. 새 --out을 쓴다")
         kept = [r for r in rows if _finished(r)]
         if len(kept) != len(rows):
             # 다시 돌 행은 결과 파일에서 빼 따로 보존한다(채점에 중복·인프라 실패가 섞이지 않게)
@@ -140,6 +156,7 @@ async def eval_run(args: argparse.Namespace, settings: Settings) -> None:
         policy=ExecutionPolicy(final_context_token_limit=args.budget),
         embedding_model=embedder,
         run_meta={
+            "retriever_config_id": _retriever_config(args),
             "eval_version": manifest.get("eval_version"),
             "cases_sha256": {k: v["sha256"] for k, v in manifest.get("files", {}).items()},
             "started_at": datetime.now().astimezone().isoformat(),
@@ -375,7 +392,9 @@ async def eval_judge(args: argparse.Namespace, settings: Settings) -> None:
 def register(sub) -> dict[str, Any]:
     run = sub.add_parser("eval-run", help="💰 평가 문항을 한 전략으로 실행한다(--live 없으면 dry-run)")
     run.add_argument("--strategy", choices=["raw", "wiki_assisted", "full_context_reference"], required=True)
-    run.add_argument("--split", choices=["dev", "holdout", "holdout2", "holdout3", "all"], default="dev")
+    run.add_argument(
+        "--split", choices=["dev", "holdout", "holdout2", "holdout3", "holdout4", "all"], default="dev"
+    )
     run.add_argument("--budget", type=int, default=4000, help="final_context_token_limit")
     run.add_argument("--operational", action="store_true", help="엄격 모드 대신 운영 fallback")
     run.add_argument("--cases", help="쉼표로 구분한 case_id만")
