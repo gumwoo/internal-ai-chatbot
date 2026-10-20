@@ -6,7 +6,6 @@
    (교육 시작일 등)을 요구하는데 질문에 그 날짜가 없으면 되묻는다. 오늘 날짜로 금액부터 검색하지 않는다.
 3. 검색: MOD-05가 권한·게시·지식 시점·규범 적용 구간으로 먼저 거른 후보만 받는다(후보 40, D-72).
 4. 조립: 후보마다 support_group(조항·FAQ 문항·표 전체)을 붙이고, 그룹을 대표 후보의 거리 순으로 정렬한다.
-   raw는 그 뒤 문서마다 앞 4그룹을 먼저 두고 나머지를 뒤로 다시 놓는다(D-72 문서 다양성).
    같은 그룹은 한 번만 넣는다. 여러 검색의 최종 예산 조립은 MOD-02가 한다.
 6. 경과조항 확장(D-40): 기본 판본에 검수된 transition_relations가 있으면, 사건 조건(검증된 사건 날짜들)이
    모두 확인되고 충족될 때만 반대편 판본의 조항을 같은 support_group에 source_role=transition으로 붙인다.
@@ -49,14 +48,13 @@ DATE_BASES = frozenset(
 )
 EVENT_BASES = DATE_BASES - {"current", "explicit_date"}
 HORIZON_DAYS = 90
-# D-72: 후보 passage 40·문서 다양성 순서(앞자리는 문서당 4그룹). v1은 후보 20·거리 순이었다.
-RETRIEVER_CONFIG_ID = "raw-diverse-cosine-v2"
+# D-72: 후보 passage 40·거리 순(v1은 후보 20). 문서 다양성 순서는 검색 단계 비교에서 이득이 없어 쓰지 않는다.
+RETRIEVER_CONFIG_ID = "raw-exact-cosine-v2"
 WIKI_RETRIEVER_CONFIG_ID = "wiki-exact-cosine-v1"  # Wiki 후보 5 → 링크 확장 → 공통 원문 거리 20
 STRATEGIES = frozenset({"raw", "wiki_assisted", "full_context_reference"})
 FULL_CONTEXT_CONFIG_ID = "full-context-reference-v1"  # 허용 원문 전체, 같은 원문 거리 순(D-22, docs/13)
 FULL_CONTEXT_LIMIT = 100_000  # passage 수 상한(검색 SQL LIMIT). corpus 전체 1,545개보다 크다
 RAW_CANDIDATE_LIMIT = 40  # D-72: 20이면 예산 4000의 41%만 쓰고 두 번째 문서가 들어갈 자리가 없었다
-DIVERSE_GROUPS_PER_DOCUMENT = 4  # D-72: 앞자리에서 한 문서가 차지할 수 있는 그룹 수
 WIKI_CANDIDATE_LIMIT = 5
 EXPANDED_PASSAGE_LIMIT = 20
 # LookupApplicableBasis에서 볼 상위 판본 수. 가장 가까운 판본이 사건 기준 규범일 때만 날짜를 묻는다.
@@ -360,10 +358,6 @@ class RetrievalService:
             groups = _whole_groups(hits)
         else:
             groups = await self._groups(actor, hits)
-            if base.get("effective_strategy") == "raw":
-                # D-72: 한 문서가 앞자리를 다 차지하지 않게 한다(예산 안에 다른 문서가 들어가도록).
-                # 운영 B가 원문 검색으로 넘어간 경우도 같다(그때도 retriever_config_id는 이 설정이다).
-                groups = _diversify(groups, DIVERSE_GROUPS_PER_DOCUMENT)
         events = dict(request.verified_events)
         if request.date_basis in EVENT_BASES and request.split_from is None:
             # D-67 판본별 재검색의 날짜는 서버가 고른 판본 대표일이라 확인된 사건 날짜가 아니다.
@@ -660,24 +654,6 @@ class RetrievalService:
             )
         groups.sort(key=lambda g: (g.distance, g.passages[0].passage_id))
         return groups
-
-
-def _diversify(groups: list[SupportGroup], per_document: int) -> list[SupportGroup]:
-    """D-72: 거리 순 그룹에서 문서마다 앞의 per_document개를 먼저 두고, 나머지를 거리 순으로 뒤에 붙인다.
-
-    순위(rank)는 새 순서로 다시 매긴다(판본별 결과 D-67의 섞기와 예산 순서가 이 순서를 따른다).
-    """
-    first: list[SupportGroup] = []
-    rest: list[SupportGroup] = []
-    taken: dict[str, int] = {}
-    for group in groups:
-        key = group.passages[0].document_key
-        if taken.get(key, 0) < per_document:
-            taken[key] = taken.get(key, 0) + 1
-            first.append(group)
-        else:
-            rest.append(group)
-    return [replace(g, rank=i) for i, g in enumerate([*first, *rest], start=1)]
 
 
 def _whole_groups(hits: list[Passage]) -> list[SupportGroup]:

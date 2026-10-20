@@ -49,7 +49,7 @@ guidance의 유효 안내 판본 선택→기본 규범→검수 경과조항 �
 - 규범 공백(T-17, 2026-10-18): 판본 후보 전체에서 이 날짜 기준에 대응하는 가장 가까운 규범(per_claim 제외)이 그 날짜를 포함하는 공개 판본을 갖지 않으면 `normative_gap`을 결과에 표시한다. 사건 기준 질문에 그 기준의 규범이 없고 다른 사건 기준 규범만 있으면 basis_mismatch로 되묻는다. 안내 passage는 남기고 결론 보류는 MOD-02가 한다. 우선관계(authority_relations) 표시와 경과조항 확장은 D-40으로 구현했다(아래).
 - 경과조항 확장·우선관계(D-40, 2026-10-18): 기본 그룹의 판본에 transition_relations가 있고 그 application_basis가 이번 date_basis와 같으면, 알려진 사건 조건이 맞을 때만 진행한다. 빠진 사건 날짜는 되묻고, 모두 맞으면 반대편 판본 조항을 같은 그룹에 source_role=transition으로 붙인다. 결과의 authority_relations는 대상 문서가 보이는 관계만이다(제한 문서의 존재를 드러내지 않음).
 - 판본별 결과(D-67, 2026-10-19): 날짜 문제로 되물을 검색과 current·explicit_date 검색의 사건 기준 규범은 `_edition_split`으로 대상 규범 문서의 판본마다 다시 검색한다(KnowledgeService.normative_periods, 같은 질의 벡터 재사용, 재귀 금지 `split_from`). 결과는 resolved + `edition_split`, 그룹별 `as_of_date`. 판본이 하나면(오늘을 포함하고 90일 안 다음 판본 없음) 그 판본 결과(`date_evidence.source=single_edition`). 판본별 검색 중 하나라도 resolved가 아니거나 오늘을 포함하는 판본이 없으면 원래 되묻기를 돌려준다. 대상 날짜 문제는 missing_date·basis_mismatch(`_SPLIT_REASONS`)이고 ambiguous_date·검색 안에서 판정하는 basis_mismatch·90일 밖 날짜는 바꾸지 않는다. 판본별 재검색(`split_from`)은 대표일을 경과조항 사건 조건에 넣지 않는다. full_context_reference는 판본별 그룹을 자르지 않는다. `edition_split.document_key`는 MOD-02 인용 판정용이다(2026-10-20 독립 검증 반영).
-- D-72(2026-10-20): raw 설정 `raw-diverse-cosine-v2` — 후보 passage 40(`RAW_CANDIDATE_LIMIT`), `_diversify`로 문서당 앞 4그룹(`DIVERSE_GROUPS_PER_DOCUMENT`) 뒤 나머지(순위 다시 매김). 실제 전략이 raw인 경우(운영 B fallback 포함)에만 적용, Wiki 성공·전체 문맥 기준선은 거리 순 그대로. 모델 top_k는 1~40.
+- D-72(2026-10-20): raw 설정 `raw-exact-cosine-v2` — 후보 passage 40(`RAW_CANDIDATE_LIMIT`), 거리 순 그대로(운영 B fallback도 같은 함수). 모델 top_k는 1~40. 문서 다양성 순서는 검색 단계 비교에서 이득이 없어 넣었다가 뺐다.
 
 ## 구현 메모(M4 wiki_assisted, 2026-10-18)
 

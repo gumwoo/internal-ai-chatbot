@@ -1088,11 +1088,12 @@ async def test_server_maps_answers_after_unsupported_or_clarification(published,
     assert "150만" not in body["answer"]
 
 
-async def test_one_search_uses_at_most_half_the_run_budget_and_leaves_room_for_the_next(
+async def test_one_search_uses_at_most_its_share_of_the_run_budget_and_leaves_room_for_the_next(
     published, migrated, monkeypatch
 ):
-    """D-72: 검색 한 번은 실행 근거 예산의 절반까지만 새로 쓴다(대표 그룹은 예외). 몫 때문에 뒤 후보를 덜 넣은
-    것은 evidence_budget_exceeded가 아니다. 같은 실행의 다음 검색에도 예산이 남는다."""
+    """D-72: 검색 한 번은 실행 근거 예산의 _SEARCH_BUDGET_SHARE까지만 새로 쓴다(대표 그룹은 예외). 몫 때문에
+    뒤 후보를 덜 넣은 것은 evidence_budget_exceeded가 아니다. 같은 실행의 다음 검색에도 예산이 남는다."""
+    from agent.modules.agent_runtime import runtime as _rt
     from agent.shared import contracts
     from agent.shared.tokens import estimate_tokens
 
@@ -1105,8 +1106,11 @@ async def test_one_search_uses_at_most_half_the_run_budget_and_leaves_room_for_t
         return sum(estimate_tokens(p["text"]) for p in group["passages"])
 
     assert len(old) >= 3 and table
-    share = max(cost(old[0]) + cost(old[1]), cost(table[0]))
-    limit = 2 * share  # 첫 검색 몫(절반) 안에 첫 두 그룹, 나머지 절반에 다음 검색의 대표 그룹이 들어간다
+    fraction = _rt._SEARCH_BUDGET_SHARE
+    # 첫 검색 몫 안에 첫 두 그룹이 들고, 몫 밖의 나머지에 다음 검색의 대표 그룹이 들어가게 예산을 잡는다
+    target = max(cost(old[0]) + cost(old[1]), cost(table[0]) * fraction / (1 - fraction))
+    limit = int(target / fraction) + 1
+    share = int(limit * fraction)
     monkeypatch.setattr(contracts.ExecutionPolicy, "__init__", _policy_init(final_context_token_limit=limit))
     model = Capturing([tool_turn(SEARCH_OLD), tool_turn(IT_TABLE), final("답")])
     async with api_client(_app(migrated, model)) as client:

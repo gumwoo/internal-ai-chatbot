@@ -22,7 +22,7 @@ B는 Wiki만 읽고 답하는 시스템이 아니다. Wiki 본문으로 최종 �
 |---|---|
 | 비교 ID | wiki-contribution-vector-v1 |
 | 임베딩·거리 | A 원문/B Wiki/확장 원문에 동일 모델·차원·정규화·거리, query vector 재사용 |
-| raw_candidate_limit | A에서 허용 원문 최대20 passage(v1). D-72 이후 A는 `raw-diverse-cosine-v2`(최대 40 passage, 문서 다양성 순서, 검색당 예산 몫 절반)이고 B는 그대로라 이후 A/B는 비대칭이다. v1 결과와 Recall@pool을 직접 비교하지 않는다 |
+| raw_candidate_limit | A에서 허용 원문 최대20 passage(v1). D-72 이후 A는 `raw-exact-cosine-v2`(최대 40 passage, 거리 순, 검색당 예산 몫 0.75)이고 B는 그대로라 이후 A/B는 비대칭이다. v1 결과와 Recall@pool을 직접 비교하지 않는다 |
 | wiki_candidate_limit | B에서 허용 Wiki 최대5 page |
 | expanded_passage_limit | B에서 유효 원문 링크를 펼친 뒤 중복 제거·공통 원문 거리 정렬로 초기20 passage(성능/회수 한계를 dev에서 검증) |
 | 최종 선택 | 그룹 내부 같은 원문 거리·passage ID tie-break·중복 제거, 그룹 간 공통 round-robin·support_group 보존 |

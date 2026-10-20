@@ -842,8 +842,8 @@ def _verify_event(run: _Run, arguments: dict[str, Any]) -> dict[str, Any]:
 def _search_view(run: _Run, result: ToolResult) -> ToolResult:
     """검색 결과를 근거 예산에 맞춰 support_group 단위로 채택하고, 채택한 passage만 원장에 올린다.
 
-    - 그룹은 MOD-11이 정한 순서(대표 후보의 거리 순, raw는 문서 다양성 순서 D-72)대로 앞에서부터 넣는다.
-      그룹 하나를 끊어 넣지 않는다. 검색 한 번은 실행 예산의 절반까지만 새로 쓴다(대표 그룹 예외, D-72).
+    - 그룹은 MOD-11이 정한 순서(대표 후보의 거리 순)대로 앞에서부터 넣는다. 그룹 하나를 끊어 넣지 않는다.
+      검색 한 번은 실행 예산의 _SEARCH_BUDGET_SHARE까지만 새로 쓴다(대표 그룹 예외, D-72).
     - 실행 전체에서 final_context_token_limit(초기 4000)을 넘기지 않는다. 처음으로 들어가지 않는 그룹에서
       멈춘다. 예산 밖 후보를 순서를 바꿔 다시 넣지 않는다(05-retrieval-assembly 7항).
     - 대표 그룹(첫 그룹)이 들어가지 않으면 그 검색의 필수 근거가 빠진 것이다(6항).
@@ -1140,8 +1140,9 @@ def _citation_context(passage: dict[str, Any]) -> tuple:
     return (passage.get("event_key"), passage.get("date_basis"), passage.get("as_of_date"))
 
 
-# D-72: 검색 한 번이 새로 쓸 수 있는 근거 예산의 몫(실행 예산 4000이면 2000)
-_SEARCH_BUDGET_SHARE = 0.5
+# D-72: 검색 한 번이 새로 쓸 수 있는 근거 예산의 몫(실행 예산 4000이면 3000, 다음 검색에 1000을 남긴다).
+# 검색 단계 비교(113문항): 몫 없음 0.904·0.75는 0.892·0.5는 0.866(v1 0.843), 0.75는 v1보다 나빠진 문항 0.
+_SEARCH_BUDGET_SHARE = 0.75
 # D-69: 영업일 계산 호출 상한(도구 제안 상한과 따로 센다)
 _MAX_DEADLINE_CALLS = 4
 _ISO_DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}")

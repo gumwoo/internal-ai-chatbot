@@ -90,7 +90,7 @@ T-15(D-69, 2026-10-20): 영업일 기한 — after/before/다음 달 N번째, �
 
 T-15(D-71, 2026-10-20): 영업일 기한 계산표 — 코퍼스 기한 문형(after·before·다음 달·다음 영업일·전 영업일, 표 행, 줄바꿈 잘림)과 제외 문형(기준 없음·첫 N영업일·오후·마감 이월), 한 문장 두 기한의 조각, 기준일 후보(순서·상한·이력 상대 날짜·시제 연도·범위 끝·분수), 계산·중복 제거·상한·표 밖, 실행 흐름(사용자 날짜·이력 날짜·최근 이력 우선·날짜 없음·citation_id가 모델 보기의 원문). `backend/tests/test_deadline_hints.py`·`test_document_agent.py`(-k deadline).
 
-T-27(D-72, 2026-10-20): 원문 검색 후보 40·문서 다양성 순서(앞 4그룹·나머지 뒤·순위 다시 매김), 후보 상한, 모델 top_k 1~40, 운영 B fallback 적용·전체 문맥 기준선 미적용, 검색당 예산 몫(절반·대표 그룹 예외·몫 초과는 예산 초과 표시 아님·다음 검색 자리), 평가 결과 설정 ID와 다른 설정 결과 이어쓰기 거절. `backend/tests/test_retrieval_diversity.py`·`test_document_agent.py`(-k half_the_run·representative_group)·`test_eval_cli.py`·`test_wiki.py`.
+T-27(D-72, 2026-10-20): 원문 검색 후보 40·거리 순, 후보 상한, 모델 top_k 1~40, 운영 B fallback 설정 ID, 검색당 예산 몫(0.75·대표 그룹 예외·몫 초과는 예산 초과 표시 아님·다음 검색 자리), 평가 결과 설정 ID와 다른 설정 결과 이어쓰기 거절. `backend/tests/test_retrieval_diversity.py`·`test_document_agent.py`(-k its_share·representative_group)·`test_eval_cli.py`·`test_wiki.py`.
 
 T-31/32: code point 출처·닫힌 template/normalization, 복수 root 준비의 직접 원본/밀려난 head 이중 관계, 최초 head row 삽입 경쟁, cancel 후 ID/revision. T-17/29: IT-045/046 안내 판본, 원규정 공백 시 결론 보류, 반대편 판본 경과조항의 조건·현재 ACL.
 
