@@ -277,6 +277,10 @@ async def test_embedding_outage_is_tool_failure_not_zero_results(published, migr
 
 
 async def test_budget_keeps_whole_support_groups_only(published, migrated, monkeypatch):
+    from agent.modules.agent_runtime import runtime as _rt
+
+    # 전체 예산이 찼을 때의 동작을 본다(D-72 검색당 몫은 따로 시험한다)
+    monkeypatch.setattr(_rt, "_SEARCH_BUDGET_SHARE", 1.0)
     from agent.shared import contracts
 
     monkeypatch.setattr(contracts.ExecutionPolicy, "__init__", _policy_init(final_context_token_limit=200))
@@ -589,6 +593,10 @@ async def test_edition_split_note_is_skipped_when_the_same_event_is_dated_later(
 
 async def test_server_abstain_does_not_ask_for_an_event_dated_later(published, migrated, monkeypatch):
     """D-67: 서버 문구로 답을 바꿀 때도, 뒤에서 날짜로 확인한 사건의 날짜는 다시 묻지 않는다."""
+    from agent.modules.agent_runtime import runtime as _rt
+
+    # 전체 예산이 찼을 때의 동작을 본다(D-72 검색당 몫은 따로 시험한다)
+    monkeypatch.setattr(_rt, "_SEARCH_BUDGET_SHARE", 1.0)
     from agent.shared import contracts
     from agent.shared.tokens import estimate_tokens
 
@@ -623,6 +631,10 @@ async def test_same_group_received_again_for_a_dated_event_is_not_charged_twice(
 ):
     """D-67 검증 지적: 판본별 결과 뒤 같은 사건을 날짜로 다시 검색하면 같은 그룹이 새 인용 ID로 다시 온다.
     같은 원문이므로 근거 예산은 다시 세지 않는다(예산 때문에 날짜가 확인된 원문이 빠지지 않게)."""
+    from agent.modules.agent_runtime import runtime as _rt
+
+    # 전체 예산이 찼을 때의 동작을 본다(D-72 검색당 몫은 따로 시험한다)
+    monkeypatch.setattr(_rt, "_SEARCH_BUDGET_SHARE", 1.0)
     from agent.shared import contracts
     from agent.shared.tokens import estimate_tokens
 
@@ -1074,6 +1086,58 @@ async def test_server_maps_answers_after_unsupported_or_clarification(published,
     body = clarify.json()
     assert body["outcome"] == "needs_clarification" and "교육 시작일" in body["answer"]
     assert "150만" not in body["answer"]
+
+
+async def test_one_search_uses_at_most_half_the_run_budget_and_leaves_room_for_the_next(
+    published, migrated, monkeypatch
+):
+    """D-72: 검색 한 번은 실행 근거 예산의 절반까지만 새로 쓴다(대표 그룹은 예외). 몫 때문에 뒤 후보를 덜 넣은
+    것은 evidence_budget_exceeded가 아니다. 같은 실행의 다음 검색에도 예산이 남는다."""
+    from agent.shared import contracts
+    from agent.shared.tokens import estimate_tokens
+
+    probe = Capturing([tool_turn(SEARCH_OLD, IT_TABLE), final("답")])
+    async with api_client(_app(migrated, probe)) as client:
+        await _ask(client, "9월 29일에 시작한 외부교육 한도와 티켓 상태")
+    old, table = (payload["data"]["groups"] for payload in probe.tool_payloads())
+
+    def cost(group):
+        return sum(estimate_tokens(p["text"]) for p in group["passages"])
+
+    assert len(old) >= 3 and table
+    share = max(cost(old[0]) + cost(old[1]), cost(table[0]))
+    limit = 2 * share  # 첫 검색 몫(절반) 안에 첫 두 그룹, 나머지 절반에 다음 검색의 대표 그룹이 들어간다
+    monkeypatch.setattr(contracts.ExecutionPolicy, "__init__", _policy_init(final_context_token_limit=limit))
+    model = Capturing([tool_turn(SEARCH_OLD), tool_turn(IT_TABLE), final("답")])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, "9월 29일에 시작한 외부교육 한도와 티켓 상태")
+    first, second = model.tool_payloads()
+    used = sum(cost(g) for g in first["data"]["groups"])
+    assert used <= share < used + cost(old[len(first["data"]["groups"])])  # 몫까지만 넣었다
+    assert "evidence_budget_exceeded" not in first["data"]  # 몫 때문에 덜 넣은 것은 예산 초과가 아니다
+    assert second["data"]["groups"]  # 다음 검색에도 자리가 남았다
+
+
+async def test_representative_group_bigger_than_the_share_still_enters(published, migrated, monkeypatch):
+    """D-72: 대표 그룹(첫 그룹)은 검색당 몫보다 커도 전체 예산 안이면 넣는다
+    (필수 근거 누락으로 만들지 않는다)."""
+    from agent.shared import contracts
+    from agent.shared.tokens import estimate_tokens
+
+    probe = Capturing([tool_turn(SEARCH_OLD), final("답")])
+    async with api_client(_app(migrated, probe)) as client:
+        await _ask(client, "9월 29일에 시작한 외부교육 한도")
+    first_cost = sum(
+        estimate_tokens(p["text"]) for p in probe.tool_payloads()[0]["data"]["groups"][0]["passages"]
+    )
+    monkeypatch.setattr(
+        contracts.ExecutionPolicy, "__init__", _policy_init(final_context_token_limit=first_cost)
+    )
+    model = Capturing([tool_turn(SEARCH_OLD), final("답")])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "9월 29일에 시작한 외부교육 한도")
+    assert len(model.tool_payloads()[0]["data"]["groups"]) == 1  # 몫(절반)보다 크지만 들어갔다
+    assert response.json()["outcome"] != "insufficient_evidence"
 
 
 async def test_budget_stops_at_first_group_that_does_not_fit_and_ledger_is_in_context_only(

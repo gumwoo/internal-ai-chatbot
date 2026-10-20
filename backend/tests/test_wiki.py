@@ -1094,7 +1094,7 @@ async def test_operational_b_falls_back_with_reason_and_records_the_config_it_ra
     expected = {"stale": "wiki_stale", "no_candidates": "no_wiki_candidates"}[case]
     trace = result.trace()
     assert (trace["effective_strategy"], trace["fallback_reason"]) == ("raw", expected)
-    assert trace["retriever_config_id"] == "raw-exact-cosine-v1" and trace["strict_failure"] is None
+    assert trace["retriever_config_id"] == "raw-diverse-cosine-v2" and trace["strict_failure"] is None  # D-72
 
 
 async def test_topic_draft_survives_a_failed_domain_call_and_counts_it():

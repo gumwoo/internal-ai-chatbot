@@ -75,8 +75,8 @@ class SearchDocumentsArgs(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     query: str = Field(min_length=1, max_length=500)
-    # 서버 retriever config 범위(1~20) 안에서만 받는다(docs/05-agent-execution.md).
-    top_k: int | None = Field(default=None, ge=1, le=20)
+    # 서버 retriever config 범위(1~40, D-72) 안에서만 받는다(docs/05-agent-execution.md).
+    top_k: int | None = Field(default=None, ge=1, le=40)
     date_basis: DateBasis = "current"
     as_of_date: date | None = None
     # 사건 날짜를 말한 사용자 문장 인용(출처 후보). MOD-02가 본인 메시지와 대조해 날짜를 정규화한다.
