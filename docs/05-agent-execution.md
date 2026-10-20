@@ -14,8 +14,9 @@ MOD-02가 실행을 조정하고 MOD-03이 스키마/분배, MOD-01이 필수 �
 | list_it_tickets | status?(open), limit=10(1~20), offset=0 | 현재 허용 TicketPage |
 | get_it_ticket | ticket_id(UUID) | 현재 허용 TicketDetail |
 | prepare_it_ticket | subject?, description?, request_type?, category?, target_service?, occurred_at?, impact_scope?, urgent_work?, urgency_reason?, asset_identifier?, origin_candidates? | ActionPreview |
+| calculate_business_deadline | base_date(ISO date), business_days(1~60), direction(after/before/nth_of_next_month) | 마감일·요일·셈 규칙·건너뛴 공휴일·달력 판본·base_date_verified(D-69). 표 밖·다음 달 초과는 TOOL_ARGUMENT_INVALID |
 
-date_preset은 today/this_week/next_week/next_30_days/custom. 기본 next_30_days. custom만 start/end를 둘 다 받으며 범위 최대90일·시작 포함/종료 제외다. 교육 query는 최대100자 제목 부분 일치. KST 월요일 주 시작. 티켓 category는 account/network/device/software/other다. 등록자는 서버 actor이며 priority·담당자·임의 requester를 모델이 결정하지 않는다.
+date_preset은 today/this_week/next_week/next_30_days/custom. 기본 next_30_days. custom만 start/end를 둘 다 받으며 범위 최대90일·시작 포함/종료 제외다. 교육 query는 최대100자 제목 부분 일치. KST 월요일 주 시작. 티켓 category는 account/network/device/software/other다. 등록자는 서버 actor이며 priority·담당자·임의 requester를 모델이 결정하지 않는다. 영업일 계산(D-69)은 문서 검색이 허용된 run에만 노출하고, 도구 제안 상한과 따로 최대 4번 센다.
 
 date_basis는 current/explicit_date/training_start/trip_start/approval_date/request_date/work_date/processing_date다. current는 사건 없는 일반 조회에서만 수락일을 기본으로 쓴다. MOD-02가 확인한 business_dates/question_context를 서버 SearchRequest에 전달하고 MOD-11이 application_basis와 대조한다. 누락/충돌은 CT-14 needs_clarification이며 검색0건으로 바꾸지 않는다. [사건 날짜 계약](contracts/02-business-dates.md)을 따르고 미래 지식 조회는 제외하되 현재 공개된 규정으로90일 이내 예정 사건은 지원한다. 두 시점은 각각 검색하고 전체 근거 예산은 공통이다.
 

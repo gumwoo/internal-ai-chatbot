@@ -11,7 +11,7 @@ APP-04 평가 실행은 source=eval_fixture이며 평가 설정의 고정 actor 
 | capability | 허용 행위 | 주로 확인하는 모듈 |
 |---|---|---|
 | training.read | 교육 목록·상세, list/get_training 도구 | MOD-04/03 |
-| knowledge.search | search_documents, 근거·PDF 조회(문서 ACL은 별도로 판정) | MOD-05/11/03 |
+| knowledge.search | search_documents, calculate_business_deadline(D-69), 근거·PDF 조회(문서 ACL은 별도로 판정) | MOD-05/11/03 |
 | ticket.read_own | 본인 티켓 목록·상세 | MOD-12 |
 | ticket.read_support_scope | support_department_ids에 속한 요청자 티켓 조회 | MOD-12 |
 | ticket.read_all | 전사 티켓 조회(별도 명시 부여만) | MOD-12 |

@@ -10,6 +10,7 @@
 import asyncio
 import json
 import logging
+import re
 from dataclasses import dataclass, field, replace
 from datetime import date
 from typing import Any
@@ -130,6 +131,10 @@ class _Run:
     # 이미 문맥에 넣은 (그룹, 사건, 날짜 기준, 날짜) → 그때 붙인 citation_id. 같은 사건의 같은 검색 반복만
     # 재사용한다. 사건·날짜가 다르면 근거 연결을 합치지 않는다(05-retrieval-assembly 3항).
     seen_groups: dict[tuple, list[str]] = field(default_factory=dict)
+    # D-69: 이번 실행의 도구 결과에 나온 날짜(YYYY-MM-DD). 영업일 계산 기준일의 출처 표시에 쓴다.
+    tool_dates: set[str] = field(default_factory=set)
+    # D-69: 영업일 계산 호출 수. 외부 호출이 없는 계산이라 도구 제안 상한과 따로 센다.
+    deadline_calls: int = 0
     # 원문 예산을 이미 쓴 support_group ID. 같은 그룹을 다른 사건 문맥(판본별 결과 뒤 날짜 재검색 등)으로
     # 다시 받으면 인용 ID는 새로 주되 같은 원문이므로 예산은 다시 세지 않는다(D-67).
     charged_groups: set[str] = field(default_factory=set)
@@ -416,7 +421,12 @@ class AgentRuntime:
             for proposal in response.tool_proposals:
                 # 무효 인자·미등록 도구도 제안 수에 포함한다(T-09).
                 run.tool_proposals += 1
-                if run.tool_proposals > policy.max_tool_proposals:
+                if proposal.name == "calculate_business_deadline":
+                    # D-69: 계산은 별도 상한으로 센다(판본별 기한·사건 둘이면 검색과 계산이 함께 늘어난다).
+                    run.deadline_calls += 1
+                    if run.deadline_calls > _MAX_DEADLINE_CALLS:
+                        raise AppError(ErrorCode.AGENT_LIMIT_EXCEEDED)
+                elif run.tool_proposals - run.deadline_calls > policy.max_tool_proposals:
                     raise AppError(ErrorCode.AGENT_LIMIT_EXCEEDED)
                 if self._remaining(run.context) <= 0:
                     # 모델 응답 뒤 실행 시간이 다 됐다. 도구 시간 초과가 아니라 실행 시간 초과다.
@@ -426,9 +436,9 @@ class AgentRuntime:
                 view = (
                     _search_view(run, result) if proposal.name == "search_documents" and result.ok else result
                 )
-                results.append(
-                    ToolResultContent(proposal.provider_call_id, _model_view(view), is_error=not result.ok)
-                )
+                shown = _model_view(view)
+                run.tool_dates.update(_ISO_DATE.findall(shown))
+                results.append(ToolResultContent(proposal.provider_call_id, shown, is_error=not result.ok))
             messages.append(response.as_assistant_message())
             messages.append(ModelMessage(role="tool_result", tool_results=tuple(results)))
 
@@ -682,6 +692,8 @@ def _field_origins(run: _Run, proposal: ToolCallProposal) -> dict[str, Any] | No
     """
     if proposal.name == "prepare_it_ticket":
         return {"ticket_fields": _ticket_origins(run, proposal)}
+    if proposal.name == "calculate_business_deadline":
+        return {"base_date": _base_date_origin(run, proposal)}
     if proposal.name != "search_documents":
         return None
     arguments = proposal.arguments if isinstance(proposal.arguments, dict) else {}
@@ -705,6 +717,32 @@ def _field_origins(run: _Run, proposal: ToolCallProposal) -> dict[str, Any] | No
         if isinstance(event, dict):
             origins[f"other_events[{index}]"] = _verify_event(run, event)
     return origins or None
+
+
+def _base_date_origin(run: _Run, proposal: ToolCallProposal) -> dict[str, Any]:
+    """D-69: 영업일 계산 기준일이 이번 실행의 도구 결과나 본인 메시지에 있던 날짜인가.
+
+    계산 자체는 막지 않고 결과에 base_date_verified로 알린다(모델은 확인되지 않은 기준일을 가정으로 밝힌다).
+    본인 메시지는 월·일이 같은 표현("10월 1일", "10/1", "2026-10-01")이나, 오늘이면 "오늘"을 본다.
+    """
+    arguments = proposal.arguments if isinstance(proposal.arguments, dict) else {}
+    try:
+        base = date.fromisoformat(str(arguments.get("base_date")))
+    except ValueError:
+        return {"verified": False, "source": None}
+    if base.isoformat() in run.tool_dates:
+        return {"verified": True, "source": "tool_result"}
+    texts = [run.message, *(m.text for m in _visible_history(run) if m.role == "user" and m.text)]
+    month_day = re.compile(
+        rf"(?<!\d)(?:{base.month}\s*월\s*{base.day}\s*일|{base.month}\s*[./]\s*{base.day}(?![\d.])"
+        rf"|{base.year}\s*[-./]\s*0?{base.month}\s*[-./]\s*0?{base.day}(?!\d))"
+    )
+    if any(month_day.search(text) for text in texts):
+        return {"verified": True, "source": "user_message"}
+    today = run.context.current_time.astimezone(KST).date()
+    if base == today and "오늘" in run.message:
+        return {"verified": True, "source": "user_message"}
+    return {"verified": False, "source": None}
 
 
 def _ticket_origins(run: _Run, proposal: ToolCallProposal) -> list[dict[str, Any]]:
@@ -1079,6 +1117,9 @@ def _citation_context(passage: dict[str, Any]) -> tuple:
     return (passage.get("event_key"), passage.get("date_basis"), passage.get("as_of_date"))
 
 
+# D-69: 영업일 계산 호출 상한(도구 제안 상한과 따로 센다)
+_MAX_DEADLINE_CALLS = 4
+_ISO_DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}")
 # D-68: 재호출 경로를 실행 기한보다 먼저 끊어 첫 응답으로 끝낼 시간(초)
 _PROMISE_RESERVE_S = 2.0
 

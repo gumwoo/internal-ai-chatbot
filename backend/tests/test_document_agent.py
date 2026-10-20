@@ -353,6 +353,7 @@ async def test_search_tool_absent_without_snapshot_or_capability(seeded_engine, 
         await _ask(client, "규정 알려줘")
     names = [t.name for t in model.requests[0].tools]
     assert "search_documents" not in names and names[:2] == ["list_trainings", "get_training"]
+    assert "calculate_business_deadline" not in names  # D-69: 영업일 계산도 문서 검색과 같이 둔다
     assert "search_documents" not in model.requests[0].system
 
 
@@ -808,6 +809,114 @@ async def test_search_promise_after_a_tool_call_is_not_retried(published, migrat
     async with api_client(_app(migrated, model)) as client:
         await _ask(client, "티켓 상태가 뭐가 있어요?")
     assert len(model.requests) == 2
+
+
+async def test_business_deadline_tool_is_offered_with_document_search_and_returns_the_server_date(
+    published, migrated
+):
+    """D-69: 영업일 기한은 서버가 공휴일표로 계산한다(문서 검색이 허용된 run에만 노출)."""
+    calc = (
+        "calculate_business_deadline",
+        {"base_date": "2026-10-01", "business_days": 10, "direction": "after"},
+    )
+    model = Capturing([tool_turn(calc), final("10월 19일까지입니다")])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "10월 1일에 돌아왔는데 10영업일이면 언제까지예요?")
+    assert response.status_code == 200
+    assert "calculate_business_deadline" in {t.name for t in model.requests[0].tools}
+    (result,) = model.tool_payloads()
+    assert result["ok"] is True and result["data"]["deadline"] == "2026-10-19"
+    assert [h["date"] for h in result["data"]["skipped_holidays"]] == ["2026-10-05", "2026-10-09"]
+
+
+async def test_business_deadline_tool_rejects_dates_outside_the_calendar_and_is_hidden_without_search(
+    published, migrated
+):
+    calc = (
+        "calculate_business_deadline",
+        {"base_date": "2029-01-02", "business_days": 3, "direction": "after"},
+    )
+    model = Capturing([tool_turn(calc), final("계산하지 못했습니다", outcome="insufficient_evidence")])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, "2029년 1월 2일부터 3영업일")
+    (result,) = model.tool_payloads()
+    assert result["ok"] is False and result["error"]["code"] == "TOOL_ARGUMENT_INVALID"
+    no_docs = ActorContext(
+        "emp-sales", ("dept-sales",), ("employee",), frozenset({"training.read"}), 1, "test_stub"
+    )
+    model = Capturing([final("안녕하세요")])
+    async with api_client(_app(migrated, model, actor=no_docs)) as client:
+        await _ask(client, "안녕")
+    assert "calculate_business_deadline" not in {t.name for t in model.requests[0].tools}
+
+
+async def test_business_deadline_marks_whether_the_base_date_came_from_the_user_or_a_tool_result(
+    published, migrated
+):
+    """D-69: 기준일이 본인 메시지나 이번 실행의 도구 결과에 있던 날짜면 base_date_verified=true."""
+
+    def calc(base, days=3):
+        return (
+            "calculate_business_deadline",
+            {"base_date": base, "business_days": days, "direction": "after"},
+        )
+
+    model = Capturing(
+        [
+            tool_turn(calc("2026-10-01")),
+            tool_turn(calc("2026-10-07")),
+            tool_turn(calc("2026-11-02")),
+            final("답"),
+        ]
+    )
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, "10월 1일에 복귀했어요")
+    first, chained, made_up = model.tool_payloads()
+    assert first["data"]["base_date_verified"] is True  # "10월 1일"
+    assert first["data"]["deadline"] == "2026-10-07"
+    assert chained["data"]["base_date_verified"] is True  # 앞 계산 결과의 날짜
+    assert made_up["data"]["base_date_verified"] is False  # 어디에도 없던 날짜
+
+
+async def test_business_deadline_errors_name_the_argument_and_calls_have_their_own_limit(
+    published, migrated, monkeypatch
+):
+    from agent.shared import contracts
+
+    over = (
+        "calculate_business_deadline",
+        {"base_date": "2027-12-30", "business_days": 2, "direction": "after"},
+    )
+    model = Capturing([tool_turn(over), final("계산하지 못했습니다", outcome="insufficient_evidence")])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, "12월 30일부터 2영업일")
+    (result,) = model.tool_payloads()
+    assert result["error"]["details"] == {"field_names": ["business_days"]}
+    beyond = (
+        "calculate_business_deadline",
+        {"base_date": "2026-09-15", "business_days": 25, "direction": "nth_of_next_month"},
+    )
+    model = Capturing([tool_turn(beyond), final("계산하지 못했습니다", outcome="insufficient_evidence")])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, "9월 15일 기준 다음 달 25영업일")
+    (result,) = model.tool_payloads()
+    assert result["error"]["code"] == "TOOL_ARGUMENT_INVALID"
+    assert result["error"]["details"] == {"field_names": ["business_days"]}
+    # 계산은 도구 제안 상한에서 따로 센다: 상한 1이어도 검색 1번 + 계산 1번은 된다
+    monkeypatch.setattr(contracts.ExecutionPolicy, "__init__", _policy_init(max_tool_proposals=1))
+    calc = (
+        "calculate_business_deadline",
+        {"base_date": "2026-10-01", "business_days": 3, "direction": "after"},
+    )
+    model = Capturing([tool_turn(calc), tool_turn(SEARCH_TABLE), final("답")])  # 계산 다음 검색
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "10월 1일부터 3영업일")
+    assert response.status_code == 200
+    # 계산 자체의 상한(4번)을 넘으면 실행 상한 초과다
+    model = Capturing([tool_turn(calc, calc, calc, calc, calc), final("답")])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "10월 1일부터 3영업일")
+    assert response.status_code == 504
 
 
 async def test_edition_split_is_not_used_for_unsupported_or_explicit_far_dates(published, migrated):

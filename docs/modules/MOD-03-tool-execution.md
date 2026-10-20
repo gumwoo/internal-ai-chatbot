@@ -14,6 +14,7 @@ DescribeAllowedTools(context) → 모델용 명세. ExecuteOnce(context, ToolExe
 | list_trainings / get_training | MOD-04 |
 | search_documents | MOD-11 |
 | list_it_tickets / get_it_ticket / prepare_it_ticket | MOD-12 |
+| calculate_business_deadline | MOD-03 내부 순수 함수(`business_days.py`, 공휴일표 `kr-public-2025-2027-v2`, D-69) |
 
 모델에 confirm/create/cancel 티켓 도구, 임의 HTTP·SQL·파일 읽기·문서 게시·Wiki 빌드 도구를 노출하지 않는다. 사용자에게 허용된 capability에 맞춰 명세를 제한하되 실행 대상 모듈에서도 재검증한다.
 

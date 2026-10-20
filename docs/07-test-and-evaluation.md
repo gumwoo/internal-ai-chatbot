@@ -86,6 +86,8 @@ T-15(D-67, 2026-10-19): 날짜를 확인하지 못한 사건 기준 질문은 �
 
 T-05/T-06(D-68, 2026-10-20): 검색·확인 약속만 하고 도구를 부르지 않은 첫 응답은 도구 강제 재호출 한 번(안내·문맥 유지·usage), 재호출 실패·도구 없는 재응답·이후 단계 실패·기한 끝 무렵이면 첫 응답 유지, 인사·조건부 되묻기·도구 호출 뒤 답·빈 첫 답 재호출 뒤·문서 권한 없음·시도 상한·시간 여유 없음·무효 첫 답은 발동하지 않음. 문형 판정 양성·음성(조건·인용·제3자·부정·다른 곳 검색 안내). `backend/tests/test_document_agent.py`(-k promise)·`test_search_promise.py`.
 
+T-15(D-69, 2026-10-20): 영업일 기한 — after/before/다음 달 N번째, 공휴일·대체공휴일·주말 겹침, 해 넘김, 표 밖·다음 달 초과 오류와 원인 필드, 독립 검증으로 고친 공휴일 사실(2026 노동절, 2027 설·노동절·제헌절 대체), 문서 검색 run에만 노출, 기준일 출처 표시(본인 메시지·도구 결과·어디에도 없음), 계산 호출의 별도 상한. `backend/tests/test_business_days.py`·`test_document_agent.py`(-k business_deadline).
+
 T-31/32: code point 출처·닫힌 template/normalization, 복수 root 준비의 직접 원본/밀려난 head 이중 관계, 최초 head row 삽입 경쟁, cancel 후 ID/revision. T-17/29: IT-045/046 안내 판본, 원규정 공백 시 결론 보류, 반대편 판본 경과조항의 조건·현재 ACL.
 
 T-27/35:5개 초과 gold 보존, 공통 token 예산·다중 사건 병합, Wiki 주제/프롬프트 holdout 전 동결·judge 블라인딩. dev 예산 스윕 곡선과 동결 근거 기록, Recall@pool/Recall@budget·evidence-in-context·hard_negative 오답 보고, 재정렬·전체 문맥 기준선은 별도 비교 ID로만 실행. 정적 시안 결과는 서버/실제 RAG 검증과 구분한다.
