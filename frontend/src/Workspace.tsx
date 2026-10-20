@@ -1,5 +1,6 @@
 // 업무 대화 화면: 왼쪽 대화 목록, 가운데 대화, 선택적 오른쪽 상세(docs/ui/01-screen-proposal.md).
 import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { ActionCard } from "./ActionCard";
 import { ApiError, NetworkError, api, newKey, sendMessage } from "./api";
 import { DetailPanel } from "./Detail";
@@ -107,7 +108,11 @@ export function Workspace({ session, onLogout, onExpired }: { session: SessionIn
       if (!pending.current || pending.current.content !== content || pending.current.conversationId !== conversationId) {
         pending.current = { content, key: newKey(), conversationId };
       }
-      const result = await sendMessage(conversationId, content, pending.current.key, setStage);
+      // 진행 단계와 결과가 한 덩어리로 도착하면(빠른 응답) React가 갱신을 묶어 단계가 화면에 한 번도
+      // 그려지지 않는다. 단계마다 바로 반영해 서버가 보낸 단계를 화면에 남긴다(D-29).
+      const result = await sendMessage(conversationId, content, pending.current.key, (next) =>
+        flushSync(() => setStage(next)),
+      );
       pending.current = null;
       setDraft("");
       if (shown.current === conversationId) {

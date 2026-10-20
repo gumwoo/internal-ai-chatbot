@@ -64,6 +64,13 @@ test("교육 질문: 진행 단계 후 결과를 한 번에, 상세는 Esc로 �
       return response;
     };
   });
+  // 가장 빠른 경우를 고정한다: 진행 단계와 결과가 한 덩어리로 도착해도 단계가 화면에 반영돼야 한다
+  // (가짜 모델이 빠르면 실제로 이렇게 와서 CI에서 가끔 실패했다).
+  await page.route("**/conversations/*/messages", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    const response = await route.fetch();
+    await route.fulfill({ response, body: await response.body() });
+  });
   await page.getByLabel("질문").fill("다음 주 교육 일정 알려줘");
   await page.getByLabel("질문").press("Enter");
   await expect(page.locator(".composer")).toHaveAttribute("aria-busy", "false");
