@@ -12,6 +12,10 @@ knowledge_as_of에서 `available_from`을 통과한 안내 중 `guidance_valid_f
 
 사건 날짜를 확인하지 못한 검색은 대상 규범 문서(이 사건 기준의 가장 가까운 규범)의 normative 판본(knowledge_as_of에 공개되고 90일 안에 시행되는 것 중 최근 3개)마다 그 판본 안의 날짜(옛 판본은 effective_to 전날, 현행은 오늘, 장래 판본은 시행일)로 같은 검색을 다시 한다. 오늘을 포함하는 판본이 없으면 판본별로 주지 않는다. 각 판본에서 그 문서의 그룹 2개와 다른 문서 그룹 1개를 남기고(전체 문맥 기준선은 전부), 그룹 순위가 같으면 최근 판본을 앞에 두어 섞는다. 판본 대표일은 경과조항 조건의 사건 날짜로 쓰지 않는다. 그룹은 `as_of_date`로 판본을 구분하며 MOD-02는 (event_key, date_basis, as_of_date)로 인용 문맥을 나눈다. authority_relations는 합치고, normative_gap은 모든 판본에 공백이 있을 때만 둔다.
 
+## 영업일 기한 계산표(D-71)
+
+MOD-02는 모델에 보이는 검색 결과에 `deadline_hints={rules:[{citation_id,version,as_of_date,rule,business_days,direction,computed:[{base_date,base_quote,deadline,deadline_weekday,skipped_holidays}]}],counting,calendar_version,calendar_note}`를 붙일 수 있다. rules는 예산 안에 들어간 원문에서만 찾고(제한·예산 밖 원문은 대상이 아니다), 기준일은 사용자 메시지의 날짜다. 계산표는 근거가 아니라 계산 보조이며 원문 근거 예산에 세지 않는다. 답에 쓴 기한의 근거는 그 rule의 citation_id 원문이다.
+
 ## 반대편 판본의 경과조항
 
 MOD-05가 검수한 `transition_relations={from_edition_id,to_edition_id,clause_anchor,application_basis,event_conditions,authority_relation}`를 보존한다(manifest에서는 판본을 source_file_id로 적는다, [메타데이터 계약](../corpus/01-metadata-contract.md)). 구현(2026-10-18, D-40): verified_events는 이번 검색의 사건 날짜와 search_documents의 other_events 중 MOD-02가 사용자 문장으로 확인한 날짜다. 이미 알려진 조건이 어긋나면 확장하지 않고(묻지도 않음), 알려진 조건이 모두 맞는데 남은 사건 날짜가 없으면 그 사건 종류를 되묻는다. 확장 원문은 기본 그룹 뒤에 `source_role=transition`으로 붙는다. 문서 우선관계(authority_relations)는 결과 문서의 관계 중 대상 문서를 지금 볼 수 있는 것만 `{from_title,kind,to_title,quote}`로 결과에 싣는다. MOD-11이 기본 판본을 고른 뒤 MOD-05.ExpandTransitionEvidence로 CM-092 제9조/IT-041 제13조 등의 명시 경과조항을 회수한다. 다른 판본 전체를 재검색해 무관한 금액을 섞지 않는다. 링크 대상도 현재 ACL/게시/knowledge_as_of를 통과해야 한다.

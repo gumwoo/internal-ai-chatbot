@@ -536,3 +536,58 @@ def assume_today_check(
         ):
             return {"allowed": False, "reason": "past_cue"}
     return {"allowed": True, "reason": None, "markers": TENSE_MARKERS_VERSION}
+
+
+# D-71: 기준일 후보에서 뺄 분수·비율("1/2 지원", "1/3 비율")
+_FRACTION_TAIL = re.compile(r"\s*(지원|비율|로|만|씩|이상|이하|정도|수준|배|확률)")
+# "10월 1일부터 3일까지", "10월 1일~3일": 같은 달 끝 날짜도 후보로 넣는다(복귀일일 수 있다)
+_SAME_MONTH_END = re.compile(r"\s*(?:부터|~|-)\s*(\d{1,2})\s*일")
+_QUOTE_END = re.compile(r"[.?!\n,]")
+
+
+def deadline_bases(
+    current: str, history: tuple[str, ...], today: date, limit: int = 4
+) -> list[tuple[date, str]]:
+    """D-71: 영업일 마감 계산의 기준일 후보 (날짜, 그 날짜를 말한 문구).
+
+    이번 메시지, 그다음 이력의 본인 메시지(호출자가 최근 것부터 넘긴다)에 나온 날짜를 나온 순서로 모은다.
+    연도가 있는 날짜·상대 날짜("오늘")는 그대로 쓰고, 월·일만 있으면 날짜 뒤 말의 시제로 연도를 정한다
+    (사건 날짜 검증과 같은 _infer_year 규칙: 완료는 지난 날, 예정은 다가올 날, 표지가 없으면 오늘 ±90일 창 안
+    후보가 하나일 때만). 판본을 고르는 값이 아니라 모델이 원문 기한과 짝지을 계산 후보이므로 역할 검사는 하지
+    않고, 문구를 함께 넘겨 모델이 복귀일·출발일을 구분하게 한다. 이력의 상대 날짜, 분수("1/2 지원")는 뺀다.
+    """
+    out: list[tuple[date, str]] = []
+    for index, text in enumerate((current, *history)):
+        text = text or ""
+        for found in _find_dates(text, today):
+            if found.kind == "relative" and index > 0:
+                continue  # 이력 메시지의 "어제"는 그 메시지를 보낸 날 기준이라 모른다
+            if "/" in text[found.start : found.end] and _FRACTION_TAIL.match(text, found.end):
+                continue
+            stop = _QUOTE_END.search(text, found.end)
+            tail = text[found.end : stop.start() if stop else len(text)]
+            value = found.value
+            if found.kind == "month_day":
+                cleaned = _NOT_PAST.sub(" ", tail)
+                value = _infer_year(
+                    found.month,
+                    found.day,
+                    today,
+                    bool(_COMPLETED.search(tail)),
+                    bool(_PLANNED.search(tail)),
+                    past_strong=bool(_PAST_STRONG.search(cleaned)),
+                    past_weak=_has_weak_past(cleaned),
+                )
+            if value is None:
+                continue
+            quote = text[found.start : found.end + min(len(tail), 24)].strip()
+            candidates = [value]
+            end = _SAME_MONTH_END.match(text, found.end)
+            if end and int(end.group(1)) > value.day:
+                candidates.append(_safe(value.year, value.month, int(end.group(1))))
+            for day in candidates:
+                if day is not None and day not in {d for d, _ in out}:
+                    out.append((day, quote))
+                if len(out) >= limit:
+                    return out
+    return out

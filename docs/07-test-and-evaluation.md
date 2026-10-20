@@ -88,6 +88,8 @@ T-05/T-06(D-68, 2026-10-20): 검색·확인 약속만 하고 도구를 부르지
 
 T-15(D-69, 2026-10-20): 영업일 기한 — after/before/다음 달 N번째, 공휴일·대체공휴일·주말 겹침, 해 넘김, 표 밖·다음 달 초과 오류와 원인 필드, 독립 검증으로 고친 공휴일 사실(2026 노동절, 2027 설·노동절·제헌절 대체), 문서 검색 run에만 노출, 기준일 출처 표시(본인 메시지·도구 결과·어디에도 없음), 계산 호출의 별도 상한. `backend/tests/test_business_days.py`·`test_document_agent.py`(-k business_deadline).
 
+T-15(D-71, 2026-10-20): 영업일 기한 계산표 — 코퍼스 기한 문형(after·before·다음 달·다음 영업일·전 영업일, 표 행, 줄바꿈 잘림)과 제외 문형(기준 없음·첫 N영업일·오후·마감 이월), 한 문장 두 기한의 조각, 기준일 후보(순서·상한·이력 상대 날짜·시제 연도·범위 끝·분수), 계산·중복 제거·상한·표 밖, 실행 흐름(사용자 날짜·이력 날짜·최근 이력 우선·날짜 없음·citation_id가 모델 보기의 원문). `backend/tests/test_deadline_hints.py`·`test_document_agent.py`(-k deadline).
+
 T-31/32: code point 출처·닫힌 template/normalization, 복수 root 준비의 직접 원본/밀려난 head 이중 관계, 최초 head row 삽입 경쟁, cancel 후 ID/revision. T-17/29: IT-045/046 안내 판본, 원규정 공백 시 결론 보류, 반대편 판본 경과조항의 조건·현재 ACL.
 
 T-27/35:5개 초과 gold 보존, 공통 token 예산·다중 사건 병합, Wiki 주제/프롬프트 holdout 전 동결·judge 블라인딩. dev 예산 스윕 곡선과 동결 근거 기록, Recall@pool/Recall@budget·evidence-in-context·hard_negative 오답 보고, 재정렬·전체 문맥 기준선은 별도 비교 ID로만 실행. 정적 시안 결과는 서버/실제 RAG 검증과 구분한다.

@@ -919,6 +919,63 @@ async def test_business_deadline_errors_name_the_argument_and_calls_have_their_o
     assert response.status_code == 504
 
 
+DEADLINE_SEARCH = (
+    "search_documents",
+    {"query": "외부교육 종료 후 수료증 교육비 영수증 결과 보고서 제출 기한", "date_basis": "current"},
+)
+
+
+async def test_search_result_carries_server_computed_business_deadlines_for_user_dates(published, migrated):
+    """D-71: 모델 문맥에 들어간 원문의 영업일 기한을 사용자가 말한 날짜로 서버가 미리 계산해 붙인다."""
+    model = Capturing([tool_turn(DEADLINE_SEARCH), final("답")])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, "10월 8일에 외부교육이 끝났어요. 증빙은 언제까지 내야 해요?")
+    data = model.tool_payloads()[0]["data"]
+    hints = data["deadline_hints"]
+    rules = {(r["business_days"], r["direction"]): r for r in hints["rules"]}
+    after10 = rules[(10, "after")]
+    assert "영업일" in after10["rule"] and after10["citation_id"]
+    computed = {c["base_date"]: c for c in after10["computed"]}
+    # 10/8 기준 10영업일: 10/9 한글날을 빼고 10/23(금)
+    assert computed["2026-10-08"]["deadline"] == "2026-10-23"
+    assert [h["date"] for h in computed["2026-10-08"]["skipped_holidays"]] == ["2026-10-09"]
+    assert "회사 자체 휴무일은 반영하지 않았다" in hints["calendar_note"]
+    assert computed["2026-10-08"]["base_quote"].startswith("10월 8일에 외부교육이 끝났")
+    # 판본별 결과에서도 어느 판본의 기한인지 구분할 수 있게 판본·판본 날짜가 붙는다
+    assert after10["version"] and after10["as_of_date"]
+    # 계산표의 citation_id는 이번 결과에 실제로 들어간 원문이다
+    cited = {p["citation_id"] for g in data["groups"] for p in g["passages"]}
+    assert {r["citation_id"] for r in hints["rules"]} <= cited
+
+
+async def test_business_deadline_table_uses_a_date_from_an_earlier_user_message(published, migrated):
+    """D-71: 기준일 후보는 모델에 보낸 이력 창의 본인 메시지 날짜도 쓴다(2턴 질문)."""
+    model = Capturing([final("네, 말씀하세요."), tool_turn(DEADLINE_SEARCH), final("답")])
+    async with api_client(_app(migrated, model)) as client:
+        conv, _ = await _ask(client, "10월 8일에 외부교육이 끝났어요.")
+        await _ask(client, "그럼 증빙은 언제까지 내야 해요?", conv)
+    hints = model.tool_payloads()[0]["data"]["deadline_hints"]
+    assert any(c["base_date"] == "2026-10-08" for r in hints["rules"] for c in r["computed"])
+
+
+async def test_business_deadline_bases_prefer_the_latest_history_message(published, migrated):
+    """D-71 검증 지적: 기준일 후보는 상한(4개)이 있으므로 이력은 최근 메시지부터 본다."""
+    model = Capturing([final("네"), final("네"), tool_turn(DEADLINE_SEARCH), final("답")])
+    async with api_client(_app(migrated, model)) as client:
+        conv, _ = await _ask(client, "9월 1일, 9월 2일, 9월 3일, 9월 4일에 회의가 있었어요.")
+        await _ask(client, "10월 8일에 외부교육이 끝났어요.", conv)
+        await _ask(client, "증빙은 언제까지 내야 해요?", conv)
+    hints = model.tool_payloads()[0]["data"]["deadline_hints"]
+    assert hints["rules"][0]["computed"][0]["base_date"] == "2026-10-08"
+
+
+async def test_no_business_deadline_table_without_a_user_date(published, migrated):
+    model = Capturing([tool_turn(DEADLINE_SEARCH), final("답")])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, "외부교육 끝나고 증빙은 언제까지 내야 해요?")
+    assert "deadline_hints" not in model.tool_payloads()[0]["data"]
+
+
 async def test_edition_split_is_not_used_for_unsupported_or_explicit_far_dates(published, migrated):
     """D-67은 날짜를 확정하지 못한 경우만이다. 확인된 날짜는 그 판본 하나로 검색한다."""
     search = (

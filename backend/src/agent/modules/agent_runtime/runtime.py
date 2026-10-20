@@ -25,7 +25,8 @@ from agent.modules.agent_runtime.contracts import (
     Outcome,
     RunUsage,
 )
-from agent.modules.agent_runtime.dates import assume_today_check, verify_event_date
+from agent.modules.agent_runtime.dates import assume_today_check, deadline_bases, verify_event_date
+from agent.modules.agent_runtime.deadlines import deadline_hints
 from agent.modules.agent_runtime.promises import promises_lookup
 from agent.modules.agent_runtime.prompt import (
     EMPTY_ANSWER_RETRY,
@@ -719,6 +720,12 @@ def _field_origins(run: _Run, proposal: ToolCallProposal) -> dict[str, Any] | No
     return origins or None
 
 
+def _deadline_bases(run: _Run) -> list[tuple[date, str]]:
+    """D-71: 영업일 마감 계산의 기준일 후보(이번 메시지, 모델에 보낸 이력 창의 본인 메시지를 최근 것부터)."""
+    history = tuple(m.text for m in reversed(_visible_history(run)) if m.role == "user" and m.text)
+    return deadline_bases(run.message, history, run.context.current_time.astimezone(KST).date())
+
+
 def _base_date_origin(run: _Run, proposal: ToolCallProposal) -> dict[str, Any]:
     """D-69: 영업일 계산 기준일이 이번 실행의 도구 결과나 본인 메시지에 있던 날짜인가.
 
@@ -949,6 +956,11 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
     }
     if dropped_ids:
         view["evidence_budget_exceeded"] = True
+    # D-71: 모델 문맥에 들어간 원문의 영업일 기한을 사용자 날짜로 미리 계산해 붙인다(모델이 직접 세지 않게).
+    shown = [{**p, "as_of_date": g.get("as_of_date")} for g in kept_groups for p in g["passages"]]
+    hints = deadline_hints(shown, _deadline_bases(run))
+    if hints is not None:
+        view["deadline_hints"] = hints
     return ToolResult.success(view, result.resource_ids)
 
 
