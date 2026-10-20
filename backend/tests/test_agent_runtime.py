@@ -535,7 +535,7 @@ def test_prompt_requires_question_text_for_clarification():
     from agent.shared.clock import FIXTURE_NOW
 
     prompt = system_prompt(FIXTURE_NOW)
-    assert PROMPT_VERSION == "m7-answer-3"
+    assert PROMPT_VERSION == "m7-answer-4"
     assert "그다음 절차" in system_prompt(FIXTURE_NOW, documents=True)
     assert "assumed_today가 true면" in system_prompt(FIXTURE_NOW, documents=True)
     assert "되묻는 경우에도 answer에는 사용자에게 할 질문을 한국어 문장으로 쓴다" in prompt

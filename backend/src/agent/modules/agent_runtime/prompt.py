@@ -27,7 +27,8 @@ from agent.shared.clock import KST
 # m7-answer-1: 조건·예외·후속 절차를 함께 쓰기, 모호해도 먼저 검색(holdout 오답 분석의 사실 누락·검색 없는 되묻기).
 # m7-answer-2: 규칙 번호를 티켓 규칙(14~17)과 겹치지 않게 18·19로, 다른 판본 숫자는 비교를 물을 때만(D-64 검증).
 # m7-answer-3: 날짜를 확정하지 못하면 판본별로 조건을 나눠 답한다(edition_split, D-67).
-PROMPT_VERSION = "m7-answer-3"
+# m7-answer-4: 검색을 약속만 하고 도구를 부르지 않은 첫 응답에 서버 안내 SEARCH_PROMISE_RETRY(D-68).
+PROMPT_VERSION = "m7-answer-4"
 
 _CACHE_FIELDS = ("id", "code", "title", "starts_at", "ends_at", "location", "status")
 
@@ -132,6 +133,12 @@ _MARKERS = ("[대화 자료", "[사용자 질문]", "[서버 안내]")
 EMPTY_ANSWER_RETRY = (
     "[서버 안내] 빈 답은 받을 수 없습니다. 질문에 답하는 데 필요한 도구(교육 일정 또는 규정 검색)를 "
     "먼저 호출하고, 그 결과로 answer를 채워 답하세요. 도구가 필요 없는 질문이면 answer에 답을 쓰세요."
+)
+
+
+SEARCH_PROMISE_RETRY = (
+    "[서버 안내] 앞 응답에서 검색·확인하겠다고 했지만 도구를 부르지 않았습니다. 지금 필요한 도구(규정·절차는 "
+    "search_documents)를 부르고 그 결과로 답하세요. 이 안내는 사용자에게 말하지 마세요."
 )
 
 

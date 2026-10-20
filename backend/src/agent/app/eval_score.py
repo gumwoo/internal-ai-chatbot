@@ -260,6 +260,10 @@ def score_case(
         "empty_answer_retries": sum(
             (r.get("usage") or {}).get("empty_answer_retries") or 0 for r in result.get("runs", [])
         ),
+        # D-68 검색 약속 첫 답 재호출 횟수.
+        "search_promise_retries": sum(
+            (r.get("usage") or {}).get("search_promise_retries") or 0 for r in result.get("runs", [])
+        ),
         "model_ids": sorted({m for r in result.get("runs", []) for m in (r.get("model_ids") or [])}),
         "seconds": sum(t.get("seconds") or 0 for t in result.get("turns", [])),
         "searches": sum(1 for t in result.get("tools", []) if t.get("name") == "search_documents"),
@@ -330,6 +334,7 @@ def aggregate(scores: list[dict[str, Any]]) -> dict[str, Any]:
             "output_tokens": sum(r["output_tokens"] for r in rows),
             "usage_incomplete": sum(not r["usage_complete"] for r in rows),
             "empty_answer_retries": sum(r["empty_answer_retries"] for r in rows),
+            "search_promise_retries": sum(r.get("search_promise_retries", 0) for r in rows),
             "mean_seconds": _mean([r["seconds"] for r in rows]),
         }
     return out

@@ -25,9 +25,11 @@ from agent.modules.agent_runtime.contracts import (
     RunUsage,
 )
 from agent.modules.agent_runtime.dates import assume_today_check, verify_event_date
+from agent.modules.agent_runtime.promises import promises_lookup
 from agent.modules.agent_runtime.prompt import (
     EMPTY_ANSWER_RETRY,
     PROMPT_VERSION,
+    SEARCH_PROMISE_RETRY,
     conversation_data,
     neutralize,
     system_prompt,
@@ -98,6 +100,7 @@ class _Run:
     observer: ExecutionObserver
     model_attempts: int = 0
     empty_answer_retries: int = 0
+    search_promise_retries: int = 0
     # M5: 이번 run에서 조회한 티켓(답의 의존 자원)과 준비한 root draft 미리보기(action_id → preview).
     ticket_refs: dict[str, dict[str, Any]] = field(default_factory=dict)
     prepared: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -148,6 +151,7 @@ class _Run:
             self.usage_complete,
             self.model_attempts,
             self.empty_answer_retries,
+            self.search_promise_retries,
         )
 
     def allowed_trainings(self) -> dict[str, dict[str, Any]]:
@@ -352,7 +356,6 @@ class AgentRuntime:
         return context.deadline_monotonic - self._clock.monotonic()
 
     async def _loop(self, run: _Run, message: str) -> ExecutionResult:
-        policy = run.context.policy
         run.message = message
         history = _visible_history(run)
         # 이력의 사용자 메시지도 서버 표시 문자열을 무력화한다(현재 턴과 같은 규칙).
@@ -373,10 +376,29 @@ class AgentRuntime:
             tickets=bool(names & {"prepare_it_ticket", "list_it_tickets"}),
         )
 
-        tool_choice = "auto"
+        return await self._drive(run, messages, tools, system)
+
+    async def _drive(
+        self,
+        run: _Run,
+        messages: list[ModelMessage],
+        tools,
+        system: str,
+        tool_choice: str = "auto",
+        fallback: ModelResponse | None = None,
+    ) -> ExecutionResult:
+        """모델 호출 → 도구 실행 반복.
+
+        fallback이 있으면 D-68 재호출 경로다(첫 응답이 도구 없이 끝나면 fallback으로 끝낸다).
+        """
+        policy = run.context.policy
         while True:
             response = await self._call_model(run, tuple(messages), tools, system, tool_choice)
             tool_choice = "auto"
+            if fallback is not None and not response.wants_tools:
+                # D-68: 도구를 강제했는데도 도구 없이 끝났다. 받아 둔 첫 응답으로 끝낸다.
+                return await self._finish(run, fallback)
+            fallback = None
             if not response.wants_tools and _empty_first_answer(run, response, tools):
                 # D-37(P-16 B): 아무 도구도 부르지 않은 첫 응답의 빈 답만 한 번 다시 부른다
                 # (모델 시도 상한 안). D-41: 다시 부를 때는 도구 호출을 강제한다.
@@ -386,6 +408,8 @@ class AgentRuntime:
                 messages.append(ModelMessage(role="user", text=EMPTY_ANSWER_RETRY))
                 tool_choice = "any"  # D-41: 다시 부를 때는 도구 호출을 강제한다(P-16 C의 일부)
                 continue
+            if not response.wants_tools and self._search_promise(run, response, tools):
+                return await self._retry_search_promise(run, messages, tools, system, response)
             if not response.wants_tools:
                 return await self._finish(run, response)
             results: list[ToolResultContent] = []
@@ -407,6 +431,57 @@ class AgentRuntime:
                 )
             messages.append(response.as_assistant_message())
             messages.append(ModelMessage(role="tool_result", tool_results=tuple(results)))
+
+    def _search_promise(self, run: _Run, response: ModelResponse, tools) -> bool:
+        """D-68(P-26 C): 도구를 부르지 않은 첫 응답이 검색·확인을 약속했고, 다시 부를 여유가 있는가.
+
+        D-65(결과 유형으로 잡음, 철회)와 달리 모델이 스스로 검색이 필요하다고 쓴 경우만 잡는다.
+        - 문서 검색 도구가 있을 때만(서버 안내가 search_documents를 가리킨다)
+        - 스키마가 유효한 첫 답만(무효 출력을 재호출로 덮지 않는다)
+        - 모델 시도 상한과 실행 시간에 여유가 있을 때만
+        - 빈 첫 답 재호출(D-37) 뒤에는 걸지 않는다. 재호출 경로의 첫 응답은 fallback으로 처리하고,
+          그 뒤에는 도구를 불렀으므로(tool_proposals) 한 run에 한 번만 발동한다.
+        """
+        policy = run.context.policy
+        if run.tool_proposals or run.empty_answer_retries:
+            return False
+        if not any(tool.name == "search_documents" for tool in tools):
+            return False
+        candidate = response.final_candidate
+        if not isinstance(candidate, dict) or not promises_lookup(candidate.get("answer")):
+            return False
+        try:
+            FinalCandidate.model_validate(candidate)
+        except ValidationError:
+            return False
+        return (
+            run.model_attempts < policy.max_model_attempts
+            and self._remaining(run.context) > _PROMISE_RESERVE_S + 1
+        )
+
+    async def _retry_search_promise(
+        self, run: _Run, messages: list[ModelMessage], tools, system: str, first: ModelResponse
+    ) -> ExecutionResult:
+        """D-68: 약속한 첫 응답과 서버 안내를 붙여 도구를 강제해 다시 부르고, 그 뒤 흐름을 이어 간다.
+
+        재호출 경로가 모델·출력·실행 시간 오류로 끝나면(필수 기록 실패는 제외) 받아 둔 첫 응답으로 끝낸다
+        (D-65는 재호출 실패 때 받아 둔 답을 버렸다). 첫 응답으로 끝낼 시간을 남기려고 재호출 경로는
+        실행 기한보다 _PROMISE_RESERVE_S 먼저 끊는다.
+        """
+        run.search_promise_retries += 1
+        logger.info("검색 약속 첫 답 재호출 run_id=%s", run.context.run_id)
+        retry_messages = [
+            *messages,
+            first.as_assistant_message(),
+            ModelMessage(role="user", text=SEARCH_PROMISE_RETRY),
+        ]
+        try:
+            async with asyncio.timeout(self._remaining(run.context) - _PROMISE_RESERVE_S):
+                return await self._drive(run, retry_messages, tools, system, "any", fallback=first)
+        except (TimeoutError, AppError) as exc:
+            code = exc.code if isinstance(exc, AppError) else ErrorCode.RUN_TIMEOUT
+            logger.info("검색 약속 재호출 경로 실패, 첫 답 유지 run_id=%s code=%s", run.context.run_id, code)
+            return await self._finish(run, first)
 
     async def _call_model(
         self, run: _Run, messages: tuple[ModelMessage, ...], tools, system: str, tool_choice: str = "auto"
@@ -1003,6 +1078,9 @@ def _with_pending(run: _Run, text: str) -> str:
 def _citation_context(passage: dict[str, Any]) -> tuple:
     return (passage.get("event_key"), passage.get("date_basis"), passage.get("as_of_date"))
 
+
+# D-68: 재호출 경로를 실행 기한보다 먼저 끊어 첫 응답으로 끝낼 시간(초)
+_PROMISE_RESERVE_S = 2.0
 
 _BUDGET_ABSTAIN = (
     "필요한 규정 원문을 모두 확인하지 못해 결론을 드릴 수 없습니다. 질문을 나눠 다시 물어 주세요."

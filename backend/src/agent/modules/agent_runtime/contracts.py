@@ -95,6 +95,8 @@ class RunUsage:
     model_attempts: int
     # D-37: 첫 응답이 도구 없이 빈 답이라 서버가 다시 부른 횟수(0 또는 1). run 기록에 남긴다.
     empty_answer_retries: int = 0
+    # D-68: 첫 응답이 검색·확인을 약속만 하고 도구를 부르지 않아 서버가 다시 부른 횟수(0 또는 1).
+    search_promise_retries: int = 0
 
 
 @dataclass(frozen=True)

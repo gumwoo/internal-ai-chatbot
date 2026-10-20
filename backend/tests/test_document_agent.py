@@ -647,6 +647,169 @@ async def test_same_group_received_again_for_a_dated_event_is_not_charged_twice(
     assert not first_ids & {p["citation_id"] for g in dated["data"]["groups"] for p in g["passages"]}
 
 
+SEARCH_TABLE = (
+    "search_documents",
+    {"query": "티켓 상태 정의 접수 분류중 진행중 보류", "date_basis": "current"},
+)
+PROMISE = "사내 IT 지원 안내 문서를 확인해야 정확히 답할 수 있습니다. 문서를 검색해 보겠습니다."
+
+
+async def test_search_promise_without_tool_is_retried_once_with_forced_tool(published, migrated):
+    """D-68: 검색하겠다고만 쓰고 도구를 부르지 않은 첫 응답은 도구를 강제해 한 번 다시 부른다."""
+    from agent.modules.agent_runtime.prompt import SEARCH_PROMISE_RETRY
+
+    model = Capturing(
+        [final(PROMISE, outcome="insufficient_evidence"), tool_turn(SEARCH_TABLE), final("표의 상태입니다")]
+    )
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "티켓 상태가 뭐가 있어요?")
+    assert response.json()["answer"] == "표의 상태입니다"
+    assert [r.tool_choice for r in model.requests] == ["auto", "any", "auto"]
+    assert model.requests[1].messages[-1].text == SEARCH_PROMISE_RETRY
+    assert model.requests[1].messages[-2].role == "assistant"  # 약속한 첫 응답을 함께 보낸다
+    # 도구 결과를 받은 다음 호출에도 약속한 첫 응답과 서버 안내가 문맥에 남는다
+    assert SEARCH_PROMISE_RETRY in [m.text for m in model.requests[2].messages]
+    engine, _, _ = published
+    usage = await _scalar(engine, "SELECT usage FROM agent_runs")
+    assert usage["search_promise_retries"] == 1 and usage["empty_answer_retries"] == 0
+
+
+@pytest.mark.parametrize("retry", ["error", "no_tool"])
+async def test_failed_search_promise_retry_keeps_the_first_answer(published, migrated, retry):
+    """D-68: 재호출이 실패하거나 또 도구 없이 끝나면 받아 둔 첫 응답으로 끝낸다(D-65처럼 버리지 않는다)."""
+    second = (
+        ModelCallError(ModelFailure.INPUT_REJECTED)
+        if retry == "error"
+        else final("다른 답", outcome="answered")
+    )
+    model = Capturing([final(PROMISE, outcome="insufficient_evidence"), second])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "티켓 상태가 뭐가 있어요?")
+    body = response.json()
+    assert response.status_code == 200 and body["answer"].startswith(PROMISE)
+    assert len(model.requests) == 2
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "안녕하세요. 무엇을 도와드릴까요?",
+        "어떤 교육인지 알려 주시면 일정을 확인해 드리겠습니다.",
+    ],
+)
+async def test_answer_without_search_promise_is_not_retried(published, migrated, answer):
+    """D-68은 결과 유형이 아니라 약속 문구로만 발동한다(인사·사용자 정보를 받아야 하는 되묻기는 그대로)."""
+    outcome = "answered" if answer.startswith("안녕") else "needs_clarification"
+    model = Capturing([final(answer, outcome=outcome)])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, "안녕")
+    assert len(model.requests) == 1
+
+
+async def test_search_promise_after_an_empty_answer_retry_is_not_retried_again(published, migrated):
+    """빈 첫 답 재호출(D-37) 뒤의 응답에는 D-68을 다시 걸지 않는다(재호출은 한 run에 한 번)."""
+    model = Capturing([final(""), final(PROMISE, outcome="insufficient_evidence")])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "티켓 상태가 뭐가 있어요?")
+    assert len(model.requests) == 2 and response.json()["answer"].startswith(PROMISE)
+
+
+@pytest.mark.parametrize("later", ["model_error", "invalid_final"])
+async def test_failure_after_the_retried_tool_call_keeps_the_first_answer(published, migrated, later):
+    """D-68 검증 지적: 재호출이 도구를 부른 뒤 다음 단계가 실패해도(모델 오류·무효 최종 답)
+    첫 응답으로 끝낸다."""
+    tail = (
+        ModelCallError(ModelFailure.INPUT_REJECTED)
+        if later == "model_error"
+        else final("지어낸 인용", citations=["c9-9"])
+    )
+    model = Capturing([final(PROMISE, outcome="insufficient_evidence"), tool_turn(SEARCH_TABLE), tail])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "티켓 상태가 뭐가 있어요?")
+    assert response.status_code == 200 and response.json()["answer"].startswith(PROMISE)
+    assert len(model.requests) == 3
+
+
+async def test_retry_path_is_cut_before_the_run_deadline_and_keeps_the_first_answer(
+    published, migrated, monkeypatch
+):
+    """D-68 검증 지적: 재호출이 늦으면 실행 기한보다 먼저 끊고 첫 응답으로 끝낸다
+    (RUN_TIMEOUT으로 잃지 않는다)."""
+    import asyncio
+
+    from agent.modules.agent_runtime import runtime
+
+    monkeypatch.setattr(runtime.AgentRuntime, "_remaining", lambda self, context: 50.0)
+    monkeypatch.setattr(
+        runtime, "_PROMISE_RESERVE_S", 48.5
+    )  # 발동 조건(50 > 49.5)은 통과, 재호출 경로에 1.5초만 준다
+
+    class Slow(Capturing):
+        async def complete_once(self, request):
+            if len(self.requests) == 1:
+                await asyncio.sleep(5)
+            return await super().complete_once(request)
+
+    model = Slow([final(PROMISE, outcome="insufficient_evidence"), tool_turn(SEARCH_TABLE)])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "티켓 상태가 뭐가 있어요?")
+    assert response.status_code == 200 and response.json()["answer"].startswith(PROMISE)
+
+
+async def test_search_promise_is_not_retried_without_document_search_or_spare_attempts(
+    published, migrated, monkeypatch
+):
+    """D-68: 문서 검색 도구가 없는 사용자, 모델 시도 상한이 남지 않은 run에는 걸지 않는다
+    (호출하지 않은 재호출을 세지 않는다)."""
+    from agent.shared import contracts
+
+    no_docs = ActorContext(
+        "emp-sales", ("dept-sales",), ("employee",), frozenset({"training.read"}), 1, "test_stub"
+    )
+    model = Capturing([final(PROMISE, outcome="insufficient_evidence")])
+    async with api_client(_app(migrated, model, actor=no_docs)) as client:
+        await _ask(client, "티켓 상태가 뭐가 있어요?")
+    assert len(model.requests) == 1
+    monkeypatch.setattr(contracts.ExecutionPolicy, "__init__", _policy_init(max_model_attempts=1))
+    model = Capturing([final(PROMISE, outcome="insufficient_evidence")])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, "티켓 상태가 뭐가 있어요?")
+    assert len(model.requests) == 1
+    engine, _, _ = published
+    retries = await _scalar(
+        engine, "SELECT max(COALESCE((usage->>'search_promise_retries')::int, 0)) FROM agent_runs"
+    )
+    assert retries == 0
+
+
+async def test_search_promise_is_not_retried_when_little_time_is_left(published, migrated, monkeypatch):
+    """D-68: 재호출 경로를 끊고도 첫 응답으로 끝낼 여유(_PROMISE_RESERVE_S + 1초)가 없으면 걸지 않는다."""
+    from agent.modules.agent_runtime import runtime
+
+    monkeypatch.setattr(runtime.AgentRuntime, "_remaining", lambda self, context: 2.5)
+    model = Capturing([final(PROMISE, outcome="insufficient_evidence")])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "티켓 상태가 뭐가 있어요?")
+    assert response.status_code == 200 and len(model.requests) == 1
+
+
+async def test_invalid_first_answer_with_a_search_promise_is_not_retried(published, migrated):
+    """D-68 검증 지적: 스키마가 무효한 첫 출력은 재호출로 덮지 않는다(이전처럼 출력 무효로 끝난다)."""
+    bad = final(PROMISE, outcome="maybe")
+    model = Capturing([bad])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "티켓 상태가 뭐가 있어요?")
+    assert len(model.requests) == 1 and response.status_code == 502
+
+
+async def test_search_promise_after_a_tool_call_is_not_retried(published, migrated):
+    """도구를 이미 부른 뒤의 최종 답은 대상이 아니다(첫 응답만)."""
+    model = Capturing([tool_turn(SEARCH_TABLE), final(PROMISE)])
+    async with api_client(_app(migrated, model)) as client:
+        await _ask(client, "티켓 상태가 뭐가 있어요?")
+    assert len(model.requests) == 2
+
+
 async def test_edition_split_is_not_used_for_unsupported_or_explicit_far_dates(published, migrated):
     """D-67은 날짜를 확정하지 못한 경우만이다. 확인된 날짜는 그 판본 하나로 검색한다."""
     search = (
