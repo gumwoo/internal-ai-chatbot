@@ -30,7 +30,8 @@ from agent.shared.clock import KST
 # m7-answer-4: 검색을 약속만 하고 도구를 부르지 않은 첫 응답에 서버 안내 SEARCH_PROMISE_RETRY(D-68).
 # m7-answer-5: 영업일 기한은 직접 세지 않고 calculate_business_deadline으로 계산한다(규칙 21, D-69).
 # m7-answer-6: 검색 결과의 deadline_hints(서버가 사용자 날짜로 미리 계산한 마감일)를 쓴다(규칙 21, D-71).
-PROMPT_VERSION = "m7-answer-6"
+# m7-answer-7: answer 형식(결론 먼저, 조건·기한·예외는 "- " 항목, 다른 마크다운 금지, D-75). 내용 규칙은 그대로.
+PROMPT_VERSION = "m7-answer-7"
 
 _CACHE_FIELDS = ("id", "code", "title", "starts_at", "ends_at", "location", "status")
 
@@ -59,6 +60,7 @@ _TEMPLATE = """\
 
 최종 답변은 JSON으로 낸다(조회가 필요하면 도구 호출이 먼저다):
 - answer: 사용자에게 보여 줄 한국어 문장. 되묻기라면 사용자에게 할 질문이다. 어떤 outcome이든 비워 두지 않는다
+- answer 형식: 첫 한두 문장에 질문에 대한 결론을 쓴다. 덧붙일 조건·금액·기한·예외·절차가 둘 이상이면 빈 줄 하나 뒤에 줄마다 "- "로 시작하는 짧은 항목으로 나눈다(한 항목에 한 가지). 짧은 답은 문장으로만 쓴다. 굵게(**), 제목(#), 표 같은 다른 마크다운 기호는 쓰지 않는다(화면이 그대로 보여 준다)
 - outcome: answered / needs_clarification / no_results / insufficient_evidence 중 하나
 - training_ids: 답변에서 언급한 교육의 id 목록(도구 결과나 대화 자료의 id 그대로)
 - selected_training_id: 답변이 교육 하나만 가리키면 그 id, 아니면 null

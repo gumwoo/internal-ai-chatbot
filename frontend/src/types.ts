@@ -92,5 +92,6 @@ export interface MessageResult {
 
 export type Detail =
   | { kind: "training"; id: string; title: string }
-  | { kind: "citation"; citation: Citation }
+  // 같은 문서·판본·쪽의 원문 조각은 버튼 하나로 묶는다(group[0] = citation).
+  | { kind: "citation"; citation: Citation; group: Citation[] }
   | { kind: "ticket"; id: string; title: string };

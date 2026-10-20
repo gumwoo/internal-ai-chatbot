@@ -84,6 +84,8 @@ class RuleModel:
             await asyncio.sleep(0.3)
             call = request.messages[-2].tool_calls[0]
             result = json.loads(last.tool_results[0].content)
+            if call.name == "search_documents" and call.arguments.get("query") == "외부교육비 지원 한도 정리":
+                return self._summary(result)
             return self._after(call.name, result)
         question = (last.text or "").split("[사용자 질문]\n", 1)[-1]
         if "VPN" in question:
@@ -107,6 +109,17 @@ class RuleModel:
             return _tool("list_it_tickets", {})
         if "교육" in question and ("일정" in question or "다음 주" in question):
             return _tool("list_trainings", {"date_preset": "next_week"})
+        if "정리" in question:
+            # 답 형식(D-75): 결론 문장 + "- " 항목, 받은 원문 전부 인용(화면이 같은 쪽 조각을 묶는다)
+            return _tool(
+                "search_documents",
+                {
+                    "query": "외부교육비 지원 한도 정리",
+                    "date_basis": "training_start",
+                    "as_of_date": "2026-09-29",
+                    "date_quote": "9월 29일에 시작한",
+                },
+            )
         if "한도" in question or "규정" in question:
             args: dict[str, Any] = {"query": "외부교육비 1회 과정 지원 한도"}
             if "9월 29일에 시작한" in question:
@@ -115,6 +128,19 @@ class RuleModel:
                 )
             return _tool("search_documents", args)
         return _final("교육 일정, 회사 규정, IT 지원 접수를 도와드릴 수 있습니다.")
+
+    def _summary(self, result: dict[str, Any]) -> ModelResponse:
+        if not result.get("ok") or result["data"]["resolution"] != "resolved":
+            return _final("날짜를 알려 주세요.", "needs_clarification")
+        passages = [p for g in result["data"]["groups"] for p in g["passages"]]
+        if not passages:
+            return _final("근거를 찾지 못했습니다.", "insufficient_evidence")
+        answer = (
+            "외부교육비는 과정 한도와 연간 한도를 함께 봅니다.\n\n"
+            "- 사전 승인을 받은 교육만 지원합니다\n"
+            "- 한도를 넘는 금액은 본인이 부담합니다"
+        )
+        return _final(answer, citation_ids=[p["citation_id"] for p in passages[:12]])  # 인용 상한 30 안
 
     def _after(self, name: str, result: dict[str, Any]) -> ModelResponse:
         if not result.get("ok"):

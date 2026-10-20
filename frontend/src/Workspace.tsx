@@ -5,7 +5,7 @@ import { ActionCard } from "./ActionCard";
 import { ApiError, NetworkError, api, newKey, sendMessage } from "./api";
 import { DetailPanel } from "./Detail";
 import { OUTCOMES, STAGES, formatTime } from "./labels";
-import type { Conversation, Detail, MessageResult, SessionInfo, StoredMessage } from "./types";
+import type { Citation, Conversation, Detail, MessageResult, SessionInfo, StoredMessage } from "./types";
 
 type Pending = { content: string; key: string; conversationId: string };
 
@@ -231,7 +231,7 @@ function MessageView({
   return (
     <article className={`message assistant${message.visibility === "redacted" ? " redacted" : ""}`} data-outcome={message.outcome ?? ""}>
       {message.outcome && message.outcome !== "answered" && <span className="badge">{OUTCOMES[message.outcome] ?? message.outcome}</span>}
-      <p className="answer">{message.content}</p>
+      <AnswerText text={message.content} />
       {message.training_refs.length > 0 && (
         <ul className="refs" aria-label="교육">
           {message.training_refs.map((t) => (
@@ -245,14 +245,18 @@ function MessageView({
       )}
       {message.citations.length > 0 && (
         <ul className="refs" aria-label="근거 원문">
-          {message.citations.map((c) => (
-            <li key={c.citation_id}>
-              <button type="button" className="citation" onClick={(e) => onDetail({ kind: "citation", citation: c }, e.currentTarget)}>
-                {c.title} · {c.version} · {c.page_spans?.[0]?.page ?? 1}쪽
-                {c.edition_state && c.edition_state !== "current" ? " · 종전" : ""}
-              </button>
-            </li>
-          ))}
+          {groupCitations(message.citations).map((group) => {
+            const c = group[0];
+            return (
+              <li key={c.citation_id}>
+                <button type="button" className="citation"
+                  onClick={(e) => onDetail({ kind: "citation", citation: c, group }, e.currentTarget)}>
+                  {c.title} · {c.version} · {c.page_spans?.[0]?.page ?? 1}쪽
+                  {c.edition_state && c.edition_state !== "current" ? " · 종전" : ""}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
       {message.ticket_refs.length > 0 && (
@@ -274,5 +278,45 @@ function MessageView({
         />
       )}
     </article>
+  );
+}
+
+// 같은 문서·판본·쪽·적용 기준의 원문 조각은 버튼 하나로 묶는다. 처음 나온 순서를 지킨다.
+function groupCitations(citations: Citation[]): Citation[][] {
+  const groups = new Map<string, Citation[]>();
+  for (const c of citations) {
+    const key = [c.title, c.version, c.page_spans?.[0]?.page ?? 1, c.edition_state, c.as_of_date, c.date_basis,
+      c.edition_split ?? false, c.source_role ?? ""].join("|");
+    const group = groups.get(key);
+    if (!group) groups.set(key, [c]);
+    else if (!group.some((g) => g.passage_id === c.passage_id)) group.push(c);
+  }
+  return [...groups.values()];
+}
+
+// 답 본문: 빈 줄로 문단을 나누고, "- "로 시작하는 줄은 목록으로 보인다. 그 밖의 글자는 그대로 둔다.
+function AnswerText({ text }: { text: string }) {
+  const blocks: ({ kind: "p"; lines: string[] } | { kind: "ul"; items: string[] })[] = [];
+  for (const line of text.split("\n")) {
+    const item = /^\s*[-•]\s+(.*)$/.exec(line);
+    const last = blocks[blocks.length - 1];
+    if (item) {
+      if (last?.kind === "ul") last.items.push(item[1]);
+      else blocks.push({ kind: "ul", items: [item[1]] });
+    } else if (!line.trim()) {
+      if (last && !(last.kind === "p" && last.lines.length === 0)) blocks.push({ kind: "p", lines: [] });
+    } else if (last?.kind === "p") last.lines.push(line);
+    else blocks.push({ kind: "p", lines: [line] });
+  }
+  return (
+    <div className="answer">
+      {blocks.map((b, i) =>
+        b.kind === "ul" ? (
+          <ul key={i}>{b.items.map((item, j) => <li key={j}>{item}</li>)}</ul>
+        ) : b.lines.length > 0 ? (
+          <p key={i}>{b.lines.join("\n")}</p>
+        ) : null,
+      )}
+    </div>
   );
 }

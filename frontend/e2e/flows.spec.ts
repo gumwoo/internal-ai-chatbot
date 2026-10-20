@@ -129,6 +129,33 @@ test("규정 인용: 판본·종전·적용 기준·쪽을 보여 주고 PDF는 
   await expect(panel.getByRole("link", { name: /PDF \d+쪽 열기/ })).toHaveAttribute("href", /\/api\/v1\/source-files\/PDF-031\/pdf#page=\d+/);
 });
 
+test("답 형식: '- ' 줄은 목록으로 보이고, 같은 문서·판본·쪽 인용은 버튼 하나로 묶인다(D-75)", async ({ page }) => {
+  await login(page);
+  await ask(page, "9월 29일에 시작한 외부교육 한도 정리해 줘");
+  const answer = page.locator(".message.assistant .answer").last();
+  await expect(answer.locator("p")).toHaveText("외부교육비는 과정 한도와 연간 한도를 함께 봅니다.");
+  await expect(answer.locator("li")).toHaveText(["사전 승인을 받은 교육만 지원합니다", "한도를 넘는 금액은 본인이 부담합니다"]);
+
+  // 서버가 준 인용 수와 화면 버튼 수를 비교한다(같은 문서·판본·쪽이면 하나).
+  const conversationId = await page.locator("#conversation-list button.selected").getAttribute("data-id");
+  const stored = (await (await page.request.get(`/api/v1/conversations/${conversationId}/messages`)).json()).items;
+  const citations: { title: string; version: string; page_spans: { page: number }[] }[] = stored[stored.length - 1].citations;
+  const pages = new Map<string, number>();
+  for (const c of citations) {
+    const key = `${c.title} · ${c.version} · ${c.page_spans[0]?.page ?? 1}쪽`;
+    pages.set(key, (pages.get(key) ?? 0) + 1);
+  }
+  const buttons = page.locator(".message.assistant").last().locator("button.citation");
+  await expect(buttons).toHaveCount(pages.size);
+  expect(new Set(await buttons.allInnerTexts()).size).toBe(pages.size);
+
+  // 조각이 여럿인 버튼은 상세에 그 조각을 모두 보인다.
+  const [label, count] = [...pages.entries()].sort((a, b) => b[1] - a[1])[0];
+  expect(count).toBeGreaterThan(1); // 시험 corpus에서 같은 쪽 조각이 실제로 묶이는지 확인
+  await buttons.filter({ hasText: label }).first().click();
+  await expect(page.getByRole("complementary", { name: "상세" }).locator("blockquote")).toHaveCount(count);
+});
+
 test("IT 접수: 초안 → 수정 저장 → 확인 반복 클릭에도 티켓 1건, 새로고침 뒤 실제 상태", async ({ page }) => {
   await login(page);
   const before = await tickets(page);
