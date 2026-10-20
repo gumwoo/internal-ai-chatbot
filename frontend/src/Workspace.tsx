@@ -98,6 +98,7 @@ export function Workspace({ session, onLogout, onExpired }: { session: SessionIn
     setStage(null);
     try {
       let conversationId = current;
+      const created = !conversationId;
       if (!conversationId) {
         conversationId = (await api.createConversation()).data.id;
         shown.current = conversationId;
@@ -115,6 +116,7 @@ export function Workspace({ session, onLogout, onExpired }: { session: SessionIn
       );
       pending.current = null;
       setDraft("");
+      if (created) void loadConversations(); // 첫 질문이 대화 이름이 되므로 목록을 다시 읽는다
       if (shown.current === conversationId) {
         setMessages((previous) => [...previous, ...fromResult(result, content)]);
         setAnnounce("새 답변이 도착했습니다.");
@@ -178,7 +180,7 @@ export function Workspace({ session, onLogout, onExpired }: { session: SessionIn
           {conversations.map((c) => (
             <li key={c.id}>
               <button type="button" className={c.id === current ? "selected" : "plain"} aria-current={c.id === current}
-                data-id={c.id} disabled={busy} onClick={() => open(c.id)}>
+                data-id={c.id} disabled={busy} onClick={() => open(c.id)} title={c.title ?? undefined}>
                 {c.title ?? `대화 · ${formatTime(c.created_at)}`}
               </button>
             </li>

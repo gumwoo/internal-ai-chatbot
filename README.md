@@ -18,8 +18,6 @@
 
 ## 화면
 
-아래 화면은 개발 DB(문서 100개 게시)에 실제 Claude Haiku 5.5를 붙여 2026-10-20에 찍었습니다. 화면의 답은 손대지 않은 실제 실행 결과입니다.
-
 **규정 질문.** 답 아래에 근거 원문이 판본·쪽과 함께 붙고, 누르면 오른쪽에 원문 구간과 적용 기준일이 열립니다.
 
 ![규정 질문과 근거 원문](docs/images/screen-citation.png)
@@ -36,7 +34,7 @@
 
 ![아키텍처](docs/images/architecture.png)
 
-> 원본: [docs/diagrams/architecture.drawio](docs/diagrams/architecture.drawio) (draw.io에서 열어 고칠 수 있습니다)
+> draw.io 원본: [architecture.drawio](docs/diagrams/architecture.drawio)
 
 - 서버 하나(FastAPI, 비동기) 안을 업무 단위로 나눴고, 모듈끼리 import 방향은 시험(`tests/test_module_boundaries.py`)으로 막아 둡니다.
 - 모델이 직접 DB나 외부 시스템을 건드리는 길은 없습니다. 모델이 할 수 있는 건 등록된 도구 7개(교육 조회 2, 문서 검색, 영업일 계산, 티켓 조회 2, 티켓 초안 준비)를 부르는 것뿐이고, 도구 입력은 스키마로 검사한 뒤 서버가 실행합니다.
@@ -46,7 +44,7 @@
 
 ![요청 흐름](docs/images/request-flow.png)
 
-> 원본: [docs/diagrams/request-flow.drawio](docs/diagrams/request-flow.drawio)
+> draw.io 원본: [request-flow.drawio](docs/diagrams/request-flow.drawio)
 
 1. 요청마다 멱등키를 받습니다. 응답이 중간에 끊겨 같은 키로 다시 보내면 새로 실행하지 않고 같은 실행의 결과를 돌려줍니다.
 2. 문서 검색은 사용자 권한으로 먼저 거르고, pgvector 거리 순으로 후보 40개를 뽑은 뒤, 문맥 예산(4,000 token) 안에 조항 묶음 단위로 담습니다. 첫 검색이 예산을 다 쓰지 않도록 75%까지만 씁니다.
@@ -79,7 +77,7 @@
 
 ## 실험
 
-모든 수치는 실제로 돌려서 잰 값입니다. 규칙 채점은 필수 사실·인용·결과 유형(답/보류/되묻기)으로 매기고, 따로 Gemini 3.8 Flash가 답을 보고 정답·부분·오답을 판정했습니다(judge). 한 번 오답 분석에 쓴 평가셋은 개선 비교에 다시 쓰지 않고, 그때마다 새 검증셋을 만들었습니다. 자세한 기록은 [최종 평가 보고서](docs/report/final-evaluation.md)에 있습니다.
+규칙 채점은 필수 사실·인용·결과 유형(답/보류/되묻기)으로 매기고, 따로 Gemini 3.8 Flash가 답을 보고 정답·부분·오답을 판정했습니다(judge). 한 번 오답 분석에 쓴 평가셋은 개선 비교에 다시 쓰지 않고, 그때마다 새 검증셋을 만들었습니다. 자세한 기록은 [최종 평가 보고서](docs/report/final-evaluation.md)에 있습니다.
 
 ### 1. 어떤 방식으로 원문을 찾을까 (holdout 100문항)
 

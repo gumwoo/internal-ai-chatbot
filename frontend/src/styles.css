@@ -70,7 +70,9 @@ label { display: grid; gap: 4px; font: 600 13px var(--font); }
 .workspace.with-detail { grid-template-columns: 260px 1fr 380px; }
 .menu-toggle { display: none; }
 .sidebar { background: var(--navigation); border-right: 1px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
-.sidebar ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; flex: 1; align-content: start; }
+.sidebar ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; flex: 1; align-content: start; }
+.sidebar li { min-width: 0; }
+.sidebar li button { width: 100%; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .me { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--muted); }
 
 .conversation { display: flex; flex-direction: column; min-width: 0; height: 100vh; }

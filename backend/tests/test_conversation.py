@@ -496,3 +496,24 @@ async def test_all_response_times_use_kst_and_list_shows_active_run(seeded_engin
         run["finished_at"],
     ):
         assert value.endswith("+09:00"), value
+
+
+async def test_untitled_conversation_is_listed_by_first_question(seeded_engine, migrated):
+    question = "다음 주   교육 알려줘. 신입사원 교육이랑 협업 도구 교육 중 무엇을 먼저 들어야 하나요"
+    model = FakeModelClient(NEXT_WEEK * 3)
+    async with api_client(_app(migrated, model)) as client:
+        untitled = (await client.post("/api/v1/conversations", headers={"Origin": ORIGIN})).json()
+        assert untitled["title"] is None
+        empty = (await client.get(f"/api/v1/conversations/{untitled['id']}")).json()
+        assert empty["title"] is None  # 질문이 없으면 화면이 생성 시각으로 표시한다
+
+        titled = await _new_conversation(client)
+        await _post(client, titled, "다른 질문")
+        await _post(client, untitled["id"], question)
+        await _post(client, untitled["id"], "두 번째 질문은 이름에 쓰지 않는다")
+
+        items = {c["id"]: c for c in (await client.get("/api/v1/conversations")).json()["items"]}
+        fetched = (await client.get(f"/api/v1/conversations/{untitled['id']}")).json()
+    expected = " ".join(question.split())[:40].rstrip() + "…"
+    assert items[untitled["id"]]["title"] == expected == fetched["title"]
+    assert items[titled]["title"] == "테스트"  # 정한 제목은 그대로

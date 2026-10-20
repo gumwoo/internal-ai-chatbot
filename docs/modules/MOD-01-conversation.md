@@ -59,5 +59,6 @@ CP-07 ConversationEvidenceReader 구현을 소유한다. ReadUserEvidence는 본
 
 ## 구현 메모(M4 검색 전략, 2026-10-18)
 
+- 목록·상세의 title은 저장된 제목이 없으면 첫 사용자 질문 앞 40자로 만든다(저장하지 않는 표시 값, 사용자 질문은 가리지 않으므로 권한 재검증 대상이 아니다).
 - `create_conversation(actor, title, server_options=ServerOptions(strategy, strict))`. 직원 HTTP는 server_options를 넘기지 않는다(본문의 strategy 같은 값은 무시). 평가 포트(APP-04)만 raw/wiki_assisted·엄격 모드를 고른다. `conversations.retrieval_strict` 칸.
 - run 수락 때 corpus snapshot과(B 대화면) Wiki snapshot을 고정해 `agent_runs.retrieval_context`(strategy·wiki_snapshot_id·strict)에 남긴다. 실행 도중 새 Wiki가 게시돼도 그 run은 바뀌지 않는다(T-27).

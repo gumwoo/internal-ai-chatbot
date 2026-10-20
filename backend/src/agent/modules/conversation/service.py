@@ -99,6 +99,30 @@ class _Accepted:
     retrieval: RetrievalContext = RetrievalContext()
 
 
+_TITLE_CHARS = 40
+
+
+def _first_question():
+    """대화의 첫 사용자 질문(제목이 없을 때 목록에 보일 이름). 사용자 질문은 가리지 않는다."""
+    return (
+        select(messages.c.content)
+        .where(messages.c.conversation_id == conversations.c.id, messages.c.role == "user")
+        .order_by(messages.c.seq)
+        .limit(1)
+        .scalar_subquery()
+    )
+
+
+def _display_title(title: str | None, first_question: str | None) -> str | None:
+    """정한 제목이 없으면 첫 질문 앞부분을 쓴다. 질문도 없으면 None(화면이 생성 시각으로 표시)."""
+    if title:
+        return title
+    if not first_question:
+        return None
+    text_ = " ".join(first_question.split())
+    return text_ if len(text_) <= _TITLE_CHARS else text_[:_TITLE_CHARS].rstrip() + "…"
+
+
 def _iso(value: datetime | None) -> str | None:
     """응답 시각은 모두 KST 오프셋으로 낸다. DB에서 읽은 값은 세션 시간대(UTC)라 바꿔야 한다."""
     return value.astimezone(KST).isoformat() if value else None
@@ -224,7 +248,7 @@ class ConversationService:
             total = await conn.scalar(select(func.count()).select_from(conversations).where(owned))
             rows = (
                 await conn.execute(
-                    select(conversations)
+                    select(conversations, _first_question().label("first_question"))
                     .where(owned)
                     .order_by(conversations.c.created_at.desc(), conversations.c.id)
                     .limit(limit)
@@ -234,7 +258,7 @@ class ConversationService:
         items = [
             {
                 "id": str(r.id),
-                "title": r.title,
+                "title": _display_title(r.title, r.first_question),
                 "created_at": _iso(r.created_at),
                 "active_run_id": str(r.active_run_id) if r.active_run_id else None,
             }
@@ -253,9 +277,13 @@ class ConversationService:
         await self.recover_expired(conversation_id=conversation_id)
         async with self._read() as conn:
             row = await self._owned(conn, actor, conversation_id)
+            first_question = None
+            if not row.title:
+                query = select(_first_question()).where(conversations.c.id == row.id)
+                first_question = await conn.scalar(query)
         return {
             "id": str(row.id),
-            "title": row.title,
+            "title": _display_title(row.title, first_question),
             "created_at": _iso(row.created_at),
             "active_run_id": str(row.active_run_id) if row.active_run_id else None,
         }

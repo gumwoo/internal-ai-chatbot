@@ -38,8 +38,8 @@
 | Method·경로 | 입력 | 반환 |
 |---|---|---|
 | POST `/conversations` | title?(1~100자) | 201 id/title/created_at, 검색 전략은 서버 설정 |
-| GET `/conversations` | limit1~50=20, offset>=0 | 200 items/total/limit/offset/has_more, 본인만 |
-| GET `/conversations/{id}` | 소유 ID | 200 표시 정보·active_run_id |
+| GET `/conversations` | limit1~50=20, offset>=0 | 200 items/total/limit/offset/has_more, 본인만. 제목이 없으면 title은 첫 사용자 질문(공백 정리, 40자 넘으면 자르고 …), 질문도 없으면 null |
+| GET `/conversations/{id}` | 소유 ID | 200 표시 정보(title은 목록과 같은 규칙)·active_run_id |
 | GET `/conversations/{id}/messages` | limit1~50=20, offset>=0 | 200 items/total/limit/offset/has_more, 현재 권한 재검증 후 가림 |
 | POST `/conversations/{id}/messages` | content(1~4000자, 공백만이면 422(D-44)), UUID Idempotency-Key header | 최초 동기 완료200, 동일 요청 실행 중 replay202, 유효한 다른 실행 중409 |
 | GET `/runs/{id}` | 본인 run ID | 만료 회수·현재 가시성 재검증 후200 상태·outcome·시간·usage·도구 안전 요약 |
