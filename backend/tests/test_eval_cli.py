@@ -187,11 +187,13 @@ async def test_holdout_requires_a_recorded_freeze_with_the_same_budget(paths, mi
         await eval_cli.eval_freeze(argparse.Namespace(budget=8000, reason="바꿈", force=False), settings)
 
 
-async def test_holdout2_also_requires_the_frozen_budget(paths, migrated):
+@pytest.mark.parametrize("split", ["holdout2", "holdout3"])
+async def test_new_holdouts_also_require_the_frozen_budget(paths, migrated, split):
+    """holdout2(D-62)·holdout3(D-70)도 동결 예산으로만 실행한다."""
     settings = make_settings(database_url=migrated)
     run = argparse.Namespace(
         strategy="raw",
-        split="holdout2",
+        split=split,
         budget=8000,
         operational=False,
         cases=None,

@@ -86,7 +86,7 @@ def check_case(case: dict, sources: dict) -> list[str]:
         return problems
     if case["category"] not in PLAN:
         problems.append(f"{cid}: category {case['category']}")
-    if case["split"] not in ("dev", "holdout", "holdout2"):  # holdout2: eval-v2 새 검증셋
+    if case["split"] not in ("dev", "holdout", "holdout2", "holdout3"):  # holdout2·3: 새 검증셋(D-62·D-70)
         problems.append(f"{cid}: split {case['split']}")
     if case["expected_outcome"] not in OUTCOMES:
         problems.append(f"{cid}: expected_outcome {case['expected_outcome']}")
@@ -98,7 +98,9 @@ def check_case(case: dict, sources: dict) -> list[str]:
         problems.append(f"{cid}: turns 비었음")
     asked = datetime.fromisoformat(case["asked_at"])
     as_of = date.fromisoformat(case["as_of_date"]) if case["as_of_date"] else None
-    if case["date_basis"] != "current" and as_of is None and case["expected_outcome"] != "needs_clarification":
+    # D-67: 날짜 없는 과거 사건을 판본별로 나눠 답하는 문항(tag edition_split)은 사건 기준 + 날짜 없음이다.
+    dateless_ok = case["expected_outcome"] == "needs_clarification" or "edition_split" in case["tags"]
+    if case["date_basis"] != "current" and as_of is None and not dateless_ok:
         problems.append(f"{cid}: {case['date_basis']}인데 as_of_date 없음")
     answered = case["expected_outcome"] == "answered"
     if answered and not case["evidence_sets"]:

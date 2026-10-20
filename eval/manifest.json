@@ -19,6 +19,16 @@
    "verification": "다른 서브에이전트 3개(v1~v3)가 정답 근거를 원문과 대조: ok 64·fix 31·drop 5(복수 문서 불필요 4, 기존 문항과 중복 1). scripts/check_eval.py 오류 0",
    "human_review": "없음",
    "purpose": "eval-v1 holdout을 본 뒤 개선(D-60~D-63)했으므로 최종 측정은 이 새 문항으로 한다(D-62)"
+  },
+  "cases/holdout3.jsonl": {
+   "cases": 97,
+   "sha256": "6521b1185cdc0f144c388876cdf9fdfa872999cefb9f6f111ff34cfaa060a684",
+   "eval_version": "eval-v3",
+   "created_at": "2026-10-20",
+   "generation": "모델 생성 문항: 서브에이전트 4개(h1 단일·예외 37, h2 복수 문서 27, h3 개정·근거 없음·권한 36, h4 복수 문서 보충 13)가 원문·명세·생성 지침(BRIEF)만 보고 작성. 시스템 답변·평가 결과·코드·보고서는 보지 않음. 기대 결과는 현재 정책(D-61 오늘로 가정, D-67 판본별 안내, D-69 영업일 계산 규칙)을 따른다",
+   "verification": "다른 서브에이전트 4개(v1~v4)가 정답 근거를 원문과 대조: ok 69·fix 28·drop 16(한 문서로 충분 8, 기존·같은 셋 문항과 중복 8, 그 밖 0). 영업일 마감일은 생성·검증·작업자가 각각 다시 계산. scripts/check_eval.py 오류 0",
+   "human_review": "없음",
+   "purpose": "holdout2를 보고 D-67~D-69를 고쳤으므로(D-68 판정 규칙 보정에 holdout2 답을 참고) 그 효과는 새 문항으로 잰다(D-70)"
   }
  },
  "corpus_files_sha256": "497964379efe73cb3961aa2531925fbc1e0da9b4e9b704b67cbdb72a93a73dc2",
