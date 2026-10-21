@@ -42,7 +42,7 @@
   },
   "cases/holdout5.jsonl": {
    "cases": 68,
-   "sha256": "1e644dd9129af637d1ef603063d8d78586304734e6fb0711ffacdec367599286",
+   "sha256": "4a89bfde25e8d85d09d020ee11310c20445a9a43c0a6c97d934269f511fb43b7",
    "eval_version": "eval-v5",
    "created_at": "2026-10-21",
    "generation": "모델 생성 문항: 서브에이전트 3개(h1 단일·예외 30, h2 복수 문서 24, h3 개정·근거 없음·권한 28)가 원문·명세·생성 지침(BRIEF, holdout3와 같은 기대 결과 규칙)만 보고 작성. 시스템 답변·평가 결과·코드·보고서는 보지 않음",
