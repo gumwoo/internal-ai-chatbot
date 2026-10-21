@@ -535,7 +535,7 @@ def test_prompt_requires_question_text_for_clarification():
     from agent.shared.clock import FIXTURE_NOW
 
     prompt = system_prompt(FIXTURE_NOW)
-    assert PROMPT_VERSION == "m7-answer-11"
+    assert PROMPT_VERSION == "m7-answer-12"
     assert "그 원문의 citation_id를 대괄호로 붙인다" in prompt  # D-76 인용 표시
     assert '줄마다 "- "로 시작하는 짧은 항목' in prompt  # D-75 답 형식
     assert "그다음 절차" in system_prompt(FIXTURE_NOW, documents=True)

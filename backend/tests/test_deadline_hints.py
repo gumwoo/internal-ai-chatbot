@@ -137,3 +137,45 @@ def test_deadline_hints_need_both_a_rule_and_a_base_and_stay_small():
     assert deadline_hints(rule, [(date(2029, 1, 2), "2029년 1월 2일")]) is None
     many = [{"citation_id": f"c1-{i}", "text": f"통지 후 {i}영업일 이내 제출한다."} for i in range(1, 12)]
     assert len(deadline_hints(many, [(TODAY, "오늘")])["rules"]) == MAX_RULES
+
+
+# --- D-83: 기준 사건 짝 맞추기 ---
+
+
+@pytest.mark.parametrize(
+    ("sentence", "event"),
+    [
+        ("교육운영담당은 교육 종료 후 5영업일 이내에 수료 여부를 확정한다", "end"),
+        ("교육 시작 5영업일 전까지 신청한다", "start"),
+        ("출장은 출발 2영업일 전까지 전자결재 승인을 받는다", "start"),
+        ("사용월 다음 달 3영업일까지 소명한다", "use"),
+        ("결과 통지를 받은 날부터 10영업일 이내에 요청할 수 있다", "notice"),
+        ("일반 보완 요청의 회신 목표는 요청일부터 5영업일이다", "request"),
+    ],
+)
+def test_rule_event_reads_the_words_right_before_the_number(sentence, event):
+    from agent.modules.agent_runtime.deadlines import rule_event
+
+    [(piece, n, direction)] = find_rules(sentence)
+    assert rule_event(piece, n, direction) == event
+
+
+def test_matching_base_is_marked_and_first_and_duration_end_is_added():
+    # holdout5 실패 재현: "부터 이틀 동안"의 끝나는 날(13일)이 기준인데 모델이 시작일(12일)로 셌다.
+    message = "10월 12일 월요일부터 이틀 동안 사내 집합교육을 듣고 끝났어요. 수료 확정은 며칠까지예요?"
+    bases = deadline_bases(message, (), date(2026, 10, 16))
+    passage = {"citation_id": "c1-1", "text": "교육 종료 후 5영업일 이내에 확정한다.", "version": "v2"}
+    rule = deadline_hints([passage], bases)["rules"][0]
+    assert rule["base_event"] == "끝나는 날"
+    assert [(c["base_date"], c["deadline"], c["matches_rule"]) for c in rule["computed"]] == [
+        ("2026-10-13", "2026-10-20", True),
+        ("2026-10-12", "2026-10-19", False),
+    ]
+    assert "2일째 끝나는 날" in rule["computed"][0]["base_quote"]
+
+
+def test_no_mark_when_the_user_date_says_no_event():
+    bases = deadline_bases("10월 19일 기준으로 알려 주세요", (), date(2026, 10, 16))
+    passage = {"citation_id": "c1-1", "text": "교육 종료 후 5영업일 이내에 제출한다.", "version": "v2"}
+    rule = deadline_hints([passage], bases)["rules"][0]
+    assert all("matches_rule" not in c for c in rule["computed"])  # 판정할 근거가 없으면 모델이 고른다

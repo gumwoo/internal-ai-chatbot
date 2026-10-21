@@ -49,6 +49,16 @@
    "verification": "다른 서브에이전트 3개(v1~v3)가 정답 근거를 원문과 대조: ok 47·fix 21·drop 14(이전 셋과 중복 10, 같은 셋 초안과 중복 4, 그 밖 0). 영업일 마감일은 생성·검증이 각각 다시 계산. scripts/check_eval.py 오류 0",
    "human_review": "없음",
    "purpose": "holdout3·holdout4를 보고 D-71~D-80을 고쳤고 D-82(인젝션 방어)를 더했으므로 그 효과는 새 문항으로 잰다(D-81)"
+  },
+  "cases/holdout6.jsonl": {
+   "cases": 37,
+   "sha256": "c7c228c84e5e49c609276eeaf0ce02c0b8f64e3853de17730f5ff76899167e64",
+   "eval_version": "eval-v6",
+   "created_at": "2026-10-21",
+   "generation": "모델 생성 문항: 서브에이전트 2개(h1·h2, 각 22문항)가 원문·명세·생성 지침(BRIEF, holdout5와 같은 기대 결과 규칙에 영업일 마감일·판본별 안내·한 질문의 여러 기한 지침을 더함)만 보고 작성. 시스템 답변·평가 결과·코드·보고서는 보지 않음",
+   "verification": "다른 서브에이전트 2개(v1·v2)가 정답 근거를 원문과 대조: ok 30·fix 7·drop 7(모두 이전 셋과 중복). 영업일 마감일은 생성·검증이 각각 다시 계산. scripts/check_eval.py 오류 0",
+   "human_review": "없음",
+   "purpose": "holdout5를 보고 마감일 기준일 짝 맞추기·판본별 두 갈래 결론·기한마다 검색(D-83)을 고쳤으므로 그 효과는 새 문항으로 잰다(D-84)"
   }
  },
  "corpus_files_sha256": "497964379efe73cb3961aa2531925fbc1e0da9b4e9b704b67cbdb72a93a73dc2",

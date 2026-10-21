@@ -9,10 +9,13 @@
 - nth_of_next_month: "다음 달·익월 N영업일"
 - "다음 영업일"(after 1), "전 영업일까지"(before 1)
 "첫 N영업일"(기준일을 1일로 셈)은 기준 표지(부터·후) 바로 뒤에 숫자가 오지 않아 잡히지 않는다.
+
+D-83: 기한 문장의 기준 사건(끝나는 날·시작일·요청일·통지일·사용일)과 사용자 날짜 문구 뒤의 말을 대조해
+맞는 짝에 matches_rule을 표시하고 앞에 둔다. "11월 16일부터 사흘 동안"이면 끝나는 날(18일)도 후보로 넣는다.
 """
 
 import re
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 from agent.modules.tool_execution.business_days import (
@@ -38,6 +41,63 @@ _CLAUSE = re.compile(r"[^.\n。|]+")
 _SPLIT_WORD = re.compile(r"영\s*\n\s*업\s*\n?\s*일|영업\s*\n\s*일")
 MAX_RULES = 6
 MAX_BASES = 4
+
+# D-83: 기준 사건. 기한 문장에서는 숫자 바로 앞 말로, 사용자 날짜 문구에서는 날짜 뒤 말로 판정한다.
+_EVENTS = (
+    ("end", re.compile(r"종료|끝[나난났내냈]|마치|마친|마쳤|수료|복귀|돌아[오와온왔]|귀임")),
+    ("start", re.compile(r"시작|출발|개강|입과|떠나|내려가|올라가|적용\s*예정|시행\s*예정|입사")),
+    ("request", re.compile(r"요청|신청|접수|상신|의뢰")),
+    ("notice", re.compile(r"통지|통보|공지|발표|발령")),
+    ("use", re.compile(r"사용|결제|구매|거래")),
+)
+BASE_ROLES = {
+    "end": "끝나는 날",
+    "start": "시작·출발일",
+    "request": "요청·신청일",
+    "notice": "통지일",
+    "use": "사용·결제일",
+}
+_FROM = re.compile(r"^[^가-힣]*\d{1,2}\s*일\s*(?:\(?[월화수목금토일]요?일?\)?\s*)?부터")
+_DURATION = re.compile(r"부터\s*(이틀|사흘|나흘|닷새|엿새|이레|열흘|(\d{1,2})\s*일)\s*(?:동안|간)")
+_DAYS = {"이틀": 2, "사흘": 3, "나흘": 4, "닷새": 5, "엿새": 6, "이레": 7, "열흘": 10}
+_PATTERNS = {"after": _AFTER, "before": _BEFORE, "nth_of_next_month": _NEXT_MONTH}
+
+
+def rule_event(piece: str, n: int, direction: Direction) -> str | None:
+    """기한 문장의 기준 사건: 그 기한 숫자 바로 앞(최대 12자)에서 가장 가까운 사건 말."""
+    pattern = _PATTERNS.get(direction)
+    match = next((m for m in pattern.finditer(piece) if int(m.group("n")) == n), None) if pattern else None
+    if match is None:
+        return None
+    window = piece[max(0, match.start() - 12) : match.start("n")]
+    best: tuple[str, int] | None = None
+    for name, regex in _EVENTS:
+        for hit in regex.finditer(window):
+            if best is None or hit.end() > best[1]:
+                best = (name, hit.end())
+    return best[0] if best else None
+
+
+def base_events(quote: str) -> set[str]:
+    """사용자 날짜 문구가 말하는 사건. "…일부터"는 시작이다."""
+    events = {name for name, regex in _EVENTS if regex.search(quote)}
+    if _FROM.search(quote):
+        events.add("start")
+    return events
+
+
+def _expand_bases(bases: list[tuple[date, str]]) -> list[tuple[date, str, set[str]]]:
+    """기준일 후보에 사건을 붙이고, "부터 사흘 동안"이면 달력일로 센 끝나는 날을 더한다."""
+    out: list[tuple[date, str, set[str]]] = []
+    for base, quote in bases[:MAX_BASES]:
+        out.append((base, quote, base_events(quote)))
+        duration = _DURATION.search(quote)
+        if duration:
+            days = _DAYS.get(duration.group(1)) or int(duration.group(2) or 0)
+            end = base + timedelta(days=days - 1)
+            if days > 1 and end not in {d for d, _, _ in out} and end not in {d for d, _ in bases}:
+                out.append((end, f"{quote} → {days}일째 끝나는 날", {"end"}))
+    return out
 
 
 def _normalize(text: str) -> str:
@@ -90,28 +150,36 @@ def deadline_hints(passages: list[dict[str, Any]], bases: list[tuple[date, str]]
     """
     rules: list[dict[str, Any]] = []
     seen: set[tuple[str, int, str]] = set()
+    expanded: list[tuple[date, str, set[str]]] | None = None  # 기한 문장이 있을 때만 만든다
     for passage in passages:
         for piece, n, direction in find_rules(passage.get("text") or ""):
             key = (re.sub(r"\s+", "", piece), n, direction, passage.get("version"))
             if key in seen:
                 continue
             seen.add(key)
+            if expanded is None:
+                expanded = _expand_bases(bases)
             computed = []
-            for base, quote in bases[:MAX_BASES]:
+            event = rule_event(piece, n, direction)
+            judged = event is not None and any(events for _, _, events in expanded)
+            for base, quote, events in expanded:
                 try:
                     result = deadline(base, n, direction)
                 except (OutOfCalendar, BeyondMonth):
                     continue
                 data = result.as_result()
-                computed.append(
-                    {
-                        "base_date": data["base_date"],
-                        "base_quote": quote,
-                        "deadline": data["deadline"],
-                        "deadline_weekday": data["deadline_weekday"],
-                        "skipped_holidays": data["skipped_holidays"],
-                    }
-                )
+                entry = {
+                    "base_date": data["base_date"],
+                    "base_quote": quote,
+                    "deadline": data["deadline"],
+                    "deadline_weekday": data["deadline_weekday"],
+                    "skipped_holidays": data["skipped_holidays"],
+                }
+                if judged:
+                    entry["matches_rule"] = event in events
+                computed.append(entry)
+            # 맞는 짝을 앞에 둔다(같은 표시끼리는 원래 순서).
+            computed.sort(key=lambda entry: not entry.get("matches_rule", False))
             if computed:
                 rules.append(
                     {
@@ -122,6 +190,7 @@ def deadline_hints(passages: list[dict[str, Any]], bases: list[tuple[date, str]]
                         "rule": piece,
                         "business_days": n,
                         "direction": direction,
+                        "base_event": BASE_ROLES.get(event) if event else None,
                         "computed": computed,
                     }
                 )

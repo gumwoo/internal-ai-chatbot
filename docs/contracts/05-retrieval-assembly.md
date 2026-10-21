@@ -14,7 +14,7 @@ knowledge_as_of에서 `available_from`을 통과한 안내 중 `guidance_valid_f
 
 ## 영업일 기한 계산표(D-71)
 
-MOD-02는 모델에 보이는 검색 결과에 `deadline_hints={rules:[{citation_id,version,as_of_date,rule,business_days,direction,computed:[{base_date,base_quote,deadline,deadline_weekday,skipped_holidays}]}],counting,calendar_version,calendar_note}`를 붙일 수 있다. rules는 예산 안에 들어간 원문에서만 찾고(제한·예산 밖 원문은 대상이 아니다), 기준일은 사용자 메시지의 날짜다. 계산표는 근거가 아니라 계산 보조이며 원문 근거 예산에 세지 않는다. 답에 쓴 기한의 근거는 그 rule의 citation_id 원문이다.
+MOD-02는 모델에 보이는 검색 결과에 `deadline_hints={rules:[{citation_id,version,as_of_date,rule,business_days,direction,base_event,computed:[{base_date,base_quote,deadline,deadline_weekday,skipped_holidays,matches_rule?}]}],counting,calendar_version,calendar_note}`를 붙일 수 있다. D-83: base_event는 기한 문장이 세는 기준 사건(끝나는 날·시작·출발일·요청·신청일·통지일·사용·결제일, 못 읽으면 null)이고, matches_rule은 기준 사건을 읽었고 사용자 날짜 문구에서 사건 말을 하나라도 읽었을 때만 붙는다(그 기준일 문구의 사건이 base_event와 같으면 true, true인 항목이 앞). "…부터 사흘 동안"이면 달력일로 센 끝나는 날을 `base_quote`에 "→ N일째 끝나는 날"을 붙인 후보로 더한다. rules는 예산 안에 들어간 원문에서만 찾고(제한·예산 밖 원문은 대상이 아니다), 기준일은 사용자 메시지의 날짜다. 계산표는 근거가 아니라 계산 보조이며 원문 근거 예산에 세지 않는다. 답에 쓴 기한의 근거는 그 rule의 citation_id 원문이다.
 
 ## 반대편 판본의 경과조항
 

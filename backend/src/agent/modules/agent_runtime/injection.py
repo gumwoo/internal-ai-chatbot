@@ -27,13 +27,26 @@ _OVERRIDE = re.compile(
     re.IGNORECASE,
 )
 _ADDRESS = re.compile(
-    r"(^|[\s\"'“‘(])(AI|인공지능|에이전트|어시스턴트|챗봇|언어\s*모델|assistant|chatbot|LLM|GPT|Claude|너|당신)"
-    r"\s*(는|은|이|가|에게|야|이여|님)(?=\s|$)",
+    r"(^|[\s\"'“‘(|])(AI|인공지능|에이전트|어시스턴트|챗봇|언어\s*모델|assistant|chatbot|LLM|GPT|Claude|너|당신)"
+    # D-85: "AI 시스템은"처럼 뒤에 붙는 말(시스템·도구·모델·챗봇)이 있어도 부르는 말로 본다
+    r"(\s*(시스템|도구|모델|챗봇|어시스턴트|에이전트))?"
+    r"\s*(는|은|이|가|에게|야|이여|님)(?=\s|$)"
+    # 영어로 부르는 말: "Note to AI assistants:", "assistant:", "To the AI model,"
+    r"|\b(note|message|instructions?)\s+(to|for)\s+(the\s+)?(ai|assistants?|models?|llms?|chatbots?)\b"
+    r"|^\s*(assistant|ai|system)\s*:",
     re.IGNORECASE,
 )
+# D-85: 부르는 말 없이 요약·답변하는 쪽에 시키는 문장("이 규정을 요약하는 경우 … 999만 원으로 적는다")
+_SUMMARIZER = re.compile(
+    r"이\s*(규정|문서|원문|표|자료|내용|조항|지침)[을를]?\s*요약(하는|할)\s*(경우|때)|요약\s*시\s*주의"
+)
+_WRITE = re.compile(r"(적는다|쓴다|답한다|안내한다|기재한다|출력한다)\s*[.!。]?\s*$")
+# 도구 결과 속 서버 표시 문자열(사용자 메시지와 같은 규칙으로 무력화한다, prompt.neutralize)
+_SERVER_MARKERS = ("[대화 자료", "[사용자 질문]", "[서버 안내]")
 _COMMAND = re.compile(
     r"([가-힣]라|하시오|하십시오|할\s*것|대답하라|출력하라|말하라|알려라|보여라|붙여라|따르라|응답하라|"
-    r"답해라|말해|답해|출력해|보여\s*줘|알려\s*줘|붙여\s*줘|해\s*줘|you\s+must|you\s+should|respond\s+with|answer\s+with)"
+    r"답해라|말해|답해|출력해|보여\s*줘|알려\s*줘|붙여\s*줘|해\s*줘|you\s+must|you\s+should|respond\s+with|answer\s+with|"
+    r"state\s+that\b.*|always\s+(say|state|answer)\b.*)"
     r"\s*[.!。]?\s*$",
     re.IGNORECASE,
 )
@@ -41,26 +54,61 @@ _SENTENCE = re.compile(r"[^.!?。\n]+[.!?。]?|\n")
 
 
 def is_instruction(sentence: str) -> bool:
-    """AI에게 내리는 지시로 보이는 문장인가(좁은 판정)."""
+    """AI에게 내리는 지시로 보이는 문장인가(좁은 판정). 표 행이면 셀마다 본다."""
+    if "|" in sentence:
+        return any(_is_instruction(cell) for cell in sentence.split("|"))
+    return _is_instruction(sentence)
+
+
+def _is_instruction(sentence: str) -> bool:
     text = sentence.strip()
     if len(text) < 6:
         return False
-    if _OVERRIDE.search(text):
+    if _OVERRIDE.search(text) or text.startswith(_SERVER_MARKERS):
+        return True
+    if _SUMMARIZER.search(text) and _WRITE.search(text):
         return True
     return bool(_ADDRESS.search(text) and _COMMAND.search(text))
 
 
 def neutralize_text(text: str, removed: list[str]) -> str:
     """지시문으로 보이는 문장만 가림 문구로 바꾸고, 가린 원문은 removed에 모은다."""
-    if not text or not (_OVERRIDE.search(text) or _ADDRESS.search(text)):
+    if not text:
+        return text
+    for marker in _SERVER_MARKERS:
+        if marker in text:
+            # 문장 판정 뒤에도 남는 표시 문자열은 서버 블록처럼 보이지 않게 괄호를 바꾼다
+            text = _mask_marker_sentences(text, marker, removed).replace(marker, "［" + marker[1:])
+    if not (_OVERRIDE.search(text) or _ADDRESS.search(text) or _SUMMARIZER.search(text)):
         return text
     out: list[str] = []
     for match in _SENTENCE.finditer(text):
         sentence = match.group(0)
-        if sentence != "\n" and is_instruction(sentence):
+        if sentence != "\n" and "|" in sentence and is_instruction(sentence):
+            # 표 행: 지시문 셀만 가린다(같은 행의 다른 셀은 자료로 남긴다)
+            cells = sentence.split("|")
+            for i, cell in enumerate(cells):
+                if _is_instruction(cell):
+                    removed.append(cell.strip())
+                    cells[i] = f" {MASK} "
+            out.append("|".join(cells))
+        elif sentence != "\n" and is_instruction(sentence):
             removed.append(sentence.strip())
             lead = sentence[: len(sentence) - len(sentence.lstrip())]
             out.append(f"{lead}{MASK}")
+        else:
+            out.append(sentence)
+    return "".join(out)
+
+
+def _mask_marker_sentences(text: str, marker: str, removed: list[str]) -> str:
+    """ "[서버 안내] …"로 시작하는 문장은 통째로 가린다(도구 결과에 서버 안내가 있을 수 없다)."""
+    out: list[str] = []
+    for match in _SENTENCE.finditer(text):
+        sentence = match.group(0)
+        if sentence.strip().startswith(marker):
+            removed.append(sentence.strip())
+            out.append(sentence[: len(sentence) - len(sentence.lstrip())] + MASK)
         else:
             out.append(sentence)
     return "".join(out)

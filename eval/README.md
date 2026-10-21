@@ -29,6 +29,10 @@ holdout3 결과를 보고 D-71(영업일 계산표)·D-72(복수 문서 검색 �
 
 holdout3·holdout4를 보고 D-71~D-80을 고쳤고 D-82(인젝션 방어)를 더했으므로, 그 효과는 **새 문항 `cases/holdout5.jsonl`(68문항)**로 잰다(D-81). 생성 지침은 holdout3와 같은 기대 결과 규칙(`data/staging/eval-drafts/holdout5/BRIEF.md`, 저장소 밖)이고, 생성 에이전트 3개가 82문항을 만들고 다른 에이전트 3개가 원문과 대조해 14문항을 뺐다(이전 셋과 중복 10, 같은 셋 초안과 중복 4). 모델 생성·모델 대조이고 사람 검수는 없다. 구성: 단일 15, 복수 18, 예외 14, 개정 6(tag `edition_split` 3), 근거 없음 8, 권한 7(허용·부분만), tag `deadline_calc` 7. 동결 예산으로만 실행한다.
 
+## holdout6(2026-10-21)
+
+holdout5를 보고 D-83(마감일 기준일 짝, 판본별 두 갈래 결론, 기한마다 검색)을 고쳤으므로, 그 효과는 **새 문항 `cases/holdout6.jsonl`(37문항)**로 잰다(D-84). 생성 지침은 holdout5와 같은 기대 결과 규칙에 마감일(여러 날짜·"부터 사흘 동안")·판본별 안내·한 질문의 여러 기한 지침을 더한 것이다(`data/staging/eval-drafts/holdout6/BRIEF.md`, 저장소 밖). 생성 에이전트 2개가 44문항을 만들고 다른 에이전트 2개가 원문과 대조해 7문항을 뺐다(모두 이전 셋과 중복). 모델 생성·모델 대조이고 사람 검수는 없다. 구성: 단일 13, 복수 6, 예외 6, 개정 9, 근거 없음 3, tag `deadline_calc` 18·`multi_deadline` 6·`edition_split` 5. 권한 문항은 없다. 동결 예산으로만 실행한다.
+
 ## 파일
 
 - `cases/dev.jsonl`, `cases/holdout.jsonl`: 한 줄에 한 문항.
