@@ -72,3 +72,24 @@ def test_search_promise_is_detected(answer):
 )
 def test_non_promise_is_not_detected(answer):
     assert not promises_lookup(answer)
+
+
+@pytest.mark.parametrize(
+    ("answer", "expected"),
+    [
+        # D-86: 검색 없이 사건 날짜만 되묻는 답(holdout6 진단에서 본 문형)
+        ("장애가 발생한 날짜를 알려 주시면 그날 적용되는 규정 판본을 다시 확인해 드리겠습니다.", True),
+        ("정확한 출장 시작일을 알려 주시면 해당 기준으로 다시 안내하겠습니다.", True),
+        ("상신일을 알려 주시면 어느 기준이 적용되는지 확인해 드리겠습니다.", True),
+        ("적용할 규정 판본을 정하려면 교육 시작일이 필요합니다.", True),
+        # 날짜가 아닌 대상·증상·연도 확인, 인사는 잡지 않는다
+        ("어느 교육을 말씀하시는지 알려 주세요.", False),
+        ("증상이 언제부터 나타났는지와 사용하는 PC 모델을 알려 주세요.", False),
+        ("1월 4일 월요일이 2027년인지 다른 해인지 알려 주시겠어요?", False),
+        ("안녕하세요! 무엇을 도와드릴까요?", False),
+    ],
+)
+def test_date_request_is_detected(answer, expected):
+    from agent.modules.agent_runtime.promises import asks_for_date
+
+    assert asks_for_date(answer) is expected

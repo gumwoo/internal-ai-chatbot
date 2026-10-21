@@ -179,3 +179,14 @@ def test_no_mark_when_the_user_date_says_no_event():
     passage = {"citation_id": "c1-1", "text": "교육 종료 후 5영업일 이내에 제출한다.", "version": "v2"}
     rule = deadline_hints([passage], bases)["rules"][0]
     assert all("matches_rule" not in c for c in rule["computed"])  # 판정할 근거가 없으면 모델이 고른다
+
+
+def test_deadline_date_in_answer_is_matched_without_catching_a_longer_month():
+    """D-86: 답에서 계산표 마감일을 찾는 표기. 11월 6일은 1월 6일이 아니다."""
+    from agent.modules.agent_runtime.runtime import _date_pattern
+
+    pattern = _date_pattern("2027-01-06")
+    assert pattern.search("기한은 2027-01-06입니다")
+    assert pattern.search("2027년 1월 6일(수)까지")
+    assert pattern.search("1월  6일까지")
+    assert not pattern.search("11월 6일까지") and not pattern.search("1월 16일까지")

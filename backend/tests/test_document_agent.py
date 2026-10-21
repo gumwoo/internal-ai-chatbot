@@ -232,7 +232,9 @@ async def test_two_searches_get_distinct_citation_ids_and_dates(published, migra
 
 async def test_missing_event_date_returns_clarification_not_today(published, migrated):
     search = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "current"})
-    model = Capturing([tool_turn(search), final("언제 시작하는 교육인가요?", outcome="needs_clarification")])
+    # D-86: 판본별 원문을 받고 인용 없이 되물으면 서버가 한 번 더 부른다(이 대본은 다시 되묻는다).
+    ask = final("언제 시작하는 교육인가요?", outcome="needs_clarification")
+    model = Capturing([tool_turn(search), ask, ask])
     async with api_client(_app(migrated, model)) as client:
         # 날짜 없는 현재형("한도가 얼마야?")은 D-61로 오늘 판본을 쓴다. 과거 단서가 있으면 여전히 묻는다.
         _, response = await _ask(client, "예전에 신청한 외부교육 한도가 얼마였어?")
@@ -1083,7 +1085,10 @@ async def test_server_maps_answers_after_unsupported_or_clarification(published,
     body = unsupported.json()
     assert body["outcome"] == "insufficient_evidence" and "10만 원" not in body["answer"]
     undated = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "training_start"})
-    model = FakeModelClient([tool_turn(undated), final("한도는 150만 원입니다")])
+    # D-86 재호출에도 인용 없이 답하면 서버가 되묻기로 바꾼다.
+    model = FakeModelClient(
+        [tool_turn(undated), final("한도는 150만 원입니다"), final("한도는 150만 원입니다")]
+    )
     async with api_client(_app(migrated, model)) as client:
         _, clarify = await _ask(client, "9월 29일에 시작한 외부교육 한도")
     body = clarify.json()
@@ -1445,3 +1450,59 @@ async def test_normal_answer_from_a_passage_with_masked_instruction_is_kept(publ
     assert [c["citation_id"] for c in body["citations"]] == ["c1-1"]
     payload = json.dumps(model.tool_payloads()[0], ensure_ascii=False)
     assert MASK in payload and "999만" not in payload  # 모델은 지시문을 보지 못했다
+
+
+async def test_split_answer_that_asks_again_is_retried_once_and_can_answer_by_edition(published, migrated):
+    """D-86: 판본별 원문을 받고도 인용 없이 되물으면 서버 안내를 붙여 한 번만 다시 부른다."""
+    engine, _, _ = published
+    search = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "current"})
+    ask = final("언제 시작하는 교육인가요?", outcome="needs_clarification")
+    by_edition = final("9월 30일까지 시작했다면 종전 한도, 그 뒤라면 개정 한도가 적용됩니다 [c1-1].")
+    model = Capturing([tool_turn(search), ask, by_edition])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "예전에 신청한 외부교육 한도가 얼마였어?")
+    body = response.json()
+    assert len(model.requests) == 3
+    assert (model.requests[2].messages[-1].text or "").startswith("[서버 안내] 검색 결과에 판본별 원문")
+    assert body["outcome"] == "answered" and "c1-1" in {c["citation_id"] for c in body["citations"]}
+    usage = await _scalar(engine, "SELECT usage FROM agent_runs")
+    assert usage["edition_split_retries"] == 1
+
+
+async def test_deadline_written_from_the_table_gets_its_rule_cited(published, migrated):
+    """D-86: 계산표의 마감일을 답에 쓰고 그 기한 문장을 인용하지 않으면 서버가 인용으로 붙인다."""
+    engine, _, _ = published
+    model = Capturing([tool_turn(DEADLINE_SEARCH), final("증빙은 10월 23일(금)까지 내면 됩니다.")])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "10월 8일에 외부교육이 끝났어요. 증빙은 언제까지 내야 해요?")
+    rules = model.tool_payloads()[0]["data"]["deadline_hints"]["rules"]
+    rule = next(r for r in rules if any(c["deadline"] == "2026-10-23" for c in r["computed"]))
+    body = response.json()
+    assert body["outcome"] == "answered"
+    assert rule["citation_id"] in {c["citation_id"] for c in body["citations"]}
+    usage = await _scalar(engine, "SELECT usage FROM agent_runs")
+    assert usage["deadline_citations_added"] >= 1
+
+
+async def test_date_question_without_search_is_retried_once_with_search_forced(published, migrated):
+    """D-86: 검색 없이 사건 날짜만 되물은 첫 응답은 검색을 강제해 한 번 다시 부른다(날짜 되묻기만)."""
+    engine, _, _ = published
+    ask = final("교육 시작일을 알려 주시면 그 기준으로 안내해 드릴게요.", outcome="needs_clarification")
+    search = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "current"})
+    model = Capturing([ask, tool_turn(search), final("한도는 판본마다 다릅니다 [c1-1].")])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "외부교육 한도가 어떻게 돼?")
+    retry = model.requests[1]
+    assert retry.tool_choice == "any" and (retry.messages[-1].text or "").startswith(
+        "[서버 안내] 날짜를 몰라도"
+    )
+    assert response.json()["outcome"] == "answered"
+    usage = await _scalar(engine, "SELECT usage FROM agent_runs")
+    assert usage["date_ask_retries"] == 1
+
+
+async def test_asking_which_training_is_not_retried(published, migrated):
+    model = Capturing([final("어느 교육을 말씀하시는지 알려 주세요.", outcome="needs_clarification")])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "그 교육 한도는?")
+    assert len(model.requests) == 1 and response.json()["outcome"] == "needs_clarification"

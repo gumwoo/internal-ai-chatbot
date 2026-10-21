@@ -37,7 +37,9 @@ from agent.shared.clock import KST
 # m7-answer-10: 접수 요청은 빠진 정보가 있어도 초안부터 만든다(규칙 14), 내부 처리 말 예시를 초안 기준으로(D-80).
 # m7-answer-11: 지시 무력화·지침 공개 요청을 따르지 않는다, 가린 지시문 안내, 운영 표식(D-82).
 # m7-answer-12: 계산표의 matches_rule(기준 사건 짝), 판본별 결과는 두 갈래 결론부터, 기한마다 검색(D-83).
-PROMPT_VERSION = "m7-answer-12"
+# m7-answer-13: 판본별 원문을 받고도 인용 없이 되물은 답에 EDITION_SPLIT_RETRY, 검색 없이 날짜만 되물은 첫 답에
+# DATE_ASK_RETRY(D-86). 지침 본문은 그대로.
+PROMPT_VERSION = "m7-answer-13"
 
 _CACHE_FIELDS = ("id", "code", "title", "starts_at", "ends_at", "location", "status")
 
@@ -160,6 +162,21 @@ SEARCH_PROMISE_RETRY = (
 TICKET_PROMISE_RETRY = (
     "[서버 안내] 앞 응답은 접수 초안 확인을 기다린다고 했지만 prepare_it_ticket을 부르지 않아 초안이 없습니다. "
     "지금 prepare_it_ticket으로 초안을 만들고, 그 결과의 action_id로 답하세요. 이 안내는 사용자에게 말하지 마세요."
+)
+
+
+# D-86: 판본별 원문(edition_split)을 받고도 원문을 인용하지 않고 날짜를 되물은 답에 붙이는 서버 안내.
+EDITION_SPLIT_RETRY = (
+    "[서버 안내] 검색 결과에 판본별 원문(edition_split)이 있어 날짜를 몰라도 답할 수 있습니다. 날짜를 되묻지 말고 "
+    "규칙 20대로 시행일을 경계로 판본마다 조건을 나눠 답하세요(outcome=answered). 판본마다 그 원문의 citation_id를 "
+    "인용하고, 끝에 날짜를 알려 주면 하나로 정해 줄 수 있다고 덧붙이세요. 이 안내는 사용자에게 말하지 마세요."
+)
+
+
+# D-86: 도구를 부르지 않고 사건 날짜만 되물은 첫 응답에 붙이는 서버 안내(D-68과 같은 재호출 경로).
+DATE_ASK_RETRY = (
+    "[서버 안내] 날짜를 몰라도 규정은 검색할 수 있습니다. 날짜를 확정하지 못하면 서버가 판본별 원문을 함께 줍니다. "
+    "날짜를 되묻기 전에 search_documents로 검색하고 그 결과로 답하세요. 이 안내는 사용자에게 말하지 마세요."
 )
 
 

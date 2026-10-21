@@ -28,8 +28,10 @@ from agent.modules.agent_runtime.contracts import (
 )
 from agent.modules.agent_runtime.dates import assume_today_check, deadline_bases, verify_event_date
 from agent.modules.agent_runtime.deadlines import deadline_hints
-from agent.modules.agent_runtime.promises import promises_lookup
+from agent.modules.agent_runtime.promises import asks_for_date, promises_lookup
 from agent.modules.agent_runtime.prompt import (
+    DATE_ASK_RETRY,
+    EDITION_SPLIT_RETRY,
     EMPTY_ANSWER_RETRY,
     PROMPT_VERSION,
     SEARCH_PROMISE_RETRY,
@@ -107,6 +109,11 @@ class _Run:
     empty_answer_retries: int = 0
     search_promise_retries: int = 0
     ticket_promise_retries: int = 0
+    edition_split_retries: int = 0
+    deadline_citations_added: int = 0
+    date_ask_retries: int = 0
+    # D-86: 이번 실행 계산표의 (기한 문장 citation_id, 계산한 마감일들). 답에 쓴 마감일의 근거를 붙인다.
+    deadline_rules: list[tuple[str, tuple[str, ...]]] = field(default_factory=list)
     # D-82: 이번 실행의 시스템 지침과 도구 결과에서 지시문으로 보고 가린 문장(출력 차단 판정용).
     system_text: str = ""
     removed_instructions: list[str] = field(default_factory=list)
@@ -167,6 +174,9 @@ class _Run:
             self.empty_answer_retries,
             self.search_promise_retries,
             self.ticket_promise_retries,
+            self.edition_split_retries,
+            self.deadline_citations_added,
+            self.date_ask_retries,
         )
 
     def allowed_trainings(self) -> dict[str, dict[str, Any]]:
@@ -446,6 +456,14 @@ class AgentRuntime:
                 run.ticket_promise_retries += 1
                 logger.info("접수 약속 첫 답 재호출 run_id=%s", run.context.run_id)
                 return await self._retry_promise(run, messages, tools, system, response, TICKET_PROMISE_RETRY)
+            if not response.wants_tools and self._date_ask(run, response, tools):
+                run.date_ask_retries += 1
+                logger.info("검색 없는 날짜 되묻기 재호출 run_id=%s", run.context.run_id)
+                return await self._retry_promise(run, messages, tools, system, response, DATE_ASK_RETRY)
+            if not response.wants_tools and self._edition_split_ask(run, response):
+                run.edition_split_retries += 1
+                logger.info("판본별 결과 되묻기 재호출 run_id=%s", run.context.run_id)
+                return await self._retry_edition_split(run, messages, tools, system, response)
             if not response.wants_tools:
                 return await self._finish(run, response)
             results: list[ToolResultContent] = []
@@ -521,6 +539,84 @@ class AgentRuntime:
             run.model_attempts < policy.max_model_attempts
             and self._remaining(run.context) > _PROMISE_RESERVE_S + 1
         )
+
+    def _date_ask(self, run: _Run, response: ModelResponse, tools) -> bool:
+        """D-86: 도구를 부르지 않은 첫 응답이 사건 날짜만 되물었는가(D-68과 같은 발동 조건).
+
+        D-65(검색 없는 되묻기 전체를 다시 부름, 철회)와 달리 날짜를 요청하는 되묻기만 잡는다. 날짜를
+        몰라도 서버가 판본별 원문을 주므로(D-67) 날짜 되묻기는 검색 뒤 서버가 정한다. 재호출이 실패하거나
+        또 도구 없이 끝나면 받아 둔 되묻기로 끝낸다.
+        """
+        policy = run.context.policy
+        if run.tool_proposals or run.empty_answer_retries or run.date_ask_retries:
+            return False
+        if not any(tool.name == "search_documents" for tool in tools):
+            return False
+        candidate = response.final_candidate
+        if not isinstance(candidate, dict) or candidate.get("outcome") != Outcome.NEEDS_CLARIFICATION.value:
+            return False
+        if not asks_for_date(candidate.get("answer")):
+            return False
+        try:
+            FinalCandidate.model_validate(candidate)
+        except ValidationError:
+            return False
+        return (
+            run.model_attempts < policy.max_model_attempts
+            and self._remaining(run.context) > _PROMISE_RESERVE_S + 1
+        )
+
+    def _edition_split_ask(self, run: _Run, response: ModelResponse) -> bool:
+        """D-86: 판본별 원문을 받았는데(날짜로 해결된 같은 사건 없음) 원문을 하나도 인용하지 않고 끝낸 답인가.
+
+        그대로 두면 모델이 되물었거나, 인용 없는 answered를 서버가 되묻기로 바꾼다(D-67). 한 run에 한 번만,
+        스키마가 유효하고 모델 시도·시간 여유가 있을 때만 다시 부른다.
+        """
+        policy = run.context.policy
+        if run.edition_split_retries:
+            return False
+        dated = _dated_contexts(run)
+        if not any(
+            r.get("edition_split") and (r.get("event_key"), r.get("date_basis")) not in dated
+            for r in run.search_results
+        ):
+            return False
+        candidate = response.final_candidate
+        if not isinstance(candidate, dict):
+            return False
+        try:
+            final = FinalCandidate.model_validate(candidate)
+        except ValidationError:
+            return False
+        if final.outcome not in (Outcome.NEEDS_CLARIFICATION, Outcome.ANSWERED):
+            return False
+        cited = [c for c in [*final.citation_ids, *marker_ids(final.answer)] if c in run.citations]
+        if cited or final.training_ids:
+            return False
+        if final.outcome is Outcome.ANSWERED and _deadline_citations(run, final.answer, []):
+            return False  # 계산표 마감일을 썼다: 그 기한 문장이 인용으로 붙는다(_finish)
+        return (
+            run.model_attempts < policy.max_model_attempts
+            and self._remaining(run.context) > _PROMISE_RESERVE_S + 1
+        )
+
+    async def _retry_edition_split(
+        self, run: _Run, messages: list[ModelMessage], tools, system: str, first: ModelResponse
+    ) -> ExecutionResult:
+        """D-86: 되물은 답과 서버 안내를 붙여 한 번 더 부른다(도구는 강제하지 않는다). 재호출 경로가 오류·시간
+        초과로 끝나면 받아 둔 첫 답으로 끝낸다(D-68과 같은 여유 시간 규칙)."""
+        retry_messages = [
+            *messages,
+            first.as_assistant_message(),
+            ModelMessage(role="user", text=EDITION_SPLIT_RETRY),
+        ]
+        try:
+            async with asyncio.timeout(self._remaining(run.context) - _PROMISE_RESERVE_S):
+                return await self._drive(run, retry_messages, tools, system)
+        except (TimeoutError, AppError) as exc:
+            code = exc.code if isinstance(exc, AppError) else ErrorCode.RUN_TIMEOUT
+            logger.info("판본별 재호출 경로 실패, 첫 답 유지 run_id=%s code=%s", run.context.run_id, code)
+            return await self._finish(run, first)
 
     async def _retry_promise(
         self, run: _Run, messages: list[ModelMessage], tools, system: str, first: ModelResponse, notice: str
@@ -692,6 +788,11 @@ class AgentRuntime:
             logger.info("원장 밖 인용 표시 삭제 run_id=%s", run.context.run_id)
         if final.outcome in (Outcome.NEEDS_CLARIFICATION, Outcome.NO_RESULTS):
             citation_ids = []
+        if final.outcome is Outcome.ANSWERED:
+            # D-86: 계산표의 마감일을 답에 썼으면 그 기한 문장(이번 실행 원장에 있는 원문)을 인용으로 붙인다.
+            added = _deadline_citations(run, final.answer, citation_ids)
+            run.deadline_citations_added += len(added)
+            citation_ids = [*citation_ids, *added]
         if final.outcome in (Outcome.NEEDS_CLARIFICATION, Outcome.NO_RESULTS) and selected is not None:
             # 되묻는 중이거나 결과가 없으면 선택 상태를 저장하지 않는다(임의 선택 저장 금지).
             logger.info("선택 후보 무시 run_id=%s outcome=%s", run.context.run_id, final.outcome.value)
@@ -1039,7 +1140,26 @@ def _search_view(run: _Run, result: ToolResult) -> ToolResult:
     hints = deadline_hints(shown, _deadline_bases(run))
     if hints is not None:
         view["deadline_hints"] = hints
+        for rule in hints["rules"]:
+            run.deadline_rules.append((rule["citation_id"], tuple(c["deadline"] for c in rule["computed"])))
     return ToolResult.success(view, result.resource_ids)
+
+
+def _date_pattern(iso: str) -> re.Pattern[str]:
+    """답에서 마감일을 찾을 표기: 2027-01-06, 2027년 1월 6일, 1월 6일(앞이 숫자면 다른 날짜, 예: 11월 6일)."""
+    day = date.fromisoformat(iso)
+    return re.compile(rf"{iso}|(?<!\d){day.month}\s*월\s*{day.day}\s*일")
+
+
+def _deadline_citations(run: _Run, answer: str, citation_ids: list[str]) -> list[str]:
+    """D-86: 답에 나온 계산표 마감일의 기한 문장 중 아직 인용하지 않은 것(원장에 있는 것만)."""
+    added: list[str] = []
+    for citation_id, deadlines in run.deadline_rules:
+        if citation_id in citation_ids or citation_id in added or citation_id not in run.citations:
+            continue
+        if any(_date_pattern(iso).search(answer) for iso in deadlines):
+            added.append(citation_id)
+    return added
 
 
 def _server_outcome(run: _Run, final: FinalCandidate, citation_ids: list[str], training_ids: list[str]):

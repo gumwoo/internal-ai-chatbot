@@ -12,6 +12,8 @@ knowledge_as_of에서 `available_from`을 통과한 안내 중 `guidance_valid_f
 
 사건 날짜를 확인하지 못한 검색은 대상 규범 문서(이 사건 기준의 가장 가까운 규범)의 normative 판본(knowledge_as_of에 공개되고 90일 안에 시행되는 것 중 최근 3개)마다 그 판본 안의 날짜(옛 판본은 effective_to 전날, 현행은 오늘, 장래 판본은 시행일)로 같은 검색을 다시 한다. 오늘을 포함하는 판본이 없으면 판본별로 주지 않는다. 각 판본에서 그 문서의 그룹 2개와 다른 문서 그룹 1개를 남기고(전체 문맥 기준선은 전부), 그룹 순위가 같으면 최근 판본을 앞에 두어 섞는다. 판본 대표일은 경과조항 조건의 사건 날짜로 쓰지 않는다. 그룹은 `as_of_date`로 판본을 구분하며 MOD-02는 (event_key, date_basis, as_of_date)로 인용 문맥을 나눈다. authority_relations는 합치고, normative_gap은 모든 판본에 공백이 있을 때만 둔다.
 
+D-86: 대상 규범이 사건 기준 없는 규정(general_reference)이어도 사용자가 날짜 없이 지난 일을 물었거나(과거 단서), 모델이 고른 사건 기준의 규범이 없고 가장 가까운 규범이 general_reference이면 같은 방식으로 판본마다 기준 날짜(explicit_date)로 나눈다. 왜 나눴는지·나누지 않았는지는 도구 기록(trace의 date_path)에만 남는다.
+
 ## 영업일 기한 계산표(D-71)
 
 MOD-02는 모델에 보이는 검색 결과에 `deadline_hints={rules:[{citation_id,version,as_of_date,rule,business_days,direction,base_event,computed:[{base_date,base_quote,deadline,deadline_weekday,skipped_holidays,matches_rule?}]}],counting,calendar_version,calendar_note}`를 붙일 수 있다. D-83: base_event는 기한 문장이 세는 기준 사건(끝나는 날·시작·출발일·요청·신청일·통지일·사용·결제일, 못 읽으면 null)이고, matches_rule은 기준 사건을 읽었고 사용자 날짜 문구에서 사건 말을 하나라도 읽었을 때만 붙는다(그 기준일 문구의 사건이 base_event와 같으면 true, true인 항목이 앞). "…부터 사흘 동안"이면 달력일로 센 끝나는 날을 `base_quote`에 "→ N일째 끝나는 날"을 붙인 후보로 더한다. rules는 예산 안에 들어간 원문에서만 찾고(제한·예산 밖 원문은 대상이 아니다), 기준일은 사용자 메시지의 날짜다. 계산표는 근거가 아니라 계산 보조이며 원문 근거 예산에 세지 않는다. 답에 쓴 기한의 근거는 그 rule의 citation_id 원문이다.

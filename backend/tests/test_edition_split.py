@@ -218,3 +218,74 @@ def test_other_normative_document_does_not_count_as_an_edition_citation():
 def test_same_event_split_twice_gets_one_note():
     run = SimpleNamespace(citations={"c1-1": _cite("2026-10-16")})
     assert len(_edition_split_notes(run, [_split(E2, E3), _split(E2, E3)], ["c1-1"])) == 1
+
+
+async def test_trace_records_why_editions_were_or_were_not_split():
+    """D-86: 판본별 결과를 만들었는지, 안 만들었으면 왜인지 도구 기록(trace)에 남는다(모델에는 안 보임)."""
+    cur = _p("DOC", "e1", "v1", date(2025, 1, 1), date(2026, 10, 1))
+    nxt = _p("DOC", "e2", "v2", date(2026, 10, 1), None)
+    periods = [(date(2025, 1, 1), date(2026, 10, 1), "v1"), (date(2026, 10, 1), None, "v2")]
+    split = await _run(FakeKnowledge([cur, nxt], periods))
+    assert split.trace()["date_path"] == {
+        "requested_basis": "training_start",
+        "assume_today": False,
+        "date_problem": None,
+        "path": "event_missing_date",
+        "split": "split",
+    }
+    asked = await _run(FakeKnowledge([cur], [periods[0]]))
+    assert asked.trace()["date_path"]["split"] == "no_current_edition"
+    vague = await _run(FakeKnowledge([cur, nxt], periods), date_problem="ambiguous_date")
+    assert vague.trace()["date_path"]["split"] == "reason_ambiguous_date"
+
+
+async def test_trace_shows_current_search_when_the_nearest_document_is_guidance():
+    """current 검색에서 가장 가까운 문서가 안내(비규범)면 판본을 나누지 않는다. 그 사실이 기록에 남는다."""
+    faq = _p("FAQ", "f1", "v1", date(2025, 1, 1), None, basis="general_reference", role="guidance")
+    cur = _p("DOC", "e1", "v1", date(2025, 1, 1), date(2026, 10, 1))
+    nxt = _p("DOC", "e2", "v2", date(2026, 10, 1), None)
+    k = FakeKnowledge(
+        [faq, cur, nxt], [(date(2025, 1, 1), date(2026, 10, 1), "v1"), (date(2026, 10, 1), None, "v2")]
+    )
+    req = SearchRequest(query="외부교육 한도", date_basis="current")
+    r = await RetrievalService(k).search(ACTOR, req, knowledge_as_of=NOW, snapshot_id="s")
+    path = r.trace()["date_path"]
+    assert r.edition_split is None and path["path"] == "current"
+    assert path["top_hint"] == {"document_role": "guidance", "application_basis": "general_reference"}
+
+
+def _general_two_editions():
+    cur = _p("DOC", "e1", "v1", date(2025, 1, 1), date(2026, 10, 1), basis="general_reference")
+    nxt = _p("DOC", "e2", "v2", date(2026, 10, 1), None, basis="general_reference")
+    periods = [(date(2025, 1, 1), date(2026, 10, 1), "v1"), (date(2026, 10, 1), None, "v2")]
+    return FakeKnowledge([cur, nxt], periods)
+
+
+async def test_past_question_on_general_rule_is_split_by_edition():
+    """D-86: 사건 기준 없는 규정이라도 날짜 없이 지난 일을 물으면 오늘 판본 하나로 답하지 않고 나눈다."""
+    req = SearchRequest(query="연차 2시간 단위", date_basis="current", past_event=True)
+    r = await RetrievalService(_general_two_editions()).search(
+        ACTOR, req, knowledge_as_of=NOW, snapshot_id="s"
+    )
+    assert r.resolution == "resolved" and r.edition_split is not None
+    assert r.edition_split["event_type"] == "explicit_date"
+    assert {p.version for g in r.groups for p in g.passages} == {"v1", "v2"}
+    assert r.trace()["date_path"]["path"] == "current_past_general"
+
+
+async def test_present_question_on_general_rule_stays_current():
+    req = SearchRequest(query="연차 2시간 단위", date_basis="current")
+    r = await RetrievalService(_general_two_editions()).search(
+        ACTOR, req, knowledge_as_of=NOW, snapshot_id="s"
+    )
+    assert r.edition_split is None and {p.version for g in r.groups for p in g.passages} == {"v2"}
+
+
+async def test_event_basis_on_general_rule_splits_instead_of_asking():
+    """D-86: 모델이 사건 기준(근무일)을 골랐어도 가까운 규범이 사건 기준 없는 규정이면 판본별로 준다."""
+    req = SearchRequest(query="근태 정정 기한", date_basis="work_date", date_problem="missing_date")
+    r = await RetrievalService(_general_two_editions()).search(
+        ACTOR, req, knowledge_as_of=NOW, snapshot_id="s"
+    )
+    assert r.resolution == "resolved" and r.edition_split["event_type"] == "explicit_date"
+    assert r.trace()["date_path"]["split"] == "split"

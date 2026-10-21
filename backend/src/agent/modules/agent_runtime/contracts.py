@@ -99,6 +99,12 @@ class RunUsage:
     search_promise_retries: int = 0
     # D-80: 첫 응답이 접수 초안 없이 action_pending으로 끝나 서버가 다시 부른 횟수(0 또는 1).
     ticket_promise_retries: int = 0
+    # D-86: 판본별 원문을 받고도 인용 없이 되물어 서버가 다시 부른 횟수(0 또는 1).
+    edition_split_retries: int = 0
+    # D-86: 계산표 마감일을 답에 쓰고 그 기한 문장을 인용하지 않아 서버가 인용으로 붙인 수.
+    deadline_citations_added: int = 0
+    # D-86: 첫 응답이 검색 없이 사건 날짜만 되물어 서버가 검색을 강제해 다시 부른 횟수(0 또는 1).
+    date_ask_retries: int = 0
 
 
 @dataclass(frozen=True)

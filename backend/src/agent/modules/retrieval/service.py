@@ -26,7 +26,7 @@ from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timedelta
 from typing import Any, Literal
 
-from agent.modules.knowledge.contracts import APPLICATION_BASIS, Passage
+from agent.modules.knowledge.contracts import APPLICATION_BASIS, BasisHint, Passage
 from agent.modules.knowledge.service import KnowledgeService
 from agent.modules.wiki.contracts import CandidateResult
 from agent.modules.wiki.service import WikiService
@@ -82,6 +82,9 @@ class SearchRequest:
     # D-61: current 기준인데 사건 기준 규정이 걸리면, MOD-02가 사용자 문장으로 허용한 경우에만
     # 오늘을 사건 날짜로 본다.
     assume_today: bool = False
+    # D-86: 사용자 문장에 과거 단서가 있다(MOD-02의 오늘 가정 판정이 past_cue로 거절).
+    # 사건 기준 없는 규정이라도 오늘 판본 하나로 답하지 않고 판본별로 나눈다.
+    past_event: bool = False
     # D-67 내부용: 판본별 재검색에서 질의 임베딩을 다시 만들지 않게 넘기고,
     # 재검색이 다시 나뉘지 않게 표시한다.
     query_vector: tuple[float, ...] | None = None
@@ -134,6 +137,8 @@ class RetrievalResult:
     # D-67: 사건 날짜를 확정하지 못해 판본별 원문을 함께 줬다. {event_type, reason, editions:[{version,
     # effective_from, effective_to, as_of_date}]}. 모델은 되묻지 않고 판본별로 조건을 나눠 답한다.
     edition_split: dict[str, Any] | None = None
+    # D-86 진단용: 날짜를 정한 경로와 판본별 결과를 만들지 않은 이유. 모델에 보내지 않는다(trace만).
+    date_path: dict[str, Any] | None = None
 
     def trace(self) -> dict[str, Any]:
         """도구 호출 기록용 검색 경로(모델에 보이지 않음)."""
@@ -160,6 +165,7 @@ class RetrievalResult:
             "corpus_snapshot_id": self.corpus_snapshot_id,
             "wiki_snapshot_id": self.wiki_snapshot_id,
             "wiki_candidates": [list(c) for c in self.wiki_candidates],
+            "date_path": self.date_path,
         }
 
 
@@ -213,9 +219,15 @@ class RetrievalService:
             }.get(strategy, RETRIEVER_CONFIG_ID),
             "wiki_snapshot_id": wiki_snapshot_id if strategy == "wiki_assisted" else None,
         }
+        path: dict[str, Any] = {
+            "requested_basis": request.date_basis,
+            "assume_today": request.assume_today,
+            "date_problem": request.date_problem,
+        }
         if request.date_basis == "current":
             as_of = today
             evidence = {"source": "run_accepted_at"}
+            path["path"] = "current"
         elif (
             request.as_of_date is None
             and request.assume_today
@@ -224,9 +236,10 @@ class RetrievalService:
             # 사건 기준으로 물었지만 날짜를 말하지 않은 현재형 질문(D-61): 사건 날짜를 오늘로 본다.
             as_of = today
             evidence = {"source": "assumed_today", "event_basis": request.date_basis}
+            path["path"] = "event_assumed_today"
         elif request.as_of_date is None:
             reason = request.date_problem or "missing_date"
-            split = await self._edition_split(
+            split, why = await self._edition_split(
                 actor,
                 request,
                 request.date_basis,
@@ -237,17 +250,20 @@ class RetrievalService:
                 wiki_snapshot_id,
                 strict,
             )
+            path.update(path="event_missing_date", split=why)
             if split is not None:
-                return split
+                return replace(split, date_path=path)
             return RetrievalResult(
                 "needs_clarification",
                 as_of_date=None,
                 clarification=_clarify(reason, request.date_basis, request.event_key),
+                date_path=path,
                 **base,
             )
         else:
             as_of = request.as_of_date
             evidence = dict(request.date_evidence) or {"source": "server_argument"}
+            path["path"] = "event_dated" if request.split_from is None else "split_edition"
         if as_of > today + timedelta(days=HORIZON_DAYS):
             return RetrievalResult(
                 "unsupported",
@@ -268,16 +284,23 @@ class RetrievalService:
             for h in hints[:_BASIS_LOOKUP_TOP]
             if h.document_role == "normative" and h.application_basis in EVENT_BASES
         ]
+        # 가장 가까운 문서의 역할·적용 기준(이것이 사건 기준 규범일 때만 판본을 나누거나 묻는다)
+        path["top_hint"] = (
+            {"document_role": hints[0].document_role, "application_basis": hints[0].application_basis}
+            if hints
+            else None
+        )
         if required and request.date_basis == "current" and request.assume_today:
             # 날짜 없이 현재형으로 물었다(D-61). 사건 날짜를 오늘로 보고, 이후 필터·판본·공백 판정은
             # 그 사건 기준으로 한다(current 그대로 두면 사건 기준 규범 원문이 걸러진다).
             request = replace(request, date_basis=required[0], as_of_date=today)
             base = {**base, "date_basis": required[0]}
             evidence = {"source": "assumed_today", "event_basis": required[0]}
+            path["path"] = "current_assumed_today"
         elif required and request.date_basis in ("current", "explicit_date"):
             # 사건 기준 규정인데 사건 날짜가 없다. D-67: 판본별 원문을 함께 주고, 그럴 수 없을 때만 묻는다.
             # 제한 문서의 이름은 드러내지 않고 필요한 사건 종류만 묻는다.
-            split = await self._edition_split(
+            split, why = await self._edition_split(
                 actor,
                 replace(request, query_vector=vector),
                 required[0],
@@ -288,14 +311,39 @@ class RetrievalService:
                 wiki_snapshot_id,
                 strict,
             )
+            path.update(path=f"{request.date_basis}_event_rule", split=why)
             if split is not None:
-                return split
+                return replace(split, date_path=path)
             return RetrievalResult(
                 "needs_clarification",
                 as_of_date=None,
                 clarification=_clarify("missing_date", required[0], request.event_key),
+                date_path=path,
                 **base,
             )
+        elif (
+            request.date_basis == "current"
+            and request.past_event
+            and request.split_from is None
+            and _general_normative(hints) is not None
+        ):
+            # D-86: 사건 기준 없는 규정(general_reference)인데 사용자가 날짜 없이 지난 일을 물었다.
+            # 오늘 판본만 주면 그때 적용된 종전 판본을 놓친다. 판본별로 나눠 주고,
+            # 나눌 수 없으면 지금처럼 현행으로 답한다(묻지 않는다).
+            split, why = await self._edition_split(
+                actor,
+                replace(request, query_vector=vector),
+                "explicit_date",
+                "missing_date",
+                knowledge_as_of,
+                snapshot_id,
+                strategy,
+                wiki_snapshot_id,
+                strict,
+            )
+            path.update(path="current_past_general", split=why)
+            if split is not None:
+                return replace(split, date_path=path)
 
         # 규범 공백(T-17): 이 날짜 기준에 맞는 가장 가까운 규범을 판본 후보 전체에서 본다
         # (안내가 더 가까워도).
@@ -306,10 +354,12 @@ class RetrievalService:
             if other is not None:
                 # 다른 사건 기준의 규범만 있다. 모델이 날짜 기준을 잘못 골랐을 수 있으니
                 # 안내로 답하지 않고 묻는다.
+                path["path"] = "basis_mismatch"
                 return RetrievalResult(
                     "needs_clarification",
                     as_of_date=None,
                     clarification=_clarify("basis_mismatch", other, request.event_key),
+                    date_path=path,
                     **base,
                 )
         normative_gap = None
@@ -352,7 +402,12 @@ class RetrievalService:
         if base.get("strict_failure"):
             # 엄격 B: Wiki 경로가 없으면 원문 직접 검색으로 바꾸지 않는다(평가에서 실패로 집계).
             return RetrievalResult(
-                "resolved", as_of_date=as_of, prospective=as_of > today, date_evidence=evidence, **base
+                "resolved",
+                as_of_date=as_of,
+                prospective=as_of > today,
+                date_evidence=evidence,
+                date_path=path,
+                **base,
             )
         if strategy == "full_context_reference":
             groups = _whole_groups(hits)
@@ -377,6 +432,7 @@ class RetrievalService:
             normative_gap=normative_gap,
             authority_relations=relations,
             transition_pending=pending,
+            date_path=path,
             **base,
         )
 
@@ -391,18 +447,20 @@ class RetrievalService:
         strategy: str,
         wiki_snapshot_id: str | None,
         strict: bool,
-    ) -> RetrievalResult | None:
+    ) -> tuple[RetrievalResult | None, str]:
         """D-67: 사건 날짜를 확정하지 못하면 되묻는 대신, 관련 규범 문서의 판본마다 그 시행 구간 안의 날짜로
         다시 검색해 결과를 합친다(판본을 고르지 않으므로 틀린 날짜를 확정하지 않는다).
         판본이 하나면 그 판본으로 답한다. 판본을 정할 문서가 없거나 판본별 검색 중 하나라도
-        해결되지 않으면 None(호출자가 되묻는다).
+        해결되지 않으면 None(호출자가 되묻는다). 두 번째 값은 D-86 진단용 결과·이유다.
         """
-        if request.split_from is not None or basis not in EVENT_BASES | {"explicit_date"}:
-            return None
+        if request.split_from is not None:
+            return None, "nested"
+        if basis not in EVENT_BASES | {"explicit_date"}:
+            return None, "basis_not_event"
         if reason not in _SPLIT_REASONS:
             # 사용자가 날짜를 말했는데 연도·시제·범위가 모호하다(ambiguous_date). 그 날짜가 판본 구간이나
             # 90일 범위 밖일 수 있으므로 판본별로 답하지 않고 묻는다.
-            return None
+            return None, f"reason_{reason}"
         today = knowledge_as_of.astimezone(KST).date()
         vector = request.query_vector or await self._knowledge.embed_query(request.query)
         hints = await self._knowledge.lookup_basis(
@@ -416,14 +474,23 @@ class RetrievalService:
             ),
             None,
         )
+        if target is None and basis in EVENT_BASES:
+            # D-86: 모델이 사건 기준을 골랐지만 가까운 규범이 사건 기준 없는 규정(general_reference)이다.
+            # 그 규정의 판본별로 기준 날짜(explicit_date)로 나눈다(되묻기 대신).
+            target = _general_normative(hints)
+            if target is not None:
+                basis = "explicit_date"
         if target is None:
-            return None
+            return None, "no_normative_for_basis"
         periods = await self._knowledge.normative_periods(
             actor, snapshot_id, target.document_key, knowledge_as_of=knowledge_as_of
         )
         horizon = today + timedelta(days=HORIZON_DAYS)
         if not any(start <= today and (end is None or today < end) for start, end, _ in periods):
-            return None  # 오늘 사건에 적용할 판본이 없다(공백): 판본별로 답하지 않고 묻는다
+            return (
+                None,
+                "no_current_edition",
+            )  # 오늘 사건에 적용할 판본이 없다(공백): 판본별로 답하지 않고 묻는다
         parts: list[tuple[date, dict[str, Any]]] = []
         for start, end, version in periods:
             if start > horizon:
@@ -460,12 +527,14 @@ class RetrievalService:
                 strict=strict,
             )
             if result.resolution != "resolved":
-                return None
+                return None, f"edition_{result.resolution}"
             results.append(result)
         latest = results[-1]
         if len(results) == 1:
             # 판본이 하나다(오늘을 포함하고 90일 안에 다음 판본이 없다): 날짜와 관계없이 같은 원문이 적용된다.
-            return replace(latest, date_evidence={"source": "single_edition", "reason": reason})
+            return replace(
+                latest, date_evidence={"source": "single_edition", "reason": reason}
+            ), "single_edition"
         # 판본마다 상위 그룹만 남긴다: 판본별 결과가 근거 예산을 다 써서, 같은 실행의 다른 검색(날짜가 확인된
         # 재검색 등) 원문이 들어갈 자리가 없어지지 않게 한다.
         tagged = [
@@ -504,7 +573,7 @@ class RetrievalService:
             },
             # 인용 없는 답을 서버가 되묻기로 바꿀 때 쓴다(MOD-02). 모델 보기에서는 뺀다.
             clarification=_clarify(reason, basis, request.event_key),
-        )
+        ), "split"
 
     async def _wiki_hits(
         self,
@@ -696,6 +765,12 @@ def _basis_fits_hint(application_basis: str, date_basis: str) -> bool:
     if application_basis in ("general_reference", "per_claim"):
         return True
     return date_basis in APPLICATION_BASIS[application_basis]
+
+
+def _general_normative(hints: list[BasisHint]) -> BasisHint | None:
+    """D-86: 가장 가까운 규범이 사건 기준 없는 규정(general_reference)이면 그 문서."""
+    normative = next((h for h in hints if h.document_role == "normative"), None)
+    return normative if normative is not None and normative.application_basis == "general_reference" else None
 
 
 def _basis_matches(application_basis: str, date_basis: str) -> bool:

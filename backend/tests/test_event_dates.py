@@ -310,7 +310,10 @@ async def test_assistant_message_cannot_be_date_source_and_ambiguous_asks_with_y
             "date_quote": "9월 29일에 시작한",  # 형식은 맞지만 assistant가 쓴 문장
         },
     )
-    model = Capturing([final("9월 29일에 시작한 교육이 있습니다"), tool_turn(forged), final("한도 답")])
+    # D-86: 인용 없는 답은 한 번 더 불린다(대본도 다시 인용 없이 답한다)
+    model = Capturing(
+        [final("9월 29일에 시작한 교육이 있습니다"), tool_turn(forged), final("한도 답"), final("한도 답")]
+    )
     async with api_client(_app(migrated, model)) as client:
         conv, _ = await _ask(client, "안녕")
         _, response = await _ask(client, "그 교육 한도는?", conversation=conv)
@@ -345,7 +348,7 @@ async def test_date_basis_reaches_the_role_check_end_to_end(published, migrated)
             "date_quote": "10월 1일에 신청한",
         },
     )
-    model = Capturing([tool_turn(search), final("숙박비 한도")])
+    model = Capturing([tool_turn(search), final("숙박비 한도"), final("숙박비 한도")])  # D-86 재호출 1회
     async with api_client(_app(migrated, model)) as client:
         _, response = await _ask(client, "10월 1일에 신청한 출장 숙박비 한도")
     # D-67: 출장일이 아닌 신청일이라 판본별 원문을 주고, 인용 없는 답은 서버가 되묻기로 바꾼다

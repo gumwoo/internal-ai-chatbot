@@ -1027,4 +1027,7 @@ def _usage(result: ExecutionResult) -> dict[str, Any]:
         "empty_answer_retries": usage.empty_answer_retries,
         "search_promise_retries": usage.search_promise_retries,
         "ticket_promise_retries": usage.ticket_promise_retries,
+        "edition_split_retries": usage.edition_split_retries,
+        "deadline_citations_added": usage.deadline_citations_added,
+        "date_ask_retries": usage.date_ask_retries,
     }

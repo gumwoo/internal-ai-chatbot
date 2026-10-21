@@ -59,6 +59,16 @@
    "verification": "다른 서브에이전트 2개(v1·v2)가 정답 근거를 원문과 대조: ok 30·fix 7·drop 7(모두 이전 셋과 중복). 영업일 마감일은 생성·검증이 각각 다시 계산. scripts/check_eval.py 오류 0",
    "human_review": "없음",
    "purpose": "holdout5를 보고 마감일 기준일 짝 맞추기·판본별 두 갈래 결론·기한마다 검색(D-83)을 고쳤으므로 그 효과는 새 문항으로 잰다(D-84)"
+  },
+  "cases/holdout7.jsonl": {
+   "cases": 47,
+   "sha256": "cd63b2b198c90b4aa0d290eab584e0ebda153d70a97f4279f3ea3065b27e369d",
+   "eval_version": "eval-v7",
+   "created_at": "2026-10-21",
+   "generation": "모델 생성 문항: 서브에이전트 3개(h7-1 마감일·여러 기한 22, h7-2 개정·근거 없음·예외 20, h7-3 일반 회귀·권한 20)가 원문·명세·생성 지침(BRIEF, holdout6 지침에 사건 기준 없는 규정의 판본 문항을 더함)만 보고 작성. 시스템 답변·평가 결과·코드·보고서는 보지 않음",
+   "verification": "다른 서브에이전트 3개(v7-1~v7-3)가 정답 근거를 원문과 대조: ok 34·fix 13·drop 15(이전 셋과 중복 13, 원문으로 답이 하나로 정해지지 않음 2). 영업일 마감일은 생성·검증이 각각 다시 계산. scripts/check_eval.py 오류 0",
+   "human_review": "없음",
+   "purpose": "holdout6을 보고 D-86(판본별 재호출·날짜 되묻기 재호출·사건 기준 없는 규정의 판본 나누기·마감일 인용)을 고쳤으므로 새 문항으로, 같은 셋을 개선 전후 세 번씩 돌려 잰다(D-87)"
   }
  },
  "corpus_files_sha256": "497964379efe73cb3961aa2531925fbc1e0da9b4e9b704b67cbdb72a93a73dc2",

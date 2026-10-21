@@ -65,3 +65,20 @@ def promises_lookup(text: str | None) -> bool:
             return True
         previous = sentence
     return False
+
+
+# D-86: 검색 없이 사건 날짜만 되묻는 답("시작일을 알려 주시면", "날짜가 필요합니다"). 날짜를 몰라도 서버가
+# 판본별 원문을 주므로(D-67) 날짜 되묻기는 검색 뒤 서버가 정한다. 어떤 교육·티켓인지 묻는 말은 잡지 않는다.
+_DATE_WORD = (
+    r"(?:날짜|일자|언제|며칠|연도|시작일|출발일|종료일|복귀일|상신일|결재일|승인일|근무일|신청일|처리일"
+    r"|발령일|지출일|사용일)"
+)
+_DATE_ASK = re.compile(
+    _DATE_WORD + r"(?:을|를|이|가|은|는|도)?\s*(?:정확히\s*|먼저\s*|함께\s*)?"
+    r"(?:알려|말씀|확인해\s*주|주시면|주셔야|필요|확인이\s*필요)"
+)
+
+
+def asks_for_date(text: str | None) -> bool:
+    """답이 사용자에게 사건 날짜를 요청하는가."""
+    return bool(_DATE_ASK.search(_QUOTED.sub(" ", text or "")))
