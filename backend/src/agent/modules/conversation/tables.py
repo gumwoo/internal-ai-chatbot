@@ -121,3 +121,17 @@ tool_result_receipts = Table(
     Column("result_hash", Text, nullable=False),
     Column("recorded_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
 )
+
+
+# D-77: 답변 피드백. 답(assistant 메시지)·사용자마다 하나, 다시 보내면 덮어쓴다.
+message_feedback = Table(
+    "message_feedback",
+    metadata,
+    Column("message_id", PG_UUID(as_uuid=True), ForeignKey("messages.id"), primary_key=True),
+    Column("user_id", Text, primary_key=True),
+    Column("rating", Text, nullable=False),
+    Column("reason", Text),
+    Column("comment", Text),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)

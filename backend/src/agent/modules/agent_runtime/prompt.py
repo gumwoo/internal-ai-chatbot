@@ -31,7 +31,10 @@ from agent.shared.clock import KST
 # m7-answer-5: 영업일 기한은 직접 세지 않고 calculate_business_deadline으로 계산한다(규칙 21, D-69).
 # m7-answer-6: 검색 결과의 deadline_hints(서버가 사용자 날짜로 미리 계산한 마감일)를 쓴다(규칙 21, D-71).
 # m7-answer-7: answer 형식(결론 먼저, 조건·기한·예외는 "- " 항목, 다른 마크다운 금지, D-75). 내용 규칙은 그대로.
-PROMPT_VERSION = "m7-answer-7"
+# m7-answer-8: 근거 문장 끝 인용 표시 [c1-2](D-76), 사용자에게 내부 처리 용어(서버·도구·필드 이름)를 쓰지 않는다.
+# m7-answer-9: 초안 없이 action_pending으로 끝낸 첫 응답에 서버 안내 TICKET_PROMISE_RETRY(D-80).
+# m7-answer-10: 접수 요청은 빠진 정보가 있어도 초안부터 만든다(규칙 14), 내부 처리 말 예시를 초안 기준으로(D-80).
+PROMPT_VERSION = "m7-answer-10"
 
 _CACHE_FIELDS = ("id", "code", "title", "starts_at", "ends_at", "location", "status")
 
@@ -61,6 +64,8 @@ _TEMPLATE = """\
 최종 답변은 JSON으로 낸다(조회가 필요하면 도구 호출이 먼저다):
 - answer: 사용자에게 보여 줄 한국어 문장. 되묻기라면 사용자에게 할 질문이다. 어떤 outcome이든 비워 두지 않는다
 - answer 형식: 첫 한두 문장에 질문에 대한 결론을 쓴다. 덧붙일 조건·금액·기한·예외·절차가 둘 이상이면 빈 줄 하나 뒤에 줄마다 "- "로 시작하는 짧은 항목으로 나눈다(한 항목에 한 가지). 짧은 답은 문장으로만 쓴다. 굵게(**), 제목(#), 표 같은 다른 마크다운 기호는 쓰지 않는다(화면이 그대로 보여 준다)
+- answer 인용 표시: 규정·안내 원문을 근거로 쓴 문장이나 항목 끝에 그 원문의 citation_id를 대괄호로 붙인다(예: "1회 과정 한도는 150만 원입니다 [c1-2]", 여러 개면 [c1-2, c1-3]). 같은 ID를 citation_ids에도 넣는다. 이번 검색 결과에 없던 ID는 쓰지 않는다
+- answer에는 서버·도구·필드 이름 같은 내부 처리 말을 쓰지 않는다(예: "서버에서 비워졌습니다" 대신 "아래 초안의 제목은 화면에서 정해 주세요")
 - outcome: answered / needs_clarification / no_results / insufficient_evidence 중 하나
 - training_ids: 답변에서 언급한 교육의 id 목록(도구 결과나 대화 자료의 id 그대로)
 - selected_training_id: 답변이 교육 하나만 가리키면 그 id, 아니면 null
@@ -99,7 +104,7 @@ _TICKET_ROUTING = """- IT 문제(계정·VPN·기기·소프트웨어)를 접수
 
 _TICKET_RULES = """
 IT 지원 규칙(prepare_it_ticket·list_it_tickets·get_it_ticket):
-14. prepare_it_ticket은 초안(draft)만 만든다. 티켓 등록은 사용자가 화면에서 내용을 확인하고 직접 확인 버튼을 눌러야 된다. "등록했습니다", "접수했습니다"라고 답하지 않는다.
+14. 접수를 요청하면 빠진 정보가 있어도 먼저 prepare_it_ticket으로 초안을 만들고, 빠진 정보는 초안을 만든 뒤 묻는다. prepare_it_ticket은 초안(draft)만 만든다. 티켓 등록은 사용자가 화면에서 내용을 확인하고 직접 확인 버튼을 눌러야 된다. "등록했습니다", "접수했습니다"라고 답하지 않는다.
 15. 초안에는 사용자가 말한 값만 넣는다. 말하지 않은 발생 시각·영향 범위·긴급 여부·자산번호는 비워 둔다(추정 금지). 넣은 필드마다 origin_candidates에 {field, quote}를 넣고, quote는 그 값을 말한 사용자 문장 부분을 고치지 말고 그대로 쓴다. description은 사용자 문장 그대로다. 검색한 문서 내용이나 내 답변을 옮겨 적지 않는다. 비밀번호·인증 코드를 묻거나 받지 않는다.
 16. 초안을 만들면 outcome=action_pending, action_id에 결과의 action_id를 넣는다. answer에는 내용을 확인하고 수정·확인해 달라고 쓴다. 결과의 missing_fields가 있으면 그 정보(예: 장애 발생 날짜와 시각, 긴급 사유)를 물어본다. rejected_fields는 사용자 문장에서 확인하지 못해 서버가 비운 필드다. 같은 값을 다시 넣으려 하지 말고, 필요하면 사용자에게 물어본다.
 17. 답에서 언급한 티켓의 id를 ticket_ids에 넣는다(조회 결과에 있던 값 그대로). 확인·수정·취소는 화면에서만 할 수 있다고 안내한다.
@@ -144,6 +149,13 @@ EMPTY_ANSWER_RETRY = (
 SEARCH_PROMISE_RETRY = (
     "[서버 안내] 앞 응답에서 검색·확인하겠다고 했지만 도구를 부르지 않았습니다. 지금 필요한 도구(규정·절차는 "
     "search_documents)를 부르고 그 결과로 답하세요. 이 안내는 사용자에게 말하지 마세요."
+)
+
+
+# D-80: 접수 초안을 만들지 않고 action_pending으로 끝낸 첫 응답에 붙이는 서버 안내.
+TICKET_PROMISE_RETRY = (
+    "[서버 안내] 앞 응답은 접수 초안 확인을 기다린다고 했지만 prepare_it_ticket을 부르지 않아 초안이 없습니다. "
+    "지금 prepare_it_ticket으로 초안을 만들고, 그 결과의 action_id로 답하세요. 이 안내는 사용자에게 말하지 마세요."
 )
 
 

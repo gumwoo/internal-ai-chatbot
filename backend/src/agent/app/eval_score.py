@@ -19,6 +19,8 @@ from dataclasses import dataclass
 from difflib import SequenceMatcher
 from typing import Any
 
+from agent.shared.citation_markers import strip_markers
+
 _SPACE = re.compile(r"\s+")
 _DATE_FULL = re.compile(r"(\d{4})\s*(?:[.\-/]|년)\s*(\d{1,2})\s*(?:[.\-/]|월)\s*(\d{1,2})\s*일?\.?")
 _DATE_MD = re.compile(r"(\d{1,2})\s*월\s*(\d{1,2})\s*일")
@@ -135,7 +137,8 @@ def score_case(
     """한 문항 한 설정의 규칙 채점. passages: 결과에 나온 passage_id → 본문·쪽(DB에서 읽은 값)."""
     final = result["turns"][-1] if result.get("turns") else {}
     outcome = final.get("outcome")
-    answer = final.get("answer") or ""
+    # D-76 인용 표시([c1-2])는 숫자로 세지 않는다. 표시 없는 옛 결과에는 영향이 없다.
+    answer = strip_markers(final.get("answer") or "")
     error = result.get("error") or final.get("error")
     if not error and final and final.get("status") != 200:
         error = f"http_{final.get('status')}"

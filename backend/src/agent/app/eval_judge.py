@@ -18,6 +18,7 @@ from agent.modules.model_integration.ports import (
     ModelMessage,
     ModelRequest,
 )
+from agent.shared.citation_markers import strip_markers
 from agent.shared.clock import KST
 
 JUDGE_PROMPT_VERSION = "judge-v1"
@@ -69,6 +70,7 @@ def judge_text(case: dict[str, Any], answer: str, cited_quotes: list[str], gold_
             return ["(없음)"]
         return [f"{i}. {x}" if numbered else f"- {x}" for i, x in enumerate(items, 1)]
 
+    answer = strip_markers(answer)  # D-76 인용 표시는 판정 입력에서 뺀다(표시 없는 옛 답은 그대로)
     lines = [f"질문: {' / '.join(case['turns'])}", "", "[답변]", answer or "(빈 답변)", ""]
     lines += ["[gold 사실]", *listed(case["required_facts"], True), ""]
     lines += ["[gold 예외·조건]", *listed(case.get("required_exceptions") or [], True), ""]

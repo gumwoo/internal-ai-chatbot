@@ -10,6 +10,7 @@
 | MOD-01 | conversations | owner, 생성 시 서버 검색 전략, active_run, schema v2 업무 상태 |
 | MOD-01 | messages | conversation, role, 본문·outcome, 자원 dependency IDs(교육 ID·`doc:문서키`), citations(서버 인용 DTO)/action refs |
 | MOD-01 | message_receipts | actor+conversation+key 유일, content hash, user_message/run ID; 대화 보존 기간 유지 |
+| MOD-01 | message_feedback | (message_id, user_id) 유일, rating(helpful/not_helpful), reason(닫힌 값, not_helpful일 때만), comment(≤500자), created/updated_at. 답 메시지에만(D-77, 마이그레이션 0010) |
 | MOD-01 | tool_result_receipts | run/ordinal/resource ID/starts_at/hash, 교육 API 실제 결과 및 선택 user 메시지; CP-07 읽기 |
 | MOD-01 | agent_runs/tool_calls | request/run, accepted_at/deadline_at, 고정 snapshot/config, running/completed/failed/expired·usage·오류·ordinal/attempt |
 | MOD-04 | trainings | UUID/code, title/description, starts/ends, location/status |

@@ -958,3 +958,42 @@ async def test_cp06_and_cp07_reject_wrong_runs_drafts_and_assistant_text(org, mi
         await eligibility.adopted("emp-sales", conversation, second_run, str(uuid.uuid4())) is False
     )  # 다른 draft
     assert await eligibility.check_prepare("emp-sales", conversation, second_run) is False  # 이미 completed
+
+
+# --- D-80: 초안 없이 action_pending으로 끝난 첫 답 재호출 ---
+
+
+def scripted_app(migrated, model):
+    return create_app(
+        make_settings(database_url=migrated, allowed_origins=ORIGIN),
+        current_actor=Switch(SALES),
+        clock=FixedClock(),
+        chat_model=model,
+        embedding_model=FakeModelClient(),
+    )
+
+
+async def test_pending_without_prepare_is_retried_once_with_tool_forced(org, migrated):
+    # 2026-10-21 개발 DB 실제 실패 재현: 도구 없이 "접수 초안을 만들었어요" + action_pending, action_id 없음.
+    promise = final("접수 초안을 만들었어요. 확인해 주세요.", "action_pending")
+    model = Scripted([promise, tool("prepare_it_ticket", VPN_ARGS), adopt])
+    async with api_client(scripted_app(migrated, model)) as client:
+        _, response = await ask(client, VPN_MESSAGE)
+    body = response.json()
+    assert response.status_code == 200, body
+    assert body["outcome"] == "action_pending" and body["action_preview"]["status"] == "draft"
+    retry = model.requests[1]
+    assert retry.tool_choice == "any" and "prepare_it_ticket을 부르지 않아" in (retry.messages[-1].text or "")
+    async with org.connect() as conn:
+        usage = await conn.scalar(text("SELECT usage FROM agent_runs"))
+    assert usage["ticket_promise_retries"] == 1 and usage["search_promise_retries"] == 0
+
+
+async def test_pending_retry_that_still_skips_prepare_fails_as_before(org, migrated):
+    model = Scripted(
+        [final("접수 초안을 만들었어요.", "action_pending"), final("다시 확인해 주세요.", "action_pending")]
+    )
+    async with api_client(scripted_app(migrated, model)) as client:
+        _, response = await ask(client, VPN_MESSAGE)
+    assert (response.status_code, response.json()["error"]["code"]) == (502, "MODEL_OUTPUT_INVALID")
+    assert len(model.requests) == 2  # 한 번만 다시 부른다

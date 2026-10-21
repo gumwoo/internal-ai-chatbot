@@ -54,6 +54,25 @@ class Paging(BaseModel):
     offset: int = Field(default=0, ge=0)
 
 
+class ConversationQuery(Paging):
+    # D-78: 대화 이름(정한 제목, 없으면 첫 질문) 부분 일치 검색.
+    q: str | None = Field(default=None, min_length=1, max_length=100)
+
+    _check_q = field_validator("q")(_no_nul)
+
+
+class PutFeedback(BaseModel):
+    """D-77 답변 피드백. rating=helpful|not_helpful, reason은 not_helpful일 때만 의미가 있다."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    rating: str = Field(pattern="^(helpful|not_helpful)$")
+    reason: str | None = Field(default=None, pattern="^(wrong_source|missing_source|wrong_answer|other)$")
+    comment: str | None = Field(default=None, min_length=1, max_length=500)
+
+    _check_comment = field_validator("comment")(_no_nul)
+
+
 def _json(body: dict, status_code: int = 200) -> JSONResponse:
     return JSONResponse(body, status_code=status_code, headers=_NO_STORE)
 
@@ -68,9 +87,10 @@ async def create_conversation(
 
 @router.get("/conversations")
 async def list_conversations(
-    request: Request, actor: Actor, paging: Annotated[Paging, Query()]
+    request: Request, actor: Actor, paging: Annotated[ConversationQuery, Query()]
 ) -> JSONResponse:
-    return _json(await request.app.state.conversations.list_conversations(actor, paging.limit, paging.offset))
+    service = request.app.state.conversations
+    return _json(await service.list_conversations(actor, paging.limit, paging.offset, paging.q))
 
 
 @router.get("/conversations/{conversation_id}")
@@ -84,6 +104,17 @@ async def list_messages(
 ) -> JSONResponse:
     service = request.app.state.conversations
     return _json(await service.list_messages(actor, conversation_id, paging.limit, paging.offset))
+
+
+@router.put("/conversations/{conversation_id}/messages/{message_id}/feedback")
+async def put_feedback(
+    request: Request, actor: Actor, conversation_id: UUID, message_id: UUID, body: PutFeedback
+) -> JSONResponse:
+    service = request.app.state.conversations
+    saved = await service.put_feedback(
+        actor, conversation_id, message_id, body.rating, body.reason, body.comment
+    )
+    return _json(saved)
 
 
 @router.post("/conversations/{conversation_id}/messages")

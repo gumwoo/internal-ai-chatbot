@@ -517,3 +517,73 @@ async def test_untitled_conversation_is_listed_by_first_question(seeded_engine, 
     expected = " ".join(question.split())[:40].rstrip() + "…"
     assert items[untitled["id"]]["title"] == expected == fetched["title"]
     assert items[titled]["title"] == "테스트"  # 정한 제목은 그대로
+
+
+async def _feedback(client, conv, message_id, body):
+    return await client.put(
+        f"/api/v1/conversations/{conv}/messages/{message_id}/feedback", json=body, headers={"Origin": ORIGIN}
+    )
+
+
+async def test_feedback_is_one_per_answer_and_shown_in_history(seeded_engine, migrated):
+    # D-77: 답·사용자마다 하나, 다시 보내면 덮어쓴다. 좋음이면 사유는 저장하지 않는다.
+    model = FakeModelClient(NEXT_WEEK)
+    async with api_client(_app(migrated, model)) as client:
+        conv = await _new_conversation(client)
+        answer_id = (await _post(client, conv, "다음 주 교육 알려줘")).json()["message_id"]
+        bad = {"rating": "not_helpful", "reason": "wrong_source", "comment": "다른 규정을 봤어요"}
+        first = await _feedback(client, conv, answer_id, bad)
+        listed = (await client.get(f"/api/v1/conversations/{conv}/messages")).json()["items"]
+        again = await _feedback(client, conv, answer_id, {"rating": "helpful", "reason": "wrong_answer"})
+        relisted = (await client.get(f"/api/v1/conversations/{conv}/messages")).json()["items"]
+        question_id = listed[0]["id"]
+        on_question = await _feedback(client, conv, question_id, {"rating": "helpful"})
+        invalid = [
+            await _feedback(client, conv, answer_id, body)
+            for body in ({"rating": "great"}, {"rating": "not_helpful", "comment": "가" * 501}, {})
+        ]
+    assert first.status_code == 200 and first.json()["reason"] == "wrong_source"
+    assert [m["feedback"] for m in listed] == [None, {"rating": "not_helpful", "reason": "wrong_source"}]
+    assert again.json()["reason"] is None
+    assert relisted[1]["feedback"] == {"rating": "helpful", "reason": None}
+    assert on_question.status_code == 404  # 질문에는 남길 수 없다
+    assert [r.status_code for r in invalid] == [422, 422, 422]
+    rows = await _scalar(seeded_engine, "SELECT count(*) FROM message_feedback")
+    assert rows == 1
+
+
+async def test_feedback_on_other_users_answer_is_same_404(seeded_engine, migrated):
+    model = FakeModelClient(NEXT_WEEK)
+    async with api_client(_app(migrated, model)) as owner:
+        conv = await _new_conversation(owner)
+        answer_id = (await _post(owner, conv, "다음 주 교육 알려줘")).json()["message_id"]
+    async with api_client(_app(migrated, model, actor_id="test-b")) as other:
+        response = await _feedback(other, conv, answer_id, {"rating": "helpful"})
+        missing = await _feedback(other, conv, uuid.uuid4(), {"rating": "helpful"})
+    assert response.status_code == 404 and response.json()["error"]["code"] == "CONVERSATION_NOT_FOUND"
+    assert missing.json()["error"]["code"] == "CONVERSATION_NOT_FOUND"
+
+
+async def test_conversation_search_matches_shown_name_literally(seeded_engine, migrated):
+    # D-78: 정한 제목, 없으면 첫 질문으로 찾는다. %·_는 와일드카드가 아니라 글자다.
+    model = FakeModelClient(NEXT_WEEK * 2)
+    async with api_client(_app(migrated, model)) as client:
+
+        async def create(title=None):
+            body = {"title": title} if title else None
+            response = await client.post("/api/v1/conversations", json=body, headers={"Origin": ORIGIN})
+            return response.json()["id"]
+
+        titled = await create("100% 환급 문의")
+        await create("1000원 환급")
+        untitled = await create()
+        await _post(client, untitled, "VPN 접속이 안 돼요")
+
+        async def ids(q):
+            response = await client.get("/api/v1/conversations", params={"q": q})
+            return response.status_code, [c["id"] for c in response.json().get("items", [])]
+
+        vpn, percent, blank = await ids("vpn"), await ids("0%"), await ids("")
+    assert vpn == (200, [untitled])  # 대소문자 무시, 첫 질문으로 찾는다
+    assert percent == (200, [titled])  # "0%"는 "1000원"에 걸리지 않는다
+    assert blank[0] == 422

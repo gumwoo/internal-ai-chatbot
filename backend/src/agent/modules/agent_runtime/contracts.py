@@ -97,6 +97,8 @@ class RunUsage:
     empty_answer_retries: int = 0
     # D-68: 첫 응답이 검색·확인을 약속만 하고 도구를 부르지 않아 서버가 다시 부른 횟수(0 또는 1).
     search_promise_retries: int = 0
+    # D-80: 첫 응답이 접수 초안 없이 action_pending으로 끝나 서버가 다시 부른 횟수(0 또는 1).
+    ticket_promise_retries: int = 0
 
 
 @dataclass(frozen=True)

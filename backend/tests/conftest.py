@@ -110,7 +110,7 @@ async def seeded_engine(migrated: str) -> AsyncIterator[AsyncEngine]:
         await conn.execute(
             text(
                 "TRUNCATE trainings, training_fixture_loads, tool_result_receipts, tool_calls,"
-                " message_receipts, messages, agent_runs, conversations,"
+                " message_feedback, message_receipts, messages, agent_runs, conversations,"
                 " auth_sessions, membership_audit, user_roles, user_departments, users,"
                 " role_capabilities, roles, departments,"
                 " corpus_pointer, snapshot_members, corpus_snapshots, chunk_embeddings, chunks,"

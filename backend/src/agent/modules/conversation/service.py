@@ -20,6 +20,7 @@ from typing import Any, Protocol
 from uuid import UUID
 
 from sqlalchemy import func, select, update
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
@@ -34,6 +35,7 @@ from agent.modules.conversation.records import DbExecutionObserver, verified_cac
 from agent.modules.conversation.tables import (
     agent_runs,
     conversations,
+    message_feedback,
     message_receipts,
     messages,
     tool_calls,
@@ -100,6 +102,14 @@ class _Accepted:
 
 
 _TITLE_CHARS = 40
+FEEDBACK_RATINGS = ("helpful", "not_helpful")
+FEEDBACK_REASONS = ("wrong_source", "missing_source", "wrong_answer", "other")
+
+
+def _like(text_: str) -> str:
+    """ILIKE 부분 일치 패턴. 사용자가 넣은 %·_·\\는 글자 그대로 찾는다."""
+    escaped = text_.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
 
 
 def _first_question():
@@ -240,10 +250,16 @@ class ConversationService:
             await conn.execute(conversations.insert().values(row))
         return {"id": str(row["id"]), "title": title, "created_at": _iso(now)}
 
-    async def list_conversations(self, actor: ActorContext, limit: int, offset: int) -> dict[str, Any]:
+    async def list_conversations(
+        self, actor: ActorContext, limit: int, offset: int, query: str | None = None
+    ) -> dict[str, Any]:
         # 목록의 active_run_id가 이미 만료된 run을 가리키지 않도록 먼저 회수한다.
         await self.recover_expired()
         owned = conversations.c.owner_user_id == actor.user_id
+        if query:
+            # D-78: 화면에 보이는 이름(정한 제목, 없으면 첫 질문)으로 찾는다.
+            shown = func.coalesce(conversations.c.title, _first_question())
+            owned = owned & shown.ilike(_like(query), escape="\\")
         async with self._read() as conn:
             total = await conn.scalar(select(func.count()).select_from(conversations).where(owned))
             rows = (
@@ -288,6 +304,53 @@ class ConversationService:
             "active_run_id": str(row.active_run_id) if row.active_run_id else None,
         }
 
+    async def put_feedback(
+        self,
+        actor: ActorContext,
+        conversation_id: UUID,
+        message_id: UUID,
+        rating: str,
+        reason: str | None,
+        comment: str | None,
+    ) -> dict[str, Any]:
+        """D-77: 자기 대화의 답에 피드백을 남긴다(답·사용자마다 하나, 다시 보내면 덮어쓴다).
+
+        지금 권한으로 가려지는 답에는 남길 수 없다(다른 답과 같은 404). 좋음이면 사유는 저장하지 않는다.
+        """
+        if rating not in FEEDBACK_RATINGS or (reason is not None and reason not in FEEDBACK_REASONS):
+            raise AppError(ErrorCode.INVALID_REQUEST, details={"field_names": ["rating", "reason"]})
+        async with self._read() as conn:
+            await self._owned(conn, actor, conversation_id)
+            row = (
+                await conn.execute(
+                    select(messages).where(
+                        messages.c.id == message_id, messages.c.conversation_id == conversation_id
+                    )
+                )
+            ).first()
+        if row is None or row.role != "assistant":
+            raise AppError(ErrorCode.RESOURCE_NOT_FOUND)
+        visible_docs = await self._visible_docs(actor, [row])
+        visible_tickets = await self._visible_tickets(actor, [row])
+        if not _can_view(actor, row, visible_docs, visible_tickets):
+            raise AppError(ErrorCode.RESOURCE_NOT_FOUND)
+        reason = None if rating == "helpful" else reason
+        now = self._clock.now()
+        values = {"rating": rating, "reason": reason, "comment": comment, "updated_at": now}
+        async with self._write() as conn:
+            await conn.execute(
+                insert(message_feedback)
+                .values(message_id=message_id, user_id=actor.user_id, created_at=now, **values)
+                .on_conflict_do_update(index_elements=["message_id", "user_id"], set_=values)
+            )
+        return {
+            "message_id": str(message_id),
+            "rating": rating,
+            "reason": reason,
+            "comment": comment,
+            "updated_at": _iso(now),
+        }
+
     async def list_messages(
         self, actor: ActorContext, conversation_id: UUID, limit: int, offset: int
     ) -> dict[str, Any]:
@@ -300,6 +363,12 @@ class ConversationService:
                     select(messages).where(where).order_by(messages.c.seq).limit(limit).offset(offset)
                 )
             ).all()
+            ids = [r.id for r in rows if r.role == "assistant"]
+            query = select(message_feedback).where(
+                message_feedback.c.message_id.in_(ids), message_feedback.c.user_id == actor.user_id
+            )
+            found = (await conn.execute(query)).all() if ids else []
+            feedback = {f.message_id: {"rating": f.rating, "reason": f.reason} for f in found}
         items = []
         assistants = [r for r in rows if r.role == "assistant"]
         visible_docs = await self._visible_docs(actor, assistants)
@@ -320,6 +389,8 @@ class ConversationService:
                     "action_preview": r.action_preview if visible else None,
                     "run_id": str(r.run_id) if r.run_id else None,
                     "created_at": _iso(r.created_at),
+                    # D-77: 지금 사용자가 이 답에 남긴 피드백(가린 답·질문에는 없음).
+                    "feedback": feedback.get(r.id) if visible and r.role == "assistant" else None,
                 }
             )
         total = int(total or 0)
@@ -955,4 +1026,5 @@ def _usage(result: ExecutionResult) -> dict[str, Any]:
         "model_attempts": usage.model_attempts,
         "empty_answer_retries": usage.empty_answer_retries,
         "search_promise_retries": usage.search_promise_retries,
+        "ticket_promise_retries": usage.ticket_promise_retries,
     }

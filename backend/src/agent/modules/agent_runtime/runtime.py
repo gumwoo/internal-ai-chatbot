@@ -32,6 +32,7 @@ from agent.modules.agent_runtime.prompt import (
     EMPTY_ANSWER_RETRY,
     PROMPT_VERSION,
     SEARCH_PROMISE_RETRY,
+    TICKET_PROMISE_RETRY,
     conversation_data,
     neutralize,
     system_prompt,
@@ -49,6 +50,7 @@ from agent.modules.model_integration.ports import (
     Usage,
 )
 from agent.modules.tool_execution.executor import ToolExecutor
+from agent.shared.citation_markers import keep_markers, marker_ids, strip_markers
 from agent.shared.clock import KST, Clock
 from agent.shared.contracts import (
     ConversationEvidenceReader,
@@ -103,6 +105,7 @@ class _Run:
     model_attempts: int = 0
     empty_answer_retries: int = 0
     search_promise_retries: int = 0
+    ticket_promise_retries: int = 0
     # M5: 이번 run에서 조회한 티켓(답의 의존 자원)과 준비한 root draft 미리보기(action_id → preview).
     ticket_refs: dict[str, dict[str, Any]] = field(default_factory=dict)
     prepared: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -158,6 +161,7 @@ class _Run:
             self.model_attempts,
             self.empty_answer_retries,
             self.search_promise_retries,
+            self.ticket_promise_retries,
         )
 
     def allowed_trainings(self) -> dict[str, dict[str, Any]]:
@@ -365,8 +369,9 @@ class AgentRuntime:
         run.message = message
         history = _visible_history(run)
         # 이력의 사용자 메시지도 서버 표시 문자열을 무력화한다(현재 턴과 같은 규칙).
+        # 지난 답의 인용 표시는 지난 실행의 ID라 모델에 보내지 않는다(D-76).
         messages = [
-            ModelMessage(role=m.role, text=neutralize(m.text) if m.role == "user" else m.text)
+            ModelMessage(role=m.role, text=neutralize(m.text) if m.role == "user" else strip_markers(m.text))
             for m in history
         ]
         snapshot = run.snapshot
@@ -415,7 +420,13 @@ class AgentRuntime:
                 tool_choice = "any"  # D-41: 다시 부를 때는 도구 호출을 강제한다(P-16 C의 일부)
                 continue
             if not response.wants_tools and self._search_promise(run, response, tools):
-                return await self._retry_search_promise(run, messages, tools, system, response)
+                run.search_promise_retries += 1
+                logger.info("검색 약속 첫 답 재호출 run_id=%s", run.context.run_id)
+                return await self._retry_promise(run, messages, tools, system, response, SEARCH_PROMISE_RETRY)
+            if not response.wants_tools and self._ticket_promise(run, response, tools):
+                run.ticket_promise_retries += 1
+                logger.info("접수 약속 첫 답 재호출 run_id=%s", run.context.run_id)
+                return await self._retry_promise(run, messages, tools, system, response, TICKET_PROMISE_RETRY)
             if not response.wants_tools:
                 return await self._finish(run, response)
             results: list[ToolResultContent] = []
@@ -470,28 +481,48 @@ class AgentRuntime:
             and self._remaining(run.context) > _PROMISE_RESERVE_S + 1
         )
 
-    async def _retry_search_promise(
-        self, run: _Run, messages: list[ModelMessage], tools, system: str, first: ModelResponse
+    def _ticket_promise(self, run: _Run, response: ModelResponse, tools) -> bool:
+        """D-80: 도구를 부르지 않은 첫 응답이 초안 없이 action_pending으로 끝났고, 다시 부를 여유가 있는가.
+
+        이 응답은 그대로 두면 _finish에서 무효 출력(action_pending without action id)으로 실패한다.
+        D-68과 같은 조건(첫 응답, 도구 미호출, 빈 답 재호출 뒤 아님, 시도·시간 여유)과 접수 도구가 필요하다.
+        """
+        policy = run.context.policy
+        if run.tool_proposals or run.empty_answer_retries:
+            return False
+        if not any(tool.name == "prepare_it_ticket" for tool in tools):
+            return False
+        candidate = response.final_candidate
+        if not isinstance(candidate, dict):
+            return False
+        if candidate.get("outcome") != Outcome.ACTION_PENDING.value or candidate.get("action_id") is not None:
+            return False
+        return (
+            run.model_attempts < policy.max_model_attempts
+            and self._remaining(run.context) > _PROMISE_RESERVE_S + 1
+        )
+
+    async def _retry_promise(
+        self, run: _Run, messages: list[ModelMessage], tools, system: str, first: ModelResponse, notice: str
     ) -> ExecutionResult:
-        """D-68: 약속한 첫 응답과 서버 안내를 붙여 도구를 강제해 다시 부르고, 그 뒤 흐름을 이어 간다.
+        """D-68·D-80: 약속한 첫 응답과 서버 안내를 붙여 도구를 강제해 다시 부르고, 그 뒤 흐름을 이어 간다.
 
         재호출 경로가 모델·출력·실행 시간 오류로 끝나면(필수 기록 실패는 제외) 받아 둔 첫 응답으로 끝낸다
         (D-65는 재호출 실패 때 받아 둔 답을 버렸다). 첫 응답으로 끝낼 시간을 남기려고 재호출 경로는
-        실행 기한보다 _PROMISE_RESERVE_S 먼저 끊는다.
+        실행 기한보다 _PROMISE_RESERVE_S 먼저 끊는다. D-80의 첫 응답은 초안이 없으므로 그대로 끝나면
+        지금처럼 무효 출력으로 실패한다.
         """
-        run.search_promise_retries += 1
-        logger.info("검색 약속 첫 답 재호출 run_id=%s", run.context.run_id)
         retry_messages = [
             *messages,
             first.as_assistant_message(),
-            ModelMessage(role="user", text=SEARCH_PROMISE_RETRY),
+            ModelMessage(role="user", text=notice),
         ]
         try:
             async with asyncio.timeout(self._remaining(run.context) - _PROMISE_RESERVE_S):
                 return await self._drive(run, retry_messages, tools, system, "any", fallback=first)
         except (TimeoutError, AppError) as exc:
             code = exc.code if isinstance(exc, AppError) else ErrorCode.RUN_TIMEOUT
-            logger.info("검색 약속 재호출 경로 실패, 첫 답 유지 run_id=%s code=%s", run.context.run_id, code)
+            logger.info("약속 재호출 경로 실패, 첫 답 유지 run_id=%s code=%s", run.context.run_id, code)
             return await self._finish(run, first)
 
     async def _call_model(
@@ -634,6 +665,11 @@ class AgentRuntime:
         if unknown_citations:
             # 이번 실행 문맥에 없던 인용 ID는 지어낸 것으로 보고 실패시킨다(T-07).
             raise _output_invalid(run, f"{len(unknown_citations)} citation id(s) not in ledger")
+        # D-76: 본문 인용 표시 중 원장에 있는 ID는 목록에 빠졌어도 인용으로 인정한다(원장 밖 표시는 지운다).
+        marked = marker_ids(final.answer)
+        citation_ids = list(dict.fromkeys([*citation_ids, *(c for c in marked if c in run.citations)]))
+        if any(c not in run.citations for c in marked):
+            logger.info("원장 밖 인용 표시 삭제 run_id=%s", run.context.run_id)
         if final.outcome in (Outcome.NEEDS_CLARIFICATION, Outcome.NO_RESULTS):
             citation_ids = []
         if final.outcome in (Outcome.NEEDS_CLARIFICATION, Outcome.NO_RESULTS) and selected is not None:
@@ -651,6 +687,9 @@ class AgentRuntime:
         if mapped is not None:
             logger.info("결론 서버 매핑 run_id=%s %s->%s", run.context.run_id, outcome.value, mapped[0].value)
             (outcome, answer), answer_source = mapped, "server_mapping"
+        # 화면에 내보낼 인용과 맞는 표시만 남긴다(되묻기·0건 답이면 표시가 모두 빠진다).
+        cited = set(citation_ids)
+        answer = keep_markers(answer, lambda c: c in cited)
 
         return ExecutionResult(
             status="completed",

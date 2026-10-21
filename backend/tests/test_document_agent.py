@@ -1356,3 +1356,35 @@ async def test_budget_dropped_search_abstains_even_with_other_citations(publishe
     old, table = model.tool_payloads()
     assert old["data"]["groups"] and table["data"]["groups"] == []
     assert response.json()["outcome"] == "insufficient_evidence"
+
+
+# --- D-76: 답 본문 인용 표시 ---
+
+
+async def test_inline_markers_keep_only_ledger_ids_and_add_missing_citations(published, migrated):
+    answer = "종전 기준 한도입니다 [c1-1]. 확인하지 않은 기준 [c9-9]. 함께 보세요 [c1-1, c7-7]"
+    model = FakeModelClient([tool_turn(SEARCH_OLD), final(answer, citations=[])])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "9월 29일에 시작한 외부교육 한도는?")
+    body = response.json()
+    assert response.status_code == 200, body
+    # 원장에 있는 표시는 인용 목록에 빠졌어도 인용으로 들어가고, 원장 밖 표시는 실패 대신 지운다.
+    assert body["answer"] == "종전 기준 한도입니다 [c1-1]. 확인하지 않은 기준. 함께 보세요 [c1-1]"
+    assert [c["citation_id"] for c in body["citations"]] == ["c1-1"]
+
+
+async def test_clarification_drops_markers_and_history_hides_them_from_model(published, migrated):
+    model = Capturing(
+        [
+            tool_turn(SEARCH_OLD),
+            final("종전 기준입니다 [c1-1]", citations=["c1-1"]),
+            final("어느 날짜인가요? [c1-1]", outcome="needs_clarification"),
+        ]
+    )
+    async with api_client(_app(migrated, model)) as client:
+        conv, first = await _ask(client, "9월 29일에 시작한 외부교육 한도는?")
+        _, second = await _ask(client, "그럼 출장비는요?", conv)
+    assert first.json()["answer"] == "종전 기준입니다 [c1-1]"
+    assert second.json()["answer"] == "어느 날짜인가요?"  # 되묻기에는 인용을 내지 않는다
+    history = [m.text for m in model.requests[-1].messages if m.role == "assistant"]
+    assert history == ["종전 기준입니다"]  # 지난 실행의 인용 ID는 모델에 보내지 않는다

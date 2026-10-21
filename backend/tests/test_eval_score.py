@@ -256,3 +256,12 @@ def test_citing_a_separate_group_hard_negative_is_wrong_even_with_correct_number
     mixed = score(result("raw", GOOD, ["p-old", "p-new"], ["p-old", "p-new"], ["p-old", "p-new"]))
     assert mixed["number_recall"] == 1.0 and not mixed["forbidden_number_hit"]
     assert mixed["hard_negative_cited"] and not mixed["rule_correct"]
+
+
+def test_inline_citation_markers_are_not_scored_as_numbers():
+    # D-76: 답 본문의 인용 표시는 숫자 사실로 세지 않는다(지우지 않으면 [c3-21]의 21이 금지 숫자로 걸린다).
+    case = {**CASE, "forbidden_claims": ["신청은 21일 전까지"]}
+    scored = score_case(
+        case, result("raw", f"{GOOD} [c3-21]", ["p-old"], ["p-old"], ["p-old"]), PASSAGES, SOURCES
+    )
+    assert not scored["forbidden_number_hit"] and scored["rule_correct"]

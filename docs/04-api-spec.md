@@ -38,9 +38,10 @@
 | Method·경로 | 입력 | 반환 |
 |---|---|---|
 | POST `/conversations` | title?(1~100자) | 201 id/title/created_at, 검색 전략은 서버 설정 |
-| GET `/conversations` | limit1~50=20, offset>=0 | 200 items/total/limit/offset/has_more, 본인만. 제목이 없으면 title은 첫 사용자 질문(공백 정리, 40자 넘으면 자르고 …), 질문도 없으면 null |
+| GET `/conversations` | limit1~50=20, offset>=0, q?(1~100자, D-78) | 200 items/total/limit/offset/has_more, 본인만. 제목이 없으면 title은 첫 사용자 질문(공백 정리, 40자 넘으면 자르고 …), 질문도 없으면 null. q가 있으면 그 이름(정한 제목, 없으면 첫 질문)에 대소문자 무시 부분 일치하는 대화만(%·_는 글자 그대로) |
 | GET `/conversations/{id}` | 소유 ID | 200 표시 정보(title은 목록과 같은 규칙)·active_run_id |
-| GET `/conversations/{id}/messages` | limit1~50=20, offset>=0 | 200 items/total/limit/offset/has_more, 현재 권한 재검증 후 가림 |
+| GET `/conversations/{id}/messages` | limit1~50=20, offset>=0 | 200 items/total/limit/offset/has_more, 현재 권한 재검증 후 가림. 답(assistant) 항목의 `feedback`은 지금 사용자가 남긴 `{rating, reason}` 또는 null(질문·가린 답은 null, D-77) |
+| PUT `/conversations/{id}/messages/{message_id}/feedback` | rating(helpful/not_helpful), reason?(wrong_source/missing_source/wrong_answer/other), comment?(1~500자) | 200 message_id/rating/reason/comment/updated_at. 답·사용자마다 하나, 다시 보내면 덮어쓴다. helpful이면 reason은 저장하지 않는다. 남의 대화·없는 대화 404 CONVERSATION_NOT_FOUND, 질문·다른 대화의 메시지·지금 권한으로 가려지는 답 404 RESOURCE_NOT_FOUND, 값 오류 422(D-77) |
 | POST `/conversations/{id}/messages` | content(1~4000자, 공백만이면 422(D-44)), UUID Idempotency-Key header | 최초 동기 완료200, 동일 요청 실행 중 replay202, 유효한 다른 실행 중409 |
 | GET `/runs/{id}` | 본인 run ID | 만료 회수·현재 가시성 재검증 후200 상태·outcome·시간·usage·도구 안전 요약 |
 
