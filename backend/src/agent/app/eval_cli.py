@@ -25,7 +25,7 @@ FREEZE = RESULTS_DIR / "freeze.json"
 FULL_CONTEXT_BUDGET = 150_000  # D-50
 # 동결 예산으로만 실행하는 split
 HELD_OUT = frozenset(
-    {"holdout", "holdout2", "holdout3", "holdout4", "holdout5", "holdout6", "holdout7", "all"}
+    {"holdout", "holdout2", "holdout3", "holdout4", "holdout5", "holdout6", "holdout7", "holdout8", "all"}
 )
 # judge 출력 상한. gemini-3.8-flash는 사고(thinking) token도 이 상한에 넣어
 # 1024이면 긴 판정의 JSON이 잘렸다(D-59).
@@ -66,6 +66,7 @@ def _cases(split: str) -> list[dict[str, Any]]:
     # holdout5: D-71~D-80과 인젝션 방어(D-82)의 효과를 재는 새 검증셋(D-81)
     # holdout6: 마감일 기준일 짝·판본별 두 갈래 결론·기한마다 검색(D-83)의 효과를 재는 새 검증셋(D-84)
     # holdout7: 판본별 재호출·사건 기준 없는 규정의 판본 나누기·마감일 인용(D-86)을 여러 번 재는 셋(D-87)
+    # holdout8: 이어지는 턴의 검색 재호출(D-88)을 여러 번 재는 셋(D-89)
     if split == "all":
         names = [
             n
@@ -78,6 +79,7 @@ def _cases(split: str) -> list[dict[str, Any]]:
                 "holdout5",
                 "holdout6",
                 "holdout7",
+                "holdout8",
             )
             if (CASES_DIR / f"{n}.jsonl").exists()
         ]
@@ -418,6 +420,7 @@ def register(sub) -> dict[str, Any]:
             "holdout5",
             "holdout6",
             "holdout7",
+            "holdout8",
             "all",
         ],
         default="dev",
