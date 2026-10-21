@@ -1506,3 +1506,49 @@ async def test_asking_which_training_is_not_retried(published, migrated):
     async with api_client(_app(migrated, model)) as client:
         _, response = await _ask(client, "그 교육 한도는?")
     assert len(model.requests) == 1 and response.json()["outcome"] == "needs_clarification"
+
+
+async def test_followup_rule_answer_without_search_is_retried_once_with_search_forced(published, migrated):
+    """D-88: 이어지는 턴의 규정 질문을 검색 없이 지난 답으로 답하면 검색을 강제해 한 번 다시 부른다."""
+    engine, _, _ = published
+    search = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "current"})
+    from_memory = final("앞서 말씀드린 기준대로 한도는 150만 원이고 사전 승인이 필요합니다.")
+    model = Capturing(
+        [
+            tool_turn(search),
+            final("한도 답 [c1-1]."),
+            from_memory,
+            tool_turn(search),
+            final("한도 답 [c1-1]."),
+        ]
+    )
+    async with api_client(_app(migrated, model)) as client:
+        conv, _ = await _ask(client, "외부교육 한도가 어떻게 돼?")
+        _, second = await _ask(client, "그럼 사전 승인은 누구한테 받아야 하나요?", conversation=conv)
+    retry = model.requests[3]
+    assert retry.tool_choice == "any" and (retry.messages[-1].text or "").startswith(
+        "[서버 안내] 지난 답의 내용은"
+    )
+    body = second.json()
+    assert body["outcome"] == "answered" and body["citations"]
+    retries = await _scalar(
+        engine, "SELECT max(COALESCE((usage->>'followup_search_retries')::int, 0)) FROM agent_runs"
+    )
+    assert retries == 1
+
+
+async def test_followup_thanks_or_summary_is_not_retried(published, migrated):
+    search = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "current"})
+    model = Capturing(
+        [
+            tool_turn(search),
+            final("한도 답 [c1-1]."),
+            final("천만에요. 한도 기준은 앞서 말씀드린 대로입니다."),
+            final("요약하면 한도 기준은 앞의 답과 같습니다."),
+        ]
+    )
+    async with api_client(_app(migrated, model)) as client:
+        conv, _ = await _ask(client, "외부교육 한도가 어떻게 돼?")
+        await _ask(client, "고마워요!", conversation=conv)
+        await _ask(client, "방금 답 요약해 줘", conversation=conv)
+    assert len(model.requests) == 4

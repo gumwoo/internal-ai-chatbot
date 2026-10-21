@@ -1030,4 +1030,5 @@ def _usage(result: ExecutionResult) -> dict[str, Any]:
         "edition_split_retries": usage.edition_split_retries,
         "deadline_citations_added": usage.deadline_citations_added,
         "date_ask_retries": usage.date_ask_retries,
+        "followup_search_retries": usage.followup_search_retries,
     }

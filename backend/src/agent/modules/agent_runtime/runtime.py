@@ -28,11 +28,17 @@ from agent.modules.agent_runtime.contracts import (
 )
 from agent.modules.agent_runtime.dates import assume_today_check, deadline_bases, verify_event_date
 from agent.modules.agent_runtime.deadlines import deadline_hints
-from agent.modules.agent_runtime.promises import asks_for_date, promises_lookup
+from agent.modules.agent_runtime.promises import (
+    asks_for_date,
+    discusses_rules,
+    promises_lookup,
+    rule_question,
+)
 from agent.modules.agent_runtime.prompt import (
     DATE_ASK_RETRY,
     EDITION_SPLIT_RETRY,
     EMPTY_ANSWER_RETRY,
+    FOLLOWUP_SEARCH_RETRY,
     PROMPT_VERSION,
     SEARCH_PROMISE_RETRY,
     TICKET_PROMISE_RETRY,
@@ -112,6 +118,7 @@ class _Run:
     edition_split_retries: int = 0
     deadline_citations_added: int = 0
     date_ask_retries: int = 0
+    followup_search_retries: int = 0
     # D-86: 이번 실행 계산표의 (기한 문장 citation_id, 계산한 마감일들). 답에 쓴 마감일의 근거를 붙인다.
     deadline_rules: list[tuple[str, tuple[str, ...]]] = field(default_factory=list)
     # D-82: 이번 실행의 시스템 지침과 도구 결과에서 지시문으로 보고 가린 문장(출력 차단 판정용).
@@ -177,6 +184,7 @@ class _Run:
             self.edition_split_retries,
             self.deadline_citations_added,
             self.date_ask_retries,
+            self.followup_search_retries,
         )
 
     def allowed_trainings(self) -> dict[str, dict[str, Any]]:
@@ -460,6 +468,12 @@ class AgentRuntime:
                 run.date_ask_retries += 1
                 logger.info("검색 없는 날짜 되묻기 재호출 run_id=%s", run.context.run_id)
                 return await self._retry_promise(run, messages, tools, system, response, DATE_ASK_RETRY)
+            if not response.wants_tools and self._followup_unsearched(run, response, tools):
+                run.followup_search_retries += 1
+                logger.info("이어진 질문 검색 없는 답 재호출 run_id=%s", run.context.run_id)
+                return await self._retry_promise(
+                    run, messages, tools, system, response, FOLLOWUP_SEARCH_RETRY
+                )
             if not response.wants_tools and self._edition_split_ask(run, response):
                 run.edition_split_retries += 1
                 logger.info("판본별 결과 되묻기 재호출 run_id=%s", run.context.run_id)
@@ -560,6 +574,38 @@ class AgentRuntime:
         try:
             FinalCandidate.model_validate(candidate)
         except ValidationError:
+            return False
+        return (
+            run.model_attempts < policy.max_model_attempts
+            and self._remaining(run.context) > _PROMISE_RESERVE_S + 1
+        )
+
+    def _followup_unsearched(self, run: _Run, response: ModelResponse, tools) -> bool:
+        """D-88(P-30 C): 이어지는 턴의 규정 질문을 도구 없이 지난 답·일반 지식으로 답한 첫 응답인가.
+
+        이력에 지난 답이 있고, 이번 메시지가 질문이며(요약·인사·감사 아님), 첫 응답이
+        answered·insufficient_evidence이고 교육·티켓·초안 참조가 없으며 답이 규정 내용을 말할 때만
+        검색을 강제해 한 번 다시 부른다(D-68 경로, 실패하면 첫 답 유지). 되묻기는 잡지 않는다(D-86).
+        """
+        policy = run.context.policy
+        if run.tool_proposals or run.empty_answer_retries or run.followup_search_retries:
+            return False
+        if not any(tool.name == "search_documents" for tool in tools):
+            return False
+        if not any(m.role == "assistant" for m in _visible_history(run)) or not rule_question(run.message):
+            return False
+        candidate = response.final_candidate
+        if not isinstance(candidate, dict):
+            return False
+        try:
+            final = FinalCandidate.model_validate(candidate)
+        except ValidationError:
+            return False
+        if final.outcome not in (Outcome.ANSWERED, Outcome.INSUFFICIENT_EVIDENCE):
+            return False
+        if final.training_ids or final.selected_training_id or final.ticket_ids or final.action_id:
+            return False
+        if not discusses_rules(final.answer):
             return False
         return (
             run.model_attempts < policy.max_model_attempts

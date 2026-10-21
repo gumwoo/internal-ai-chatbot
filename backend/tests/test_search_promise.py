@@ -93,3 +93,40 @@ def test_date_request_is_detected(answer, expected):
     from agent.modules.agent_runtime.promises import asks_for_date
 
     assert asks_for_date(answer) is expected
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        # D-88: holdout7 2턴째에 도구 없이 끝난 답의 문형
+        "교육 취소 방법과 출장 정식 결재 기한을 규정에서 확인하려면 먼저 검색이 필요합니다.",
+        "권한 신청 규정과 접수 안내를 먼저 찾아본 뒤 답드리겠습니다.",
+        "첨부 서류와 정확한 제출 대상은 해당 원문을 검색해 정확히 안내드리겠습니다.",
+    ],
+)
+def test_more_search_promise_forms_are_detected(answer):
+    assert promises_lookup(answer)
+
+
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        ("출근 시각 변경 신청이랑 재택근무 신청은 각각 며칠까지 해야 하나요?", True),
+        ("그렇게 해도 되죠?", True),
+        ("지출결의서에는 어떤 항목을 적어야 하고, 증빙은 뭘 묶어서 붙여야 하나요?", True),
+        ("고마워요!", False),
+        ("방금 답 요약해 줘", False),
+        ("알겠습니다.", False),
+    ],
+)
+def test_followup_rule_question(message, expected):
+    from agent.modules.agent_runtime.promises import rule_question
+
+    assert rule_question(message) is expected
+
+
+def test_answer_that_discusses_rules():
+    from agent.modules.agent_runtime.promises import discusses_rules
+
+    assert discusses_rules("정식 결재는 복귀일부터 3영업일 이내에 남겨야 합니다.")
+    assert not discusses_rules("천만에요. 더 궁금한 점이 있으면 말씀해 주세요.")

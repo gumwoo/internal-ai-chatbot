@@ -39,7 +39,8 @@ from agent.shared.clock import KST
 # m7-answer-12: 계산표의 matches_rule(기준 사건 짝), 판본별 결과는 두 갈래 결론부터, 기한마다 검색(D-83).
 # m7-answer-13: 판본별 원문을 받고도 인용 없이 되물은 답에 EDITION_SPLIT_RETRY, 검색 없이 날짜만 되물은 첫 답에
 # DATE_ASK_RETRY(D-86). 지침 본문은 그대로.
-PROMPT_VERSION = "m7-answer-13"
+# m7-answer-14: 이어지는 턴의 규정 질문을 검색 없이 답한 첫 응답에 FOLLOWUP_SEARCH_RETRY(D-88). 지침 본문은 그대로.
+PROMPT_VERSION = "m7-answer-14"
 
 _CACHE_FIELDS = ("id", "code", "title", "starts_at", "ends_at", "location", "status")
 
@@ -177,6 +178,13 @@ EDITION_SPLIT_RETRY = (
 DATE_ASK_RETRY = (
     "[서버 안내] 날짜를 몰라도 규정은 검색할 수 있습니다. 날짜를 확정하지 못하면 서버가 판본별 원문을 함께 줍니다. "
     "날짜를 되묻기 전에 search_documents로 검색하고 그 결과로 답하세요. 이 안내는 사용자에게 말하지 마세요."
+)
+
+
+# D-88: 이어지는 턴에서 규정 질문을 검색 없이(지난 답이나 일반 지식으로) 답한 첫 응답에 붙이는 서버 안내.
+FOLLOWUP_SEARCH_RETRY = (
+    "[서버 안내] 지난 답의 내용은 이번 답의 근거로 인용할 수 없습니다. 이번 질문에 필요한 규정을 search_documents로 "
+    "다시 검색하고, 그 결과의 원문을 인용해 답하세요. 이 안내는 사용자에게 말하지 마세요."
 )
 
 

@@ -105,6 +105,8 @@ class RunUsage:
     deadline_citations_added: int = 0
     # D-86: 첫 응답이 검색 없이 사건 날짜만 되물어 서버가 검색을 강제해 다시 부른 횟수(0 또는 1).
     date_ask_retries: int = 0
+    # D-88: 이어지는 턴의 규정 질문을 검색 없이 답해 서버가 검색을 강제해 다시 부른 횟수(0 또는 1).
+    followup_search_retries: int = 0
 
 
 @dataclass(frozen=True)
