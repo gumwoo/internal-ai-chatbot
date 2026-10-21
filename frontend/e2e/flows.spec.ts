@@ -84,8 +84,8 @@ test("교육 질문: 진행 단계 후 결과를 한 번에, 상세는 Esc로 �
   const stages = await page.evaluate(() => (window as unknown as { stages: string[] }).stages);
   // 화면에는 서버가 보낸 단계 라벨만 나온다. 단계가 빨리 바뀌면 일부는 다음 단계에 덮이므로(빠른 기계) 특정
   // 단계 하나를 요구하지 않고, 서버 단계가 하나 이상 표시됐는지 본다. 도구 단계 송신은 위 SSE 본문으로 확인했다.
-  const labels = ["요청을 받았습니다", "답변을 준비하는 중", "교육 일정 조회 중", "결과 확인 중"];
-  expect(stages.every((s) => s === "처리 중" || labels.includes(s))).toBe(true);
+  const labels = ["질문을 받았어요", "답변을 준비하고 있어요", "교육 일정을 찾고 있어요", "답변을 확인하고 있어요"];
+  expect(stages.every((s) => s === "처리하고 있어요" || labels.includes(s))).toBe(true);
   expect(stages.some((s) => labels.includes(s))).toBe(true);
   // 결과는 진행이 끝난 뒤 한 번에 붙는다(답 문단 1개).
   await expect(page.locator(".message.assistant")).toHaveCount(1);
@@ -119,8 +119,9 @@ test("IME: 한글 조합 중 Enter는 보내지 않고, Shift+Enter는 줄바꿈
 test("규정 인용: 판본·종전·적용 기준·쪽을 보여 주고 PDF는 해당 쪽으로 연다", async ({ page }) => {
   await login(page);
   await ask(page, "9월 29일에 시작한 외부교육 한도는?");
+  await expect(page.getByRole("region", { name: "근거 원문" })).toContainText("종전");
   const citation = page.locator("button.citation").first();
-  await expect(citation).toContainText("종전");
+  await expect(citation).toHaveAccessibleName(/종전 판본/);
   await citation.focus();
   await page.keyboard.press("Enter");
   const panel = page.getByRole("complementary", { name: "상세" });
@@ -129,31 +130,83 @@ test("규정 인용: 판본·종전·적용 기준·쪽을 보여 주고 PDF는 
   await expect(panel.getByRole("link", { name: /PDF \d+쪽 열기/ })).toHaveAttribute("href", /\/api\/v1\/source-files\/PDF-031\/pdf#page=\d+/);
 });
 
-test("답 형식: '- ' 줄은 목록으로 보이고, 같은 문서·판본·쪽 인용은 버튼 하나로 묶인다(D-75)", async ({ page }) => {
+const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+test("답 형식: '- ' 줄은 목록, 본문 인용 표시는 근거 번호, 같은 문서의 쪽은 한 줄로 묶인다(D-75·D-76)", async ({ page }) => {
   await login(page);
   await ask(page, "9월 29일에 시작한 외부교육 한도 정리해 줘");
-  const answer = page.locator(".message.assistant .answer").last();
-  await expect(answer.locator("p")).toHaveText("외부교육비는 과정 한도와 연간 한도를 함께 봅니다.");
+  const message = page.locator(".message.assistant").last();
+  const answer = message.locator(".answer");
+  await expect(answer.locator("p")).toContainText("외부교육비는 과정 한도와 연간 한도를 함께 봅니다");
   await expect(answer.locator("li")).toHaveText(["사전 승인을 받은 교육만 지원합니다", "한도를 넘는 금액은 본인이 부담합니다"]);
+  await expect(answer).not.toContainText("[c"); // 표시 문자열은 번호로 바뀌고, 원장 밖 표시(c99-1)는 서버가 지웠다
 
-  // 서버가 준 인용 수와 화면 버튼 수를 비교한다(같은 문서·판본·쪽이면 하나).
+  // 본문 번호 1은 본문에 처음 나온 근거다. 마우스를 올리면 원문 일부를 미리 보인다.
+  const mark = answer.locator("button.cite-mark");
+  await expect(mark).toHaveText(["1"]);
+  await mark.hover();
+  await expect(answer.getByRole("tooltip")).toBeVisible();
+
+  // 서버가 준 인용을 문서·판본·쪽으로 묶은 수만큼 쪽 버튼이 있다(같은 문서는 한 줄).
   const conversationId = await page.locator("#conversation-list button.selected").getAttribute("data-id");
   const stored = (await (await page.request.get(`/api/v1/conversations/${conversationId}/messages`)).json()).items;
   const citations: { title: string; version: string; page_spans: { page: number }[] }[] = stored[stored.length - 1].citations;
   const pages = new Map<string, number>();
   for (const c of citations) {
-    const key = `${c.title} · ${c.version} · ${c.page_spans[0]?.page ?? 1}쪽`;
+    const key = `${c.title} ${c.version} ${c.page_spans[0]?.page ?? 1}쪽`;
     pages.set(key, (pages.get(key) ?? 0) + 1);
   }
-  const buttons = page.locator(".message.assistant").last().locator("button.citation");
-  await expect(buttons).toHaveCount(pages.size);
-  expect(new Set(await buttons.allInnerTexts()).size).toBe(pages.size);
+  const documents = new Set(citations.map((c) => `${c.title} ${c.version}`));
+  await expect(message.locator("button.citation")).toHaveCount(pages.size);
+  await expect(message.locator(".source")).toHaveCount(documents.size);
 
-  // 조각이 여럿인 버튼은 상세에 그 조각을 모두 보인다.
+  // 조각이 여럿인 쪽은 상세에 그 조각을 모두 보인다.
   const [label, count] = [...pages.entries()].sort((a, b) => b[1] - a[1])[0];
   expect(count).toBeGreaterThan(1); // 시험 corpus에서 같은 쪽 조각이 실제로 묶이는지 확인
-  await buttons.filter({ hasText: label }).first().click();
+  const sources = message.getByRole("region", { name: "근거 원문" });
+  await sources.getByRole("button", { name: new RegExp(`^근거 \\d+: ${escape(label)}`) }).click();
   await expect(page.getByRole("complementary", { name: "상세" }).locator("blockquote")).toHaveCount(count);
+});
+
+test("첫 화면: 예시 질문을 누르면 바로 보내고 답을 받는다", async ({ page }) => {
+  await login(page);
+  await expect(page.getByRole("list", { name: "이렇게 물어볼 수 있어요" })).toBeVisible();
+  await page.getByRole("button", { name: /다음 주에 들을 수 있는 교육 알려줘/ }).click();
+  await expect(page.locator(".composer")).toHaveAttribute("aria-busy", "false");
+  await expect(page.getByText("다음 주 교육은 2건입니다")).toBeVisible();
+  await expect(page.getByRole("list", { name: "이렇게 물어볼 수 있어요" })).toHaveCount(0);
+});
+
+test("답변 피드백: 아쉬운 사유를 저장하고, 다시 열어도 남아 있다(D-77)", async ({ page }) => {
+  await login(page);
+  await ask(page, "다음 주 교육 일정 알려줘");
+  const message = page.locator(".message.assistant").last();
+  await message.getByRole("button", { name: "아쉬워요" }).click();
+  const form = message.getByRole("form", { name: "아쉬운 점" });
+  await form.getByLabel("답이 틀렸어요").check();
+  await form.locator("textarea").fill("장소가 달라요");
+  const saved = page.waitForResponse((r) => r.url().endsWith("/feedback") && r.request().method() === "PUT");
+  await form.getByRole("button", { name: "의견 보내기" }).click();
+  const body = (await saved).request().postDataJSON();
+  expect(body).toEqual({ rating: "not_helpful", reason: "wrong_answer", comment: "장소가 달라요" });
+  await expect(message.getByRole("status")).toContainText("의견을 남겼어요");
+  await page.reload();
+  await page.locator("#conversation-list li button").first().click();
+  await expect(page.locator(".message.assistant").last().getByRole("button", { name: "아쉬워요" })).toHaveAttribute("aria-pressed", "true");
+});
+
+test("대화 목록: 날짜로 묶고, 검색하면 이름에 맞는 대화만 남는다(D-78)", async ({ page }) => {
+  await login(page);
+  await ask(page, "다음 주 교육 일정 알려줘");
+  await page.getByRole("button", { name: "새 대화" }).click();
+  await ask(page, "VPN이 자꾸 끊겨요. 접수해 주세요");
+  const list = page.getByRole("navigation", { name: "대화 목록" });
+  await expect(list.locator("h3").first()).toHaveText(/오늘|어제|지난 7일|지난 30일|그 이전/);
+  await expect(list.locator("li button").first()).toHaveText("VPN이 자꾸 끊겨요. 접수해 주세요");
+  await list.getByRole("searchbox", { name: "대화 검색" }).fill("vpn");
+  await expect(list.locator("li button")).toHaveText(["VPN이 자꾸 끊겨요. 접수해 주세요"]);
+  await list.getByRole("searchbox", { name: "대화 검색" }).fill("없는 대화 제목");
+  await expect(list).toContainText("찾는 대화가 없어요.");
 });
 
 test("IT 접수: 초안 → 수정 저장 → 확인 반복 클릭에도 티켓 1건, 새로고침 뒤 실제 상태", async ({ page }) => {
@@ -337,7 +390,7 @@ test.describe("모바일", () => {
     const panel = page.getByRole("complementary", { name: "상세" });
     const box = await panel.boundingBox();
     expect(box?.width).toBeGreaterThanOrEqual(370);
-    await panel.getByRole("button", { name: "뒤로" }).click();
+    await panel.getByRole("button", { name: "닫기" }).click();
     await expect(ref).toBeFocused();
     await page.getByRole("button", { name: /대화 목록 열기/ }).click();
     await expect(page.getByRole("navigation", { name: "대화 목록" })).toBeVisible();

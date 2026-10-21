@@ -45,7 +45,7 @@ USAGE = Usage(input_tokens=1, output_tokens=1, complete=True)
 TABLES = (
     "tickets, ticket_audit, idempotency_records, ticket_prepare_receipts, ticket_action_heads,"
     " ticket_actions, support_scopes, trainings, training_fixture_loads, tool_result_receipts, tool_calls,"
-    " message_receipts,"
+    " message_feedback, message_receipts,"
     " messages, agent_runs, conversations, auth_sessions, membership_audit, user_roles, user_departments,"
     " users, role_capabilities, roles, departments, corpus_pointer, snapshot_members, corpus_snapshots,"
     " chunk_embeddings, chunks, document_pages, parsed_artifacts, document_editions, source_files, acl_audit,"
@@ -135,9 +135,11 @@ class RuleModel:
         passages = [p for g in result["data"]["groups"] for p in g["passages"]]
         if not passages:
             return _final("근거를 찾지 못했습니다.", "insufficient_evidence")
+        # D-76: 근거 문장 끝 인용 표시. 원장에 없는 표시(c99-1)는 서버가 지운다.
+        first = passages[0]["citation_id"]
         answer = (
-            "외부교육비는 과정 한도와 연간 한도를 함께 봅니다.\n\n"
-            "- 사전 승인을 받은 교육만 지원합니다\n"
+            f"외부교육비는 과정 한도와 연간 한도를 함께 봅니다 [{first}].\n\n"
+            "- 사전 승인을 받은 교육만 지원합니다 [c99-1]\n"
             "- 한도를 넘는 금액은 본인이 부담합니다"
         )
         return _final(answer, citation_ids=[p["citation_id"] for p in passages[:12]])  # 인용 상한 30 안

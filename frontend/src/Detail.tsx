@@ -1,7 +1,7 @@
 // 선택적 상세 패널: 교육 상세·원문 근거·티켓(서버 DTO만). 좁은 화면에서는 전체 너비로 열린다.
 import { useEffect, useRef, useState } from "react";
 import { ApiError, api } from "./api";
-import { CATEGORIES, DATE_BASES, REQUEST_TYPES, formatTime } from "./labels";
+import { CATEGORIES, DATE_BASES, REQUEST_TYPES, TRAINING_STATUS, formatTime } from "./labels";
 import type { Detail } from "./types";
 
 export function DetailPanel({ detail, onClose, onExpired }: { detail: Detail; onClose: () => void; onExpired: () => void }) {
@@ -46,7 +46,7 @@ export function DetailPanel({ detail, onClose, onExpired }: { detail: Detail; on
   return (
     <aside className="detail" aria-label="상세">
       <div className="detail-head">
-        <button type="button" className="secondary back" onClick={onClose}>뒤로</button>
+        <button type="button" className="secondary back" onClick={onClose}>닫기</button>
         <h2 tabIndex={-1} ref={heading}>{title}</h2>
       </div>
       {error && <p className="notice" role="alert">{error}</p>}
@@ -56,7 +56,7 @@ export function DetailPanel({ detail, onClose, onExpired }: { detail: Detail; on
           <div><dt>교육</dt><dd>{String(data.title)}</dd></div>
           <div><dt>일시</dt><dd>{formatTime(String(data.starts_at))} ~ {formatTime(String(data.ends_at))}</dd></div>
           <div><dt>장소</dt><dd>{String(data.location ?? "")}</dd></div>
-          <div><dt>상태</dt><dd>{String(data.status)}</dd></div>
+          <div><dt>상태</dt><dd>{TRAINING_STATUS[String(data.status)] ?? String(data.status)}</dd></div>
           {data.description ? <div><dt>설명</dt><dd>{String(data.description)}</dd></div> : null}
         </dl>
       )}
@@ -92,6 +92,7 @@ function CitationBody({ detail, texts }: { detail: Extract<Detail, { kind: "cita
         {c.source_role === "transition" && <div><dt>구분</dt><dd>반대편 판본의 경과조항</dd></div>}
         <div><dt>쪽</dt><dd>{page}쪽</dd></div>
       </dl>
+      {detail.group.length > 1 && <p className="hint">이 쪽에서 참고한 부분 {detail.group.length}곳</p>}
       {detail.group.map((g, i) => (
         <blockquote key={g.citation_id}>{texts?.[i] ?? g.quote}</blockquote>
       ))}

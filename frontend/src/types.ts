@@ -75,6 +75,13 @@ export interface StoredMessage {
   action_preview: ActionPreview | null;
   run_id: string | null;
   created_at: string;
+  feedback?: Feedback | null;
+}
+
+/** D-77 답변 피드백(지금 사용자가 이 답에 남긴 것). */
+export interface Feedback {
+  rating: "helpful" | "not_helpful";
+  reason: string | null;
 }
 
 export interface MessageResult {

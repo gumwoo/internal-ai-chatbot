@@ -2,12 +2,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { ActionCard } from "./ActionCard";
+import { AnswerText, Sources, groupCitations, type PageGroup } from "./Answer";
 import { ApiError, NetworkError, api, newKey, sendMessage } from "./api";
 import { DetailPanel } from "./Detail";
-import { OUTCOMES, STAGES, formatTime } from "./labels";
-import type { Citation, Conversation, Detail, MessageResult, SessionInfo, StoredMessage } from "./types";
+import { Feedback } from "./Feedback";
+import { OUTCOMES, STAGES } from "./labels";
+import type { Conversation, Detail, MessageResult, SessionInfo, StoredMessage } from "./types";
 
 type Pending = { content: string; key: string; conversationId: string };
+
+// 첫 화면 예시 질문. 누르면 바로 보낸다.
+const EXAMPLES = [
+  { topic: "교육 일정", text: "다음 주에 들을 수 있는 교육 알려줘" },
+  { topic: "회사 규정", text: "출장비 정산은 언제까지 해야 해요?" },
+  { topic: "IT 지원", text: "VPN이 안 돼요. 접수해 주세요" },
+];
 
 function fromResult(result: MessageResult, content: string): StoredMessage[] {
   return [
@@ -18,13 +27,38 @@ function fromResult(result: MessageResult, content: string): StoredMessage[] {
     {
       id: result.message_id, role: "assistant", visibility: "visible", content: result.answer, outcome: result.outcome,
       training_refs: result.training_refs, citations: result.citations, ticket_refs: result.ticket_refs,
-      action_preview: result.action_preview, run_id: result.run_id, created_at: "",
+      action_preview: result.action_preview, run_id: result.run_id, created_at: "", feedback: null,
     },
   ];
 }
 
+const DAY = 24 * 3600 * 1000;
+const kstDay = (time: number) => Math.floor((time + 9 * 3600 * 1000) / DAY);
+
+/** 대화 목록을 만든 날짜로 묶는다(한국 시간 기준). 목록은 서버가 최근순으로 준다. */
+function byDay(items: Conversation[], now = Date.now()): { label: string; items: Conversation[] }[] {
+  const today = kstDay(now);
+  const label = (iso: string) => {
+    const days = today - kstDay(new Date(iso).getTime());
+    if (days <= 0) return "오늘";
+    if (days === 1) return "어제";
+    if (days < 7) return "지난 7일";
+    if (days < 30) return "지난 30일";
+    return "그 이전";
+  };
+  const groups: { label: string; items: Conversation[] }[] = [];
+  for (const item of items) {
+    const name = label(item.created_at);
+    const last = groups[groups.length - 1];
+    if (last?.label === name) last.items.push(item);
+    else groups.push({ label: name, items: [item] });
+  }
+  return groups;
+}
+
 export function Workspace({ session, onLogout, onExpired }: { session: SessionInfo; onLogout: () => void; onExpired: () => void }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [query, setQuery] = useState("");
   const [current, setCurrent] = useState<string | null>(null);
   const [messages, setMessages] = useState<StoredMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -39,6 +73,8 @@ export function Workspace({ session, onLogout, onExpired }: { session: SessionIn
   const [announce, setAnnounce] = useState("");
   const detailOpener = useRef<HTMLElement | null>(null);
   const input = useRef<HTMLTextAreaElement | null>(null);
+  const bottom = useRef<HTMLDivElement | null>(null);
+  const queryRef = useRef("");
 
   const handle = useCallback(
     (error: unknown) => {
@@ -52,16 +88,32 @@ export function Workspace({ session, onLogout, onExpired }: { session: SessionIn
   );
 
   const loadConversations = useCallback(async () => {
+    const q = queryRef.current;
     try {
-      setConversations((await api.conversations()).data.items);
+      const items = (await api.conversations(q)).data.items;
+      if (queryRef.current === q) setConversations(items); // 늦게 온 이전 검색 결과는 버린다
     } catch (error) {
       handle(error);
     }
   }, [handle]);
 
   useEffect(() => {
-    void loadConversations();
-  }, [loadConversations]);
+    queryRef.current = query;
+    const timer = setTimeout(() => void loadConversations(), query ? 250 : 0);
+    return () => clearTimeout(timer);
+  }, [query, loadConversations]);
+
+  useEffect(() => {
+    bottom.current?.scrollIntoView?.({ block: "end" });
+  }, [messages, busy]);
+
+  // 입력창은 내용에 맞춰 늘어난다(최대 높이는 CSS).
+  useEffect(() => {
+    const el = input.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [draft]);
 
   async function open(id: string) {
     if (busy) return;
@@ -74,7 +126,7 @@ export function Workspace({ session, onLogout, onExpired }: { session: SessionIn
       const items = (await api.messages(id)).data.items;
       if (shown.current === id) setMessages(items); // 늦게 온 이전 대화 응답은 버린다
     } catch (error) {
-      if (!handle(error)) setFailure({ message: "대화를 불러오지 못했습니다.", retry: false });
+      if (!handle(error)) setFailure({ message: "대화를 불러오지 못했어요.", retry: false });
     }
     input.current?.focus();
   }
@@ -90,9 +142,10 @@ export function Workspace({ session, onLogout, onExpired }: { session: SessionIn
     input.current?.focus();
   }
 
-  async function send() {
-    const content = draft.trim() ? draft : "";
+  async function send(text?: string) {
+    const content = text ?? (draft.trim() ? draft : "");
     if (!content || busy) return;
+    if (text !== undefined) setDraft(text);
     setBusy(true);
     setFailure(null);
     setStage(null);
@@ -119,20 +172,20 @@ export function Workspace({ session, onLogout, onExpired }: { session: SessionIn
       if (created) void loadConversations(); // 첫 질문이 대화 이름이 되므로 목록을 다시 읽는다
       if (shown.current === conversationId) {
         setMessages((previous) => [...previous, ...fromResult(result, content)]);
-        setAnnounce("새 답변이 도착했습니다.");
+        setAnnounce("새 답변이 도착했어요.");
       } else {
-        setAnnounce("다른 대화의 답변이 도착했습니다. 그 대화를 열면 볼 수 있습니다.");
+        setAnnounce("다른 대화의 답변이 도착했어요. 그 대화를 열면 볼 수 있어요.");
       }
     } catch (error) {
       if (handle(error)) return;
       if (error instanceof NetworkError) {
         // 결과를 모른다: 같은 키로 다시 보내 같은 실행의 결과를 받는다.
-        setFailure({ message: "응답을 받지 못했습니다. 다시 보내면 같은 요청으로 이어집니다.", retry: true });
+        setFailure({ message: "응답을 받지 못했어요. 다시 보내면 같은 요청으로 이어져요.", retry: true });
       } else if (error instanceof ApiError) {
         // 서버가 실패로 끝낸 실행: 같은 키는 같은 실패를 돌려주므로 다시 보낼 때는 새 요청으로 보낸다.
         pending.current = null;
         setFailure({ message: error.message, retry: error.retryable });
-      } else setFailure({ message: "처리하지 못했습니다.", retry: false });
+      } else setFailure({ message: "처리하지 못했어요.", retry: false });
     } finally {
       setBusy(false);
       setStage(null);
@@ -166,6 +219,7 @@ export function Workspace({ session, onLogout, onExpired }: { session: SessionIn
     onLogout();
   }
 
+  const groups = byDay(conversations);
   return (
     <div className={`workspace${detail ? " with-detail" : ""}`}>
       <button type="button" className="menu-toggle secondary" aria-expanded={menuOpen} aria-controls="conversation-list"
@@ -174,18 +228,31 @@ export function Workspace({ session, onLogout, onExpired }: { session: SessionIn
       </button>
       <nav id="conversation-list" className={`sidebar${menuOpen ? " open" : ""}`} aria-label="대화 목록"
         onKeyDown={(e) => e.key === "Escape" && setMenuOpen(false)}>
+        <p className="brand">사내 업무 도우미</p>
         {/* 답을 기다리는 동안에는 대화를 바꾸지 않는다(답과 진행 상태가 다른 대화에 섞이지 않게) */}
-        <button type="button" id="new-conversation" disabled={busy} onClick={startNew}>새 대화</button>
-        <ul>
-          {conversations.map((c) => (
-            <li key={c.id}>
-              <button type="button" className={c.id === current ? "selected" : "plain"} aria-current={c.id === current}
-                data-id={c.id} disabled={busy} onClick={() => open(c.id)} title={c.title ?? undefined}>
-                {c.title ?? `대화 · ${formatTime(c.created_at)}`}
-              </button>
-            </li>
+        <button type="button" id="new-conversation" className="new" disabled={busy} onClick={startNew}>새 대화</button>
+        <label className="search">
+          <span className="visually-hidden">대화 검색</span>
+          <input type="search" value={query} maxLength={100} placeholder="대화 검색" onChange={(e) => setQuery(e.target.value)} />
+        </label>
+        <div className="history">
+          {groups.length === 0 && <p className="history-empty">{query.trim() ? "찾는 대화가 없어요." : "아직 대화가 없어요."}</p>}
+          {groups.map((group) => (
+            <section key={group.label} aria-label={group.label}>
+              <h3>{group.label}</h3>
+              <ul>
+                {group.items.map((c) => (
+                  <li key={c.id}>
+                    <button type="button" className={c.id === current ? "selected" : "plain"} aria-current={c.id === current}
+                      data-id={c.id} disabled={busy} onClick={() => open(c.id)} title={c.title ?? undefined}>
+                      {c.title ?? "이름 없는 대화"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
         <div className="me">
           <span>{session.display_name}</span>
           <button type="button" className="secondary" onClick={logout}>로그아웃</button>
@@ -194,12 +261,28 @@ export function Workspace({ session, onLogout, onExpired }: { session: SessionIn
       <main className="conversation" aria-label="업무 대화">
         <p className="visually-hidden" role="status">{announce}</p>
         <div className="messages">
-          {messages.length === 0 && <p className="empty">교육 일정, 회사 규정, IT 지원을 물어보세요.</p>}
+          {messages.length === 0 && !busy && (
+            <div className="welcome">
+              <h2>{session.display_name}님, 안녕하세요</h2>
+              <p>교육 일정, 회사 규정, IT 지원 접수를 여기서 물어볼 수 있어요. 규정 답변에는 근거 문서와 쪽이 함께 붙어요.</p>
+              <ul className="examples" aria-label="이렇게 물어볼 수 있어요">
+                {EXAMPLES.map((example) => (
+                  <li key={example.text}>
+                    <button type="button" className="example" onClick={() => void send(example.text)}>
+                      <span className="example-topic">{example.topic}</span>
+                      {example.text}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {messages.map((m) => (
-            <MessageView key={m.id} message={m} onDetail={openDetail} onExpired={onExpired} />
+            <MessageView key={m.id} message={m} conversationId={current} onDetail={openDetail} onExpired={onExpired} />
           ))}
+          {busy && <p className="progress" role="status">{stage ? STAGES[stage] ?? "처리하고 있어요" : "처리하고 있어요"}</p>}
+          <div ref={bottom} />
         </div>
-        {busy && <p className="progress" role="status">{stage ? STAGES[stage] ?? "처리 중" : "처리 중"}</p>}
         {failure && (
           <p className="notice" role="alert">
             {failure.message}{" "}
@@ -207,10 +290,13 @@ export function Workspace({ session, onLogout, onExpired }: { session: SessionIn
           </p>
         )}
         <form className="composer" aria-busy={busy} onSubmit={(e) => { e.preventDefault(); void send(); }}>
-          <label htmlFor="composer-input" className="visually-hidden">질문</label>
-          <textarea id="composer-input" ref={input} value={draft} maxLength={4000} placeholder="질문을 입력하세요"
-            onChange={(e) => setDraft(e.target.value)} onKeyDown={onKeyDown} />
-          <button type="submit" id="send-button" disabled={busy || !draft.trim()}>보내기</button>
+          <div className="composer-box">
+            <label htmlFor="composer-input" className="visually-hidden">질문</label>
+            <textarea id="composer-input" ref={input} value={draft} maxLength={4000} rows={1} placeholder="궁금한 내용을 입력하세요"
+              onChange={(e) => setDraft(e.target.value)} onKeyDown={onKeyDown} />
+            <button type="submit" id="send-button" disabled={busy || !draft.trim()}>보내기</button>
+          </div>
+          <p className="composer-hint">Enter로 보내고, Shift+Enter로 줄을 바꿔요.</p>
         </form>
       </main>
       {detail && <DetailPanel detail={detail} onClose={closeDetail} onExpired={onExpired} />}
@@ -220,18 +306,25 @@ export function Workspace({ session, onLogout, onExpired }: { session: SessionIn
 
 function MessageView({
   message,
+  conversationId,
   onDetail,
   onExpired,
 }: {
   message: StoredMessage;
+  conversationId: string | null;
   onDetail: (detail: Detail, opener: HTMLElement) => void;
   onExpired: () => void;
 }) {
   if (message.role === "user") return <div className="message user"><p>{message.content}</p></div>;
+  const { documents, byId } = groupCitations(message.citations, message.content);
+  const openGroup = (group: PageGroup, opener: HTMLElement) =>
+    onDetail({ kind: "citation", citation: group.citations[0], group: group.citations }, opener);
+  const badge = message.outcome ? OUTCOMES[message.outcome] : undefined;
+  const redacted = message.visibility === "redacted";
   return (
-    <article className={`message assistant${message.visibility === "redacted" ? " redacted" : ""}`} data-outcome={message.outcome ?? ""}>
-      {message.outcome && message.outcome !== "answered" && <span className="badge">{OUTCOMES[message.outcome] ?? message.outcome}</span>}
-      <AnswerText text={message.content} />
+    <article className={`message assistant${redacted ? " redacted" : ""}`} data-outcome={message.outcome ?? ""}>
+      {badge && <span className="badge">{badge}</span>}
+      <AnswerText text={message.content} byId={byId} onOpen={openGroup} />
       {message.training_refs.length > 0 && (
         <ul className="refs" aria-label="교육">
           {message.training_refs.map((t) => (
@@ -243,22 +336,7 @@ function MessageView({
           ))}
         </ul>
       )}
-      {message.citations.length > 0 && (
-        <ul className="refs" aria-label="근거 원문">
-          {groupCitations(message.citations).map((group) => {
-            const c = group[0];
-            return (
-              <li key={c.citation_id}>
-                <button type="button" className="citation"
-                  onClick={(e) => onDetail({ kind: "citation", citation: c, group }, e.currentTarget)}>
-                  {c.title} · {c.version} · {c.page_spans?.[0]?.page ?? 1}쪽
-                  {c.edition_state && c.edition_state !== "current" ? " · 종전" : ""}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      {documents.length > 0 && <Sources documents={documents} onOpen={openGroup} />}
       {message.ticket_refs.length > 0 && (
         <ul className="refs" aria-label="티켓">
           {message.ticket_refs.map((t) => (
@@ -277,46 +355,9 @@ function MessageView({
           onOpenTicket={(id, title) => onDetail({ kind: "ticket", id, title }, document.activeElement as HTMLElement)}
         />
       )}
-    </article>
-  );
-}
-
-// 같은 문서·판본·쪽·적용 기준의 원문 조각은 버튼 하나로 묶는다. 처음 나온 순서를 지킨다.
-function groupCitations(citations: Citation[]): Citation[][] {
-  const groups = new Map<string, Citation[]>();
-  for (const c of citations) {
-    const key = [c.title, c.version, c.page_spans?.[0]?.page ?? 1, c.edition_state, c.as_of_date, c.date_basis,
-      c.edition_split ?? false, c.source_role ?? ""].join("|");
-    const group = groups.get(key);
-    if (!group) groups.set(key, [c]);
-    else if (!group.some((g) => g.passage_id === c.passage_id)) group.push(c);
-  }
-  return [...groups.values()];
-}
-
-// 답 본문: 빈 줄로 문단을 나누고, "- "로 시작하는 줄은 목록으로 보인다. 그 밖의 글자는 그대로 둔다.
-function AnswerText({ text }: { text: string }) {
-  const blocks: ({ kind: "p"; lines: string[] } | { kind: "ul"; items: string[] })[] = [];
-  for (const line of text.split("\n")) {
-    const item = /^\s*[-•]\s+(.*)$/.exec(line);
-    const last = blocks[blocks.length - 1];
-    if (item) {
-      if (last?.kind === "ul") last.items.push(item[1]);
-      else blocks.push({ kind: "ul", items: [item[1]] });
-    } else if (!line.trim()) {
-      if (last && !(last.kind === "p" && last.lines.length === 0)) blocks.push({ kind: "p", lines: [] });
-    } else if (last?.kind === "p") last.lines.push(line);
-    else blocks.push({ kind: "p", lines: [line] });
-  }
-  return (
-    <div className="answer">
-      {blocks.map((b, i) =>
-        b.kind === "ul" ? (
-          <ul key={i}>{b.items.map((item, j) => <li key={j}>{item}</li>)}</ul>
-        ) : b.lines.length > 0 ? (
-          <p key={i}>{b.lines.join("\n")}</p>
-        ) : null,
+      {!redacted && conversationId && (
+        <Feedback conversationId={conversationId} messageId={message.id} initial={message.feedback ?? null} onExpired={onExpired} />
       )}
-    </div>
+    </article>
   );
 }

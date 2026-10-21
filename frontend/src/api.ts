@@ -1,5 +1,5 @@
 // HTTP 클라이언트(docs/04-api-spec.md). 서버가 판정한 값만 쓴다(권한·날짜·ID를 화면에서 만들지 않는다).
-import type { Conversation, MessageResult, Page, SessionInfo, StoredMessage } from "./types";
+import type { Conversation, Feedback, MessageResult, Page, SessionInfo, StoredMessage } from "./types";
 
 const BASE = "/api/v1";
 let csrfToken: string | null = null;
@@ -40,7 +40,7 @@ function errorFrom(status: number, data: unknown): ApiError {
 }
 
 export async function call<T>(
-  method: "GET" | "POST" | "DELETE",
+  method: "GET" | "POST" | "PUT" | "DELETE",
   path: string,
   body?: Body,
   headers: Record<string, string> = {},
@@ -71,7 +71,8 @@ export const api = {
   session: () => call<SessionInfo>("GET", "/session"),
   login: (username: string, password: string) => call<SessionInfo>("POST", "/session", { username, password }),
   logout: () => call<null>("DELETE", "/session"),
-  conversations: () => call<Page<Conversation>>("GET", "/conversations?limit=50"),
+  conversations: (q = "") =>
+    call<Page<Conversation>>("GET", `/conversations?limit=50${q.trim() ? `&q=${encodeURIComponent(q.trim())}` : ""}`),
   createConversation: () => call<Conversation>("POST", "/conversations", {}),
   messages: (id: string) => call<Page<StoredMessage>>("GET", `/conversations/${id}/messages?limit=50`),
   run: (runId: string) => call<{ status: string }>("GET", `/runs/${runId}`),
@@ -84,6 +85,8 @@ export const api = {
     call<Record<string, unknown>>("POST", `/ticket-actions/${id}/confirm`, { version }, { "Idempotency-Key": key }),
   cancel: (id: string, version: number) => call<Record<string, unknown>>("POST", `/ticket-actions/${id}/cancel`, { version }),
   ticket: (id: string) => call<Record<string, unknown>>("GET", `/it-tickets/${id}`),
+  feedback: (conversationId: string, messageId: string, body: Feedback & { comment?: string | null }) =>
+    call<Feedback>("PUT", `/conversations/${conversationId}/messages/${messageId}/feedback`, { ...body }),
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

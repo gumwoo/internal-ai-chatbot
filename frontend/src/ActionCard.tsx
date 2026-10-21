@@ -208,6 +208,10 @@ export function ActionCard({
 
   const live = action.status === "draft" || action.status === "pending";
   const missing = action.missing_fields ?? [];
+  // 채운 항목과 꼭 필요한 빈 항목만 줄로 보이고, 선택 항목 중 빈 것은 한 줄로 모은다.
+  const empty = (name: string) => action[name] === null || action[name] === undefined || action[name] === "";
+  const rows = FIELDS.filter((name) => !empty(name) || missing.includes(name));
+  const blank = FIELDS.filter((name) => empty(name) && !missing.includes(name));
   return (
     <section className="action-card" aria-label="IT 지원 접수 확인" data-status={action.status}>
       <header>
@@ -216,10 +220,10 @@ export function ActionCard({
       </header>
       {!editing && (
         <dl className="fields">
-          {FIELDS.map((name) => (
+          {rows.map((name) => (
             <div key={name} className={missing.includes(name) ? "missing" : undefined}>
               <dt>{FIELD_LABELS[name]}</dt>
-              <dd>{fieldValue(name, action[name])}</dd>
+              <dd>{missing.includes(name) && empty(name) ? <span className="need">입력 필요</span> : fieldValue(name, action[name])}</dd>
             </div>
           ))}
           <div>
@@ -228,10 +232,13 @@ export function ActionCard({
           </div>
         </dl>
       )}
-      {!editing && missing.length > 0 && live && (
-        <p className="hint">필요한 항목: {missing.map((n) => FIELD_LABELS[n] ?? n).join(", ")} — "내용 수정"에서 채워 주세요.</p>
+      {!editing && blank.length > 0 && (
+        <p className="hint">비어 있는 선택 항목: {blank.map((n) => FIELD_LABELS[n] ?? n).join(", ")}</p>
       )}
-      {live && !editing && <p className="hint">유효 시각: {formatTime(action.expires_at)}까지</p>}
+      {!editing && missing.length > 0 && live && (
+        <p className="hint">접수하려면 "내용 수정"에서 채워 주세요: {missing.map((n) => FIELD_LABELS[n] ?? n).join(", ")}</p>
+      )}
+      {live && !editing && <p className="hint">{formatTime(action.expires_at)}까지 확인하지 않으면 이 초안은 만료돼요.</p>}
       {editing && (
         <form className="ticket-form" onSubmit={save} aria-label="접수 내용 수정">
           <label>
@@ -318,7 +325,7 @@ export function ActionCard({
           <button type="button" className="link" onClick={() => onOpenTicket(String(ticket.id), String(ticket.subject))}>
             {String(ticket.id).slice(0, 8)}
           </button>{" "}
-          · 상태 {String(ticket.status)}
+          · {String(ticket.status)}
         </p>
       )}
       {notice && <p className="notice" role="status">{notice}</p>}

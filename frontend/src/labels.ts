@@ -1,21 +1,34 @@
 // 서버 닫힌 값 → 화면 문구. 서버가 보내지 않은 단계는 만들지 않는다(D-29).
 
 export const STAGES: Record<string, string> = {
-  accepted: "요청을 받았습니다",
-  model_waiting: "답변을 준비하는 중",
-  training_lookup: "교육 일정 조회 중",
-  document_search: "규정 문서 검색 중",
-  ticket_lookup: "티켓 조회 중",
-  ticket_prepare: "접수 초안 준비 중",
-  verifying: "결과 확인 중",
+  accepted: "질문을 받았어요",
+  model_waiting: "답변을 준비하고 있어요",
+  training_lookup: "교육 일정을 찾고 있어요",
+  document_search: "규정 문서를 찾고 있어요",
+  ticket_lookup: "티켓을 확인하고 있어요",
+  ticket_prepare: "접수 내용을 정리하고 있어요",
+  verifying: "답변을 확인하고 있어요",
 };
 
+// 답변 위 작은 표시. 접수 대기는 카드가 상태를 보여 주므로 표시하지 않는다.
 export const OUTCOMES: Record<string, string> = {
-  answered: "답변",
-  needs_clarification: "추가 확인 필요",
+  needs_clarification: "추가 정보 필요",
   no_results: "결과 없음",
   insufficient_evidence: "근거 부족",
-  action_pending: "확인 대기",
+};
+
+export const TRAINING_STATUS: Record<string, string> = {
+  scheduled: "예정",
+  completed: "종료",
+  cancelled: "취소",
+};
+
+// D-77: "아쉬워요"를 눌렀을 때 고르는 사유(서버 닫힌 값).
+export const FEEDBACK_REASONS: Record<string, string> = {
+  wrong_source: "근거 문서가 맞지 않아요",
+  missing_source: "근거가 부족해요",
+  wrong_answer: "답이 틀렸어요",
+  other: "기타",
 };
 
 export const ACTION_STATUS: Record<string, string> = {

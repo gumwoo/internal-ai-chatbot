@@ -29,7 +29,7 @@ export function App() {
     setNotice(message);
   }
 
-  if (!checked) return <p className="loading">불러오는 중</p>;
+  if (!checked) return <p className="loading">불러오는 중이에요</p>;
   if (!session) {
     return (
       <Login
@@ -47,7 +47,7 @@ export function App() {
       key={`${session.user_id}-${epoch}`}
       session={session}
       onLogout={() => clear(null)}
-      onExpired={() => clear("로그인이 만료됐습니다. 다시 로그인해 주세요.")}
+      onExpired={() => clear("로그인이 만료됐어요. 다시 로그인해 주세요.")}
     />
   );
 }
@@ -66,7 +66,7 @@ function Login({ notice, onLogin }: { notice: string | null; onLogin: (info: Ses
     try {
       onLogin((await api.login(username, password)).data);
     } catch (e) {
-      setError(e instanceof ApiError && e.status === 401 ? "아이디 또는 비밀번호가 맞지 않습니다." : "로그인하지 못했습니다.");
+      setError(e instanceof ApiError && e.status === 401 ? "아이디 또는 비밀번호가 맞지 않아요." : "로그인하지 못했어요. 잠시 후 다시 시도해 주세요.");
     } finally {
       setBusy(false);
     }
@@ -74,7 +74,9 @@ function Login({ notice, onLogin }: { notice: string | null; onLogin: (info: Ses
 
   return (
     <main className="login">
+      <div className="login-card">
       <h1>사내 업무 도우미</h1>
+      <p className="login-lead">교육 일정, 회사 규정, IT 지원을 한곳에서 확인하세요.</p>
       {notice && <p className="notice" role="status">{notice}</p>}
       <form onSubmit={submit} aria-label="로그인">
         <label>
@@ -88,6 +90,7 @@ function Login({ notice, onLogin }: { notice: string | null; onLogin: (info: Ses
         {error && <p className="notice" role="alert">{error}</p>}
         <button type="submit" disabled={busy || !username || !password}>로그인</button>
       </form>
+      </div>
     </main>
   );
 }
