@@ -23,7 +23,8 @@ SOURCES_INDEX = REPO_ROOT / "data" / "staging" / "eval-sources" / "index.json"
 RESULTS_DIR = REPO_ROOT / "data" / "staging" / "eval-results"
 FREEZE = RESULTS_DIR / "freeze.json"
 FULL_CONTEXT_BUDGET = 150_000  # D-50
-HELD_OUT = frozenset({"holdout", "holdout2", "holdout3", "holdout4", "all"})  # 동결 예산으로만 실행하는 split
+# 동결 예산으로만 실행하는 split
+HELD_OUT = frozenset({"holdout", "holdout2", "holdout3", "holdout4", "holdout5", "all"})
 # judge 출력 상한. gemini-3.8-flash는 사고(thinking) token도 이 상한에 넣어
 # 1024이면 긴 판정의 JSON이 잘렸다(D-59).
 JUDGE_MAX_OUTPUT_TOKENS = 4096
@@ -60,10 +61,11 @@ def _cases(split: str) -> list[dict[str, Any]]:
     # holdout2: eval-v2 새 검증셋(옛 holdout을 본 뒤 개선했으므로 최종 측정은 새 문항으로 한다, D-62)
     # holdout3: eval-v3(holdout2를 보고 D-67~D-69를 고쳤으므로 그 효과는 새 문항으로 잰다, D-70)
     # holdout4: 복수 문서 확인 셋(holdout3를 보고 D-71·D-72를 고쳤으므로 새 문항으로 확인한다, D-73)
+    # holdout5: D-71~D-80과 인젝션 방어(D-82)의 효과를 재는 새 검증셋(D-81)
     if split == "all":
         names = [
             n
-            for n in ("dev", "holdout", "holdout2", "holdout3", "holdout4")
+            for n in ("dev", "holdout", "holdout2", "holdout3", "holdout4", "holdout5")
             if (CASES_DIR / f"{n}.jsonl").exists()
         ]
     else:
@@ -393,7 +395,9 @@ def register(sub) -> dict[str, Any]:
     run = sub.add_parser("eval-run", help="💰 평가 문항을 한 전략으로 실행한다(--live 없으면 dry-run)")
     run.add_argument("--strategy", choices=["raw", "wiki_assisted", "full_context_reference"], required=True)
     run.add_argument(
-        "--split", choices=["dev", "holdout", "holdout2", "holdout3", "holdout4", "all"], default="dev"
+        "--split",
+        choices=["dev", "holdout", "holdout2", "holdout3", "holdout4", "holdout5", "all"],
+        default="dev",
     )
     run.add_argument("--budget", type=int, default=4000, help="final_context_token_limit")
     run.add_argument("--operational", action="store_true", help="엄격 모드 대신 운영 fallback")
