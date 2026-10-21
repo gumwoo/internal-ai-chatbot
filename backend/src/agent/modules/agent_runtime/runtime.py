@@ -17,6 +17,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from agent.modules.agent_runtime import injection
 from agent.modules.agent_runtime.contracts import (
     FINAL_OUTPUT_SCHEMA,
     ConversationSnapshot,
@@ -106,6 +107,10 @@ class _Run:
     empty_answer_retries: int = 0
     search_promise_retries: int = 0
     ticket_promise_retries: int = 0
+    # D-82: 이번 실행의 시스템 지침과 도구 결과에서 지시문으로 보고 가린 문장(출력 차단 판정용).
+    system_text: str = ""
+    removed_instructions: list[str] = field(default_factory=list)
+    seen_tool_text: list[str] = field(default_factory=list)
     # M5: 이번 run에서 조회한 티켓(답의 의존 자원)과 준비한 root draft 미리보기(action_id → preview).
     ticket_refs: dict[str, dict[str, Any]] = field(default_factory=dict)
     prepared: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -198,6 +203,19 @@ class _Run:
             model_ids=tuple(self.model_ids),
             evidence_trace=self.evidence_trace(),
         )
+
+
+def _neutralized(run: _Run, result: ToolResult) -> ToolResult:
+    """D-82: 모델에 보낼 도구 결과에서 지시문으로 보이는 문장을 가린다(원장·기록의 원문은 그대로)."""
+    if not result.ok or result.data is None:
+        return result
+    removed: list[str] = []
+    data = injection.neutralize_value(result.data, removed)
+    if not removed:
+        return result
+    logger.info("도구 결과 지시문 가림 run_id=%s count=%d", run.context.run_id, len(removed))
+    run.removed_instructions.extend(removed)
+    return replace(result, data=data)
 
 
 def _model_view(result: ToolResult) -> str:
@@ -386,6 +404,7 @@ class AgentRuntime:
             documents="search_documents" in names,
             tickets=bool(names & {"prepare_it_ticket", "list_it_tickets"}),
         )
+        run.system_text = system
 
         return await self._drive(run, messages, tools, system)
 
@@ -448,7 +467,8 @@ class AgentRuntime:
                 view = (
                     _search_view(run, result) if proposal.name == "search_documents" and result.ok else result
                 )
-                shown = _model_view(view)
+                shown = _model_view(_neutralized(run, view))
+                run.seen_tool_text.append(shown)
                 run.tool_dates.update(_ISO_DATE.findall(shown))
                 results.append(ToolResultContent(proposal.provider_call_id, shown, is_error=not result.ok))
             messages.append(response.as_assistant_message())
@@ -690,6 +710,14 @@ class AgentRuntime:
         # 화면에 내보낼 인용과 맞는 표시만 남긴다(되묻기·0건 답이면 표시가 모두 빠진다).
         cited = set(citation_ids)
         answer = keep_markers(answer, lambda c: c in cited)
+        # D-82: 답이 지침·가린 지시문을 그대로 옮겼으면 안전 문구로 바꾸고 근거·교육 참조를 빼낸다.
+        seen = "".join(run.seen_tool_text)
+        leak = injection.leak_reason(answer, run.system_text, run.removed_instructions, seen)
+        if leak is not None:
+            logger.info("지침 유출 차단 run_id=%s reason=%s", run.context.run_id, leak)
+            outcome, answer = Outcome.INSUFFICIENT_EVIDENCE, injection.WITHHOLD
+            answer_source = "server_mapping"
+            citation_ids, training_ids = [], []
 
         return ExecutionResult(
             status="completed",
