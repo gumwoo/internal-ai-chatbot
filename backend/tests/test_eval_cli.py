@@ -312,3 +312,21 @@ async def test_query_cache_reuses_vectors_and_keys_include_model_dimension_and_t
         ("외부교육 한도",), EmbeddingConfig("gemini-embedding-2", 1536, "document"), 10
     )
     assert again.misses == 1 and other.vectors  # 작업(task)이 다르면 다시 임베딩한다
+
+
+async def test_claude_judge_model_goes_to_the_anthropic_client(paths, migrated, monkeypatch):
+    """D-90: JUDGE_MODEL이 claude- 모델이면 Anthropic 클라이언트로 판정한다(Gemini 클라이언트는 안 만든다)."""
+
+    def no_gemini(*args, **kwargs):
+        raise AssertionError("Gemini judge must not be created for a claude- model")
+
+    monkeypatch.setattr("agent.modules.model_integration.gemini_chat.GeminiJudgeModel", no_gemini)
+    monkeypatch.setattr("agent.modules.model_integration.anthropic_chat.AnthropicChatModel", Judge)
+    settings = make_settings(database_url=migrated, judge_model="claude-test")
+    a = paths / "a.jsonl"
+    a.write_text(
+        json.dumps(_result("EV-N-001", "raw", "근거가 없습니다."), ensure_ascii=False) + "\n", "utf-8"
+    )
+    out = paths / "judge.jsonl"
+    await eval_cli.eval_judge(argparse.Namespace(results=[str(a)], seed=7, out=str(out), live=True), settings)
+    assert out.exists() and out.read_text(encoding="utf-8").strip()

@@ -361,8 +361,15 @@ async def eval_judge(args: argparse.Namespace, settings: Settings) -> None:
             )
         )
         return
-    key = settings.gemini_api_key.get_secret_value() if settings.gemini_api_key else None
-    chat = GeminiJudgeModel(api_key=key)
+    if settings.judge_model.startswith("claude-"):
+        # D-90: Gemini 무료 키 하루 한도로 judge가 끝나지 않을 때 Anthropic 모델로 판정한다(judge_model 기록).
+        from agent.modules.model_integration.anthropic_chat import AnthropicChatModel
+
+        key = settings.anthropic_api_key.get_secret_value() if settings.anthropic_api_key else None
+        chat = AnthropicChatModel(api_key=key)
+    else:
+        key = settings.gemini_api_key.get_secret_value() if settings.gemini_api_key else None
+        chat = GeminiJudgeModel(api_key=key)
     config = ModelConfig(
         model=settings.judge_model,
         max_output_tokens=JUDGE_MAX_OUTPUT_TOKENS,
