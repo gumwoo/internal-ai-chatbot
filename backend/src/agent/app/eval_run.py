@@ -3,6 +3,7 @@
 - 문항마다 그 계정(eval_fixture actor, 직원과 같은 업무 권한)으로 새 대화를 만들고 전략을 서버 설정으로
   고정한다(raw / wiki_assisted, 엄격 모드). 직원 HTTP와 같은 메시지 API를 앱 안에서 호출한다.
 - 기록: 답·outcome·인용, run별 사용량·모델 ID, 검색 경로(tool_calls.retrieval_trace), 시간.
+  도구 없이 끝난 첫 응답의 outcome·answer·재호출 사유(P-31 D, 런타임 기록 함수로 받는다. DB에는 없다).
 - 채점은 따로 한다(eval_score). 이 실행기는 결과를 바꾸거나 실패를 빼지 않는다.
 """
 
@@ -72,6 +73,8 @@ async def run_cases(
         **(run_meta or {}),
     }
     current = EvalActor()
+    # P-31 D: run_id → 도구 없이 끝난 첫 응답(outcome·answer·재호출 사유). 결과 파일에만 남는다.
+    first_responses: dict[str, dict[str, Any]] = {}
     app = create_app(
         settings,
         current_actor=current,
@@ -79,6 +82,7 @@ async def run_cases(
         chat_model=chat_model,
         embedding_model=embedding_model,
         policy=policy,
+        first_response_sink=first_responses.__setitem__,
     )
     origin = settings.allowed_origins.split(",")[0].strip()
     results = []
@@ -89,7 +93,9 @@ async def run_cases(
             with out.open("a", encoding="utf-8") as sink:
                 for case in cases:
                     try:
-                        result = await _run_case(app, client, current, case, strategy, strict, origin)
+                        result = await _run_case(
+                            app, client, current, case, strategy, strict, origin, first_responses
+                        )
                     except Exception as exc:  # noqa: BLE001 - 실패를 기록하고 계속한다(분모에서 빼지 않음)
                         result = {
                             "case_id": case["case_id"],
@@ -110,7 +116,7 @@ async def run_cases(
     return results
 
 
-async def _run_case(app, client, current, case, strategy, strict, origin) -> dict[str, Any]:
+async def _run_case(app, client, current, case, strategy, strict, origin, first_responses) -> dict[str, Any]:
     actor = await app.state.identity.resolve_eval_actor(case["actor"])
     current.actor = actor
     created = await app.state.conversations.create_conversation(
@@ -180,6 +186,8 @@ async def _run_case(app, client, current, case, strategy, strict, origin) -> dic
                 "model_ids": r.model_ids,
                 "retrieval_context": r.retrieval_context,
                 "prompt_version": r.prompt_version,
+                # 첫 응답에서 도구를 불렀으면 None이다.
+                "first_response": first_responses.pop(str(r.id), None),
             }
             for r in runs
         ],

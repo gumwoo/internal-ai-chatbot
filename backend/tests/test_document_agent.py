@@ -1552,3 +1552,49 @@ async def test_followup_thanks_or_summary_is_not_retried(published, migrated):
         await _ask(client, "고마워요!", conversation=conv)
         await _ask(client, "방금 답 요약해 줘", conversation=conv)
     assert len(model.requests) == 4
+
+
+# --- P-31: 재호출 판정 하나·실행 하나(규칙은 D-37·D-68·D-80·D-86·D-88 그대로) ---
+
+
+async def test_followup_with_a_search_promise_gets_the_search_promise_notice(published, migrated):
+    """P-31: 이어지는 턴의 답이 검색 약속 문형이면 판정 순서대로 검색 약속(D-68) 안내가 나간다(한 번만)."""
+    from agent.modules.agent_runtime.prompt import SEARCH_PROMISE_RETRY
+
+    engine, _, _ = published
+    search = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "current"})
+    promise = final("검색이 필요합니다. 사전 승인은 팀장 결재가 기준입니다.")
+    model = Capturing(
+        [tool_turn(search), final("한도 답 [c1-1]."), promise, tool_turn(search), final("승인 답 [c1-1].")]
+    )
+    async with api_client(_app(migrated, model)) as client:
+        conv, _ = await _ask(client, "외부교육 한도가 어떻게 돼?")
+        _, second = await _ask(client, "그럼 사전 승인은 누구한테 받아야 하나요?", conversation=conv)
+    assert len(model.requests) == 5
+    assert (
+        model.requests[3].tool_choice == "any" and model.requests[3].messages[-1].text == SEARCH_PROMISE_RETRY
+    )
+    assert second.json()["outcome"] == "answered"
+    retries = await _scalar(
+        engine,
+        "SELECT ARRAY[sum(COALESCE((usage->>'search_promise_retries')::int, 0)),"
+        " sum(COALESCE((usage->>'followup_search_retries')::int, 0))]::int[] FROM agent_runs",
+    )
+    assert retries == [1, 0]
+
+
+async def test_first_answer_and_edition_split_reprompts_fire_at_most_once_each(published, migrated):
+    """P-31: 첫 응답 재호출(D-68) 뒤 판본별 재호출(D-86)이 한 번 더 걸릴 수 있고, 사유마다 run당 한 번이다."""
+    engine, _, _ = published
+    search = ("search_documents", {"query": "외부교육비 1회 과정 지원 한도", "date_basis": "current"})
+    promise = final("외부교육 규정을 검색해 보겠습니다.", outcome="insufficient_evidence")
+    ask = final("언제 시작하는 교육인가요?", outcome="needs_clarification")
+    model = Capturing([promise, tool_turn(search), ask, ask])
+    async with api_client(_app(migrated, model)) as client:
+        _, response = await _ask(client, "예전에 신청한 외부교육 한도가 얼마였어?")
+    assert len(model.requests) == 4  # 판본별 재호출 뒤 또 되물어도 다시 부르지 않는다
+    assert [r.tool_choice for r in model.requests] == ["auto", "any", "auto", "auto"]
+    assert (model.requests[3].messages[-1].text or "").startswith("[서버 안내] 검색 결과에 판본별 원문")
+    assert response.json()["outcome"] == "needs_clarification"
+    usage = await _scalar(engine, "SELECT usage FROM agent_runs")
+    assert usage["search_promise_retries"] == 1 and usage["edition_split_retries"] == 1

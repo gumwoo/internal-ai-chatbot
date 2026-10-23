@@ -2,8 +2,9 @@
 
 import asyncio
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
 
@@ -69,8 +70,12 @@ def create_app(
     chat_model: ChatModel | None = None,
     embedding_model: EmbeddingModel | None = None,
     policy: ExecutionPolicy | None = None,
+    first_response_sink: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> FastAPI:
-    """policy는 평가 포트(APP-04)가 근거 예산 등을 설정 ID로 고정할 때만 넘긴다(직원 경로는 기본값)."""
+    """policy는 평가 포트(APP-04)가 근거 예산 등을 설정 ID로 고정할 때만 넘긴다(직원 경로는 기본값).
+
+    first_response_sink도 평가 포트 전용이다(P-31 D, 도구 없이 끝난 첫 응답과 재호출 사유를 받는다).
+    """
     settings = settings or Settings()
     clock = clock or SystemClock()
 
@@ -107,6 +112,7 @@ def create_app(
             clock,
             model,
             evidence_reader=evidence,
+            first_response_sink=first_response_sink,
         )
         service = ConversationService(
             engine,

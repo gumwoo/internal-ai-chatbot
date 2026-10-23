@@ -11,8 +11,10 @@ import asyncio
 import json
 import logging
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from datetime import date
+from enum import StrEnum
 from typing import Any
 
 from pydantic import ValidationError
@@ -106,19 +108,54 @@ _PASSAGE_VIEW_KEYS = (
 )
 
 
+class Reprompt(StrEnum):
+    """응답을 받은 뒤 서버가 모델을 다시 부르는 사유(P-31). 사유마다 run당 한 번까지다."""
+
+    EMPTY_ANSWER = "empty_answer"  # D-37·D-41·D-52
+    SEARCH_PROMISE = "search_promise"  # D-68
+    TICKET_PROMISE = "ticket_promise"  # D-80
+    DATE_ASK = "date_ask"  # D-86
+    FOLLOWUP_SEARCH = "followup_search"  # D-88
+    EDITION_SPLIT = "edition_split"  # D-86
+
+
+@dataclass(frozen=True)
+class _RepromptRule:
+    """재호출 하나의 실행 방식(P-31). 발동 조건은 AgentRuntime._reprompt_plan의 사유별 판정 함수에 있다."""
+
+    reason: Reprompt
+    notice: str  # 받아 둔 응답 뒤에 붙이는 서버 안내
+    tool_choice: str  # 다시 부를 때의 tool_choice("any"면 도구 호출 강제)
+    # 재호출 경로가 오류·시간 초과로 끝나면 받아 둔 응답으로 끝낸다(경로는 기한 _PROMISE_RESERVE_S 전에 끊음).
+    keeps_first: bool
+    # 다시 부른 응답도 도구 없이 끝나면 받아 둔 응답으로 끝낸다.
+    falls_back: bool
+
+
+# 판정 순서가 우선순위다(처음 걸린 하나만 쓴다). 1~5는 도구를 부르지 않은 첫 응답, 6은 판본별 원문을 받은 뒤.
+_REPROMPT_RULES = (
+    # D-37: 빈 첫 답은 지킬 답이 없다. 재호출 경로의 오류는 그대로 실행 실패다.
+    _RepromptRule(Reprompt.EMPTY_ANSWER, EMPTY_ANSWER_RETRY, "any", keeps_first=False, falls_back=False),
+    _RepromptRule(Reprompt.SEARCH_PROMISE, SEARCH_PROMISE_RETRY, "any", keeps_first=True, falls_back=True),
+    _RepromptRule(Reprompt.TICKET_PROMISE, TICKET_PROMISE_RETRY, "any", keeps_first=True, falls_back=True),
+    _RepromptRule(Reprompt.DATE_ASK, DATE_ASK_RETRY, "any", keeps_first=True, falls_back=True),
+    _RepromptRule(Reprompt.FOLLOWUP_SEARCH, FOLLOWUP_SEARCH_RETRY, "any", keeps_first=True, falls_back=True),
+    # D-86: 도구는 강제하지 않는다. 다시 받은 응답이 또 되물으면 그 응답으로 끝낸다.
+    _RepromptRule(Reprompt.EDITION_SPLIT, EDITION_SPLIT_RETRY, "auto", keeps_first=True, falls_back=False),
+)
+
+
 @dataclass
 class _Run:
     context: ExecutionContext
     snapshot: ConversationSnapshot
     observer: ExecutionObserver
     model_attempts: int = 0
-    empty_answer_retries: int = 0
-    search_promise_retries: int = 0
-    ticket_promise_retries: int = 0
-    edition_split_retries: int = 0
+    # P-31: 사유별 재호출 횟수(usage의 *_retries 필드로 나간다)
+    reprompts: dict[Reprompt, int] = field(default_factory=dict)
     deadline_citations_added: int = 0
-    date_ask_retries: int = 0
-    followup_search_retries: int = 0
+    # P-31 D: 첫 응답을 이미 봤는가(평가 기록은 run의 첫 응답 하나만 남긴다)
+    first_response_seen: bool = False
     # D-86: 이번 실행 계산표의 (기한 문장 citation_id, 계산한 마감일들). 답에 쓴 마감일의 근거를 붙인다.
     deadline_rules: list[tuple[str, tuple[str, ...]]] = field(default_factory=list)
     # D-82: 이번 실행의 시스템 지침과 도구 결과에서 지시문으로 보고 가린 문장(출력 차단 판정용).
@@ -172,19 +209,22 @@ class _Run:
         if not usage.complete or usage.input_tokens is None or usage.output_tokens is None:
             self.usage_complete = False
 
+    def retried(self, reason: Reprompt) -> int:
+        return self.reprompts.get(reason, 0)
+
     def usage(self) -> RunUsage:
         return RunUsage(
             self.input_tokens,
             self.output_tokens,
             self.usage_complete,
             self.model_attempts,
-            self.empty_answer_retries,
-            self.search_promise_retries,
-            self.ticket_promise_retries,
-            self.edition_split_retries,
+            self.retried(Reprompt.EMPTY_ANSWER),
+            self.retried(Reprompt.SEARCH_PROMISE),
+            self.retried(Reprompt.TICKET_PROMISE),
+            self.retried(Reprompt.EDITION_SPLIT),
             self.deadline_citations_added,
-            self.date_ask_retries,
-            self.followup_search_retries,
+            self.retried(Reprompt.DATE_ASK),
+            self.retried(Reprompt.FOLLOWUP_SEARCH),
         )
 
     def allowed_trainings(self) -> dict[str, dict[str, Any]]:
@@ -291,7 +331,9 @@ def _empty_first_answer(run: _Run, response: ModelResponse, tools) -> bool:
     강제 재호출(D-41) 뒤에도 빈 되묻기면 그때 서버 일반 문구로 채운다(TS-19).
     """
     candidate = response.final_candidate
-    if not tools or run.tool_proposals or run.empty_answer_retries or not isinstance(candidate, dict):
+    if not tools or run.tool_proposals or run.retried(Reprompt.EMPTY_ANSWER):
+        return False
+    if not isinstance(candidate, dict):
         return False
     answer = candidate.get("answer")
     return isinstance(answer, str) and not answer.strip()
@@ -337,12 +379,15 @@ class AgentRuntime:
         clock: Clock,
         model: ModelConfig,
         evidence_reader: ConversationEvidenceReader | None = None,
+        first_response_sink: Callable[[str, dict[str, Any]], None] | None = None,
     ) -> None:
         self._chat = chat
         self._tools = tools
         self._clock = clock
         self._model = model
         self._evidence_reader = evidence_reader
+        # P-31 D: 평가 실행기만 넘긴다(run_id, 도구 없이 끝난 첫 응답의 outcome·answer·재호출 사유).
+        self._first_response_sink = first_response_sink
 
     async def execute(
         self,
@@ -437,7 +482,7 @@ class AgentRuntime:
     ) -> ExecutionResult:
         """모델 호출 → 도구 실행 반복.
 
-        fallback이 있으면 D-68 재호출 경로다(첫 응답이 도구 없이 끝나면 fallback으로 끝낸다).
+        fallback이 있으면 재호출 경로다(다시 부른 응답이 도구 없이 끝나면 fallback으로 끝낸다, P-31).
         """
         policy = run.context.policy
         while True:
@@ -447,37 +492,10 @@ class AgentRuntime:
                 # D-68: 도구를 강제했는데도 도구 없이 끝났다. 받아 둔 첫 응답으로 끝낸다.
                 return await self._finish(run, fallback)
             fallback = None
-            if not response.wants_tools and _empty_first_answer(run, response, tools):
-                # D-37(P-16 B): 아무 도구도 부르지 않은 첫 응답의 빈 답만 한 번 다시 부른다
-                # (모델 시도 상한 안). D-41: 다시 부를 때는 도구 호출을 강제한다.
-                run.empty_answer_retries += 1
-                logger.info("빈 첫 답 재호출 run_id=%s", run.context.run_id)
-                messages.append(response.as_assistant_message())
-                messages.append(ModelMessage(role="user", text=EMPTY_ANSWER_RETRY))
-                tool_choice = "any"  # D-41: 다시 부를 때는 도구 호출을 강제한다(P-16 C의 일부)
-                continue
-            if not response.wants_tools and self._search_promise(run, response, tools):
-                run.search_promise_retries += 1
-                logger.info("검색 약속 첫 답 재호출 run_id=%s", run.context.run_id)
-                return await self._retry_promise(run, messages, tools, system, response, SEARCH_PROMISE_RETRY)
-            if not response.wants_tools and self._ticket_promise(run, response, tools):
-                run.ticket_promise_retries += 1
-                logger.info("접수 약속 첫 답 재호출 run_id=%s", run.context.run_id)
-                return await self._retry_promise(run, messages, tools, system, response, TICKET_PROMISE_RETRY)
-            if not response.wants_tools and self._date_ask(run, response, tools):
-                run.date_ask_retries += 1
-                logger.info("검색 없는 날짜 되묻기 재호출 run_id=%s", run.context.run_id)
-                return await self._retry_promise(run, messages, tools, system, response, DATE_ASK_RETRY)
-            if not response.wants_tools and self._followup_unsearched(run, response, tools):
-                run.followup_search_retries += 1
-                logger.info("이어진 질문 검색 없는 답 재호출 run_id=%s", run.context.run_id)
-                return await self._retry_promise(
-                    run, messages, tools, system, response, FOLLOWUP_SEARCH_RETRY
-                )
-            if not response.wants_tools and self._edition_split_ask(run, response):
-                run.edition_split_retries += 1
-                logger.info("판본별 결과 되묻기 재호출 run_id=%s", run.context.run_id)
-                return await self._retry_edition_split(run, messages, tools, system, response)
+            rule = self._reprompt_plan(run, response, tools)
+            self._record_first_response(run, response, rule)
+            if rule is not None:
+                return await self._reprompt(run, messages, tools, system, response, rule)
             if not response.wants_tools:
                 return await self._finish(run, response)
             results: list[ToolResultContent] = []
@@ -516,8 +534,7 @@ class AgentRuntime:
         - 빈 첫 답 재호출(D-37) 뒤에는 걸지 않는다. 재호출 경로의 첫 응답은 fallback으로 처리하고,
           그 뒤에는 도구를 불렀으므로(tool_proposals) 한 run에 한 번만 발동한다.
         """
-        policy = run.context.policy
-        if run.tool_proposals or run.empty_answer_retries:
+        if run.tool_proposals or run.retried(Reprompt.EMPTY_ANSWER):
             return False
         if not any(tool.name == "search_documents" for tool in tools):
             return False
@@ -528,10 +545,7 @@ class AgentRuntime:
             FinalCandidate.model_validate(candidate)
         except ValidationError:
             return False
-        return (
-            run.model_attempts < policy.max_model_attempts
-            and self._remaining(run.context) > _PROMISE_RESERVE_S + 1
-        )
+        return self._can_reprompt(run)
 
     def _ticket_promise(self, run: _Run, response: ModelResponse, tools) -> bool:
         """D-80: 도구를 부르지 않은 첫 응답이 초안 없이 action_pending으로 끝났고, 다시 부를 여유가 있는가.
@@ -539,8 +553,7 @@ class AgentRuntime:
         이 응답은 그대로 두면 _finish에서 무효 출력(action_pending without action id)으로 실패한다.
         D-68과 같은 조건(첫 응답, 도구 미호출, 빈 답 재호출 뒤 아님, 시도·시간 여유)과 접수 도구가 필요하다.
         """
-        policy = run.context.policy
-        if run.tool_proposals or run.empty_answer_retries:
+        if run.tool_proposals or run.retried(Reprompt.EMPTY_ANSWER):
             return False
         if not any(tool.name == "prepare_it_ticket" for tool in tools):
             return False
@@ -549,10 +562,7 @@ class AgentRuntime:
             return False
         if candidate.get("outcome") != Outcome.ACTION_PENDING.value or candidate.get("action_id") is not None:
             return False
-        return (
-            run.model_attempts < policy.max_model_attempts
-            and self._remaining(run.context) > _PROMISE_RESERVE_S + 1
-        )
+        return self._can_reprompt(run)
 
     def _date_ask(self, run: _Run, response: ModelResponse, tools) -> bool:
         """D-86: 도구를 부르지 않은 첫 응답이 사건 날짜만 되물었는가(D-68과 같은 발동 조건).
@@ -561,8 +571,7 @@ class AgentRuntime:
         몰라도 서버가 판본별 원문을 주므로(D-67) 날짜 되묻기는 검색 뒤 서버가 정한다. 재호출이 실패하거나
         또 도구 없이 끝나면 받아 둔 되묻기로 끝낸다.
         """
-        policy = run.context.policy
-        if run.tool_proposals or run.empty_answer_retries or run.date_ask_retries:
+        if run.tool_proposals or run.retried(Reprompt.EMPTY_ANSWER) or run.retried(Reprompt.DATE_ASK):
             return False
         if not any(tool.name == "search_documents" for tool in tools):
             return False
@@ -575,10 +584,7 @@ class AgentRuntime:
             FinalCandidate.model_validate(candidate)
         except ValidationError:
             return False
-        return (
-            run.model_attempts < policy.max_model_attempts
-            and self._remaining(run.context) > _PROMISE_RESERVE_S + 1
-        )
+        return self._can_reprompt(run)
 
     def _followup_unsearched(self, run: _Run, response: ModelResponse, tools) -> bool:
         """D-88(P-30 C): 이어지는 턴의 규정 질문을 도구 없이 지난 답·일반 지식으로 답한 첫 응답인가.
@@ -587,8 +593,7 @@ class AgentRuntime:
         answered·insufficient_evidence이고 교육·티켓·초안 참조가 없으며 답이 규정 내용을 말할 때만
         검색을 강제해 한 번 다시 부른다(D-68 경로, 실패하면 첫 답 유지). 되묻기는 잡지 않는다(D-86).
         """
-        policy = run.context.policy
-        if run.tool_proposals or run.empty_answer_retries or run.followup_search_retries:
+        if run.tool_proposals or run.retried(Reprompt.EMPTY_ANSWER) or run.retried(Reprompt.FOLLOWUP_SEARCH):
             return False
         if not any(tool.name == "search_documents" for tool in tools):
             return False
@@ -607,19 +612,15 @@ class AgentRuntime:
             return False
         if not discusses_rules(final.answer):
             return False
-        return (
-            run.model_attempts < policy.max_model_attempts
-            and self._remaining(run.context) > _PROMISE_RESERVE_S + 1
-        )
+        return self._can_reprompt(run)
 
-    def _edition_split_ask(self, run: _Run, response: ModelResponse) -> bool:
+    def _edition_split_ask(self, run: _Run, response: ModelResponse, tools) -> bool:
         """D-86: 판본별 원문을 받았는데(날짜로 해결된 같은 사건 없음) 원문을 하나도 인용하지 않고 끝낸 답인가.
 
         그대로 두면 모델이 되물었거나, 인용 없는 answered를 서버가 되묻기로 바꾼다(D-67). 한 run에 한 번만,
         스키마가 유효하고 모델 시도·시간 여유가 있을 때만 다시 부른다.
         """
-        policy = run.context.policy
-        if run.edition_split_retries:
+        if run.retried(Reprompt.EDITION_SPLIT):
             return False
         dated = _dated_contexts(run)
         if not any(
@@ -641,51 +642,93 @@ class AgentRuntime:
             return False
         if final.outcome is Outcome.ANSWERED and _deadline_citations(run, final.answer, []):
             return False  # 계산표 마감일을 썼다: 그 기한 문장이 인용으로 붙는다(_finish)
+        return self._can_reprompt(run)
+
+    def _reprompt_plan(self, run: _Run, response: ModelResponse, tools) -> _RepromptRule | None:
+        """P-31: 이 응답 뒤에 서버가 다시 부를지 한 곳에서 정한다(_REPROMPT_RULES 순서로 처음 걸린 하나).
+
+        사유별 발동 조건은 아래 판정 함수 그대로다(D-37·D-68·D-80·D-86·D-88). 1~5는 도구 제안이 없는
+        첫 응답만 보므로 그중 하나만 발동하고, 6(판본별)은 사유마다 run당 한 번이라 첫 응답 재호출 뒤에도
+        한 번 더 걸릴 수 있다.
+        """
+        if response.wants_tools:
+            return None
+        judges = {
+            Reprompt.EMPTY_ANSWER: _empty_first_answer,
+            Reprompt.SEARCH_PROMISE: self._search_promise,
+            Reprompt.TICKET_PROMISE: self._ticket_promise,
+            Reprompt.DATE_ASK: self._date_ask,
+            Reprompt.FOLLOWUP_SEARCH: self._followup_unsearched,
+            Reprompt.EDITION_SPLIT: self._edition_split_ask,
+        }
+        return next((rule for rule in _REPROMPT_RULES if judges[rule.reason](run, response, tools)), None)
+
+    def _can_reprompt(self, run: _Run) -> bool:
+        """D-68: 모델 시도 상한과 실행 시간에 재호출 여유가 있는가(빈 첫 답 D-37은 이 검사를 하지 않는다)."""
         return (
-            run.model_attempts < policy.max_model_attempts
+            run.model_attempts < run.context.policy.max_model_attempts
             and self._remaining(run.context) > _PROMISE_RESERVE_S + 1
         )
 
-    async def _retry_edition_split(
-        self, run: _Run, messages: list[ModelMessage], tools, system: str, first: ModelResponse
+    async def _reprompt(
+        self,
+        run: _Run,
+        messages: list[ModelMessage],
+        tools,
+        system: str,
+        first: ModelResponse,
+        rule: _RepromptRule,
     ) -> ExecutionResult:
-        """D-86: 되물은 답과 서버 안내를 붙여 한 번 더 부른다(도구는 강제하지 않는다). 재호출 경로가 오류·시간
-        초과로 끝나면 받아 둔 첫 답으로 끝낸다(D-68과 같은 여유 시간 규칙)."""
-        retry_messages = [
-            *messages,
-            first.as_assistant_message(),
-            ModelMessage(role="user", text=EDITION_SPLIT_RETRY),
-        ]
-        try:
-            async with asyncio.timeout(self._remaining(run.context) - _PROMISE_RESERVE_S):
-                return await self._drive(run, retry_messages, tools, system)
-        except (TimeoutError, AppError) as exc:
-            code = exc.code if isinstance(exc, AppError) else ErrorCode.RUN_TIMEOUT
-            logger.info("판본별 재호출 경로 실패, 첫 답 유지 run_id=%s code=%s", run.context.run_id, code)
-            return await self._finish(run, first)
+        """P-31: 받아 둔 응답과 서버 안내를 붙여 한 번 더 부르고, 그 뒤 흐름을 이어 간다.
 
-    async def _retry_promise(
-        self, run: _Run, messages: list[ModelMessage], tools, system: str, first: ModelResponse, notice: str
-    ) -> ExecutionResult:
-        """D-68·D-80: 약속한 첫 응답과 서버 안내를 붙여 도구를 강제해 다시 부르고, 그 뒤 흐름을 이어 간다.
-
-        재호출 경로가 모델·출력·실행 시간 오류로 끝나면(필수 기록 실패는 제외) 받아 둔 첫 응답으로 끝낸다
-        (D-65는 재호출 실패 때 받아 둔 답을 버렸다). 첫 응답으로 끝낼 시간을 남기려고 재호출 경로는
-        실행 기한보다 _PROMISE_RESERVE_S 먼저 끊는다. D-80의 첫 응답은 초안이 없으므로 그대로 끝나면
-        지금처럼 무효 출력으로 실패한다.
+        keeps_first면 재호출 경로가 모델·출력·실행 시간 오류로 끝날 때(필수 기록 실패는 제외) 받아 둔 응답으로
+        끝낸다(D-65는 재호출 실패 때 받아 둔 답을 버렸다). 그 시간을 남기려고 경로를 실행 기한보다
+        _PROMISE_RESERVE_S 먼저 끊는다. D-80의 첫 응답은 초안이 없으므로 그대로 끝나면 무효 출력으로 실패한다.
         """
+        run.reprompts[rule.reason] = run.retried(rule.reason) + 1
+        logger.info("응답 재호출 run_id=%s reason=%s", run.context.run_id, rule.reason.value)
         retry_messages = [
             *messages,
             first.as_assistant_message(),
-            ModelMessage(role="user", text=notice),
+            ModelMessage(role="user", text=rule.notice),
         ]
+        if not rule.keeps_first:
+            return await self._drive(run, retry_messages, tools, system, rule.tool_choice)
+        fallback = first if rule.falls_back else None
         try:
             async with asyncio.timeout(self._remaining(run.context) - _PROMISE_RESERVE_S):
-                return await self._drive(run, retry_messages, tools, system, "any", fallback=first)
+                return await self._drive(run, retry_messages, tools, system, rule.tool_choice, fallback)
         except (TimeoutError, AppError) as exc:
             code = exc.code if isinstance(exc, AppError) else ErrorCode.RUN_TIMEOUT
-            logger.info("약속 재호출 경로 실패, 첫 답 유지 run_id=%s code=%s", run.context.run_id, code)
+            logger.info(
+                "재호출 경로 실패, 받아 둔 응답 유지 run_id=%s reason=%s code=%s",
+                run.context.run_id,
+                rule.reason.value,
+                code,
+            )
             return await self._finish(run, first)
+
+    def _record_first_response(self, run: _Run, response: ModelResponse, rule: _RepromptRule | None) -> None:
+        """P-31 D: 도구를 부르지 않은 첫 응답의 outcome·answer와 재호출 사유(없으면 None)를 평가에 넘긴다.
+
+        평가 실행기가 넘긴 기록 함수가 있을 때만 쓴다. 운영 run 기록(agent_runs)에는 남기지 않는다.
+        기록 실패는 실행을 바꾸지 않는다(진단 로그만).
+        """
+        if run.first_response_seen:
+            return
+        run.first_response_seen = True
+        if self._first_response_sink is None or response.wants_tools:
+            return
+        candidate = response.final_candidate if isinstance(response.final_candidate, dict) else {}
+        record = {
+            "outcome": candidate.get("outcome"),
+            "answer": candidate.get("answer"),
+            "reprompt": rule.reason.value if rule is not None else None,
+        }
+        try:
+            self._first_response_sink(run.context.run_id, record)
+        except Exception as exc:
+            logger.warning("첫 응답 기록 실패 run_id=%s error=%s", run.context.run_id, type(exc).__name__)
 
     async def _call_model(
         self, run: _Run, messages: tuple[ModelMessage, ...], tools, system: str, tool_choice: str = "auto"

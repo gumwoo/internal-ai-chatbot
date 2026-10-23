@@ -151,3 +151,36 @@ async def test_one_failing_case_is_recorded_and_the_run_continues(org, migrated,
         "eval_version": "test",
     }
     assert len(out.read_text(encoding="utf-8").splitlines()) == 2
+
+
+async def test_runner_records_the_first_answer_without_tools_and_its_reprompt_reason(org, migrated, tmp_path):
+    """P-31 D: 도구 없이 끝난 첫 응답의 outcome·answer·재호출 사유가 결과에 남는다(첫 응답이 도구면 None)."""
+    await _published_wiki(org)
+    promise = "외부교육 규정을 검색해 보겠습니다."
+    model = Capturing(
+        [
+            final(promise, outcome="insufficient_evidence"),
+            tool_turn(_search()),
+            final("종전 기준입니다.", citations=["c1-1"]),
+            tool_turn(_search()),
+            final("종전 기준입니다.", citations=["c1-1"]),
+        ]
+    )
+    out = tmp_path / "first.jsonl"
+    results = await run_cases(
+        CASES,
+        settings=make_settings(database_url=migrated, allowed_origins=ORIGIN),
+        clock=FixedClock(),
+        strategy="raw",
+        strict=True,
+        out=out,
+        chat_model=model,
+        embedding_model=BigramEmbedder(),
+    )
+    first = [r["runs"][0]["first_response"] for r in results]
+    assert first == [
+        {"outcome": "insufficient_evidence", "answer": promise, "reprompt": "search_promise"},
+        None,
+    ]
+    written = [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines()]
+    assert [r["runs"][0]["first_response"] for r in written] == first
