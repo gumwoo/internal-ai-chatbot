@@ -21,7 +21,9 @@ from agent.modules.model_integration.ports import (
 from agent.shared.citation_markers import strip_markers
 from agent.shared.clock import KST
 
-JUDGE_PROMPT_VERSION = "judge-v1"
+# judge-v2(D-93): 근거 없는 주장·금지 주장의 기준을 좁히고, gold 사실이 있는 문항의 verdict를 항목 판정에서
+# 계산한다(holdout8 오답 분석 9.22에서 judge 오판·과잉 감점 24/53). judge-v1 판정과는 비교하지 않는다.
+JUDGE_PROMPT_VERSION = "judge-v2"
 
 JUDGE_SYSTEM = """당신은 사내 규정 질의응답의 채점자다. 주어진 gold(정답 사실·예외·금지 주장·근거 원문)만
 기준으로 답변을 판정한다. 답변이 어느 시스템에서 나왔는지는 알 수 없고 알 필요도 없다.
@@ -33,7 +35,17 @@ JUDGE_SYSTEM = """당신은 사내 규정 질의응답의 채점자다. 주어�
 - abstained: 답변이 근거 부족·권한 없음·확인 불가로 답을 보류했는가.
 - verdict: correct(사실 모두 supported, 예외 빠짐 없음, 금지·근거 없는 주장 없음) / partial / incorrect.
   gold 사실이 없는 문항(근거 없음·권한 거절)은 abstained이고 금지 주장이 없으면 correct다.
-- reason: 한두 문장."""
+- reason: 한두 문장. reason과 각 항목 판정이 서로 맞아야 한다.
+판정 기준(꼭 지킨다):
+- 시스템이 인용한 원문은 사용자가 볼 수 있는 근거다. 답변의 내용이 시스템 인용 원문에 있으면 gold에 없어도
+  근거 있는 내용이다. 원문에 근거한 세부를 더 말한 것만으로 partial로 내리지 않는다.
+- unsupported_claim은 답변의 규칙·금액·기한·조건이 gold 근거 원문과 시스템 인용 원문 어디에도 없을 때만
+  true다. 영업일 계산 방식 설명(주말·공휴일 제외, 회사 휴무 미반영), "담당 부서에 확인하세요" 같은 일반 안내는
+  근거 없는 주장이 아니다.
+- forbidden_violated는 답변이 금지 주장과 같은 내용을 긍정해서 말했을 때만 true다. 금지 주장을 부정하거나
+  반대로 말했으면 false다.
+- 내용이 비슷하다는 이유만으로 답변이 제한 문서 내용을 전했다고 보지 않는다. 시스템 인용 원문에 있는 내용이면
+  공개된 내용이다."""
 
 JUDGE_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -106,6 +118,17 @@ def valid_verdict(candidate: dict[str, Any], case: dict[str, Any]) -> bool:
     )
 
 
+def derived_verdict(candidate: dict[str, Any]) -> str:
+    """항목 판정 → verdict. 반대로 말한 사실·금지 주장이 있으면 incorrect, 모두 맞고 근거 없는 주장이 없으면
+    correct, 나머지는 partial."""
+    items = [*candidate["facts"], *candidate["exceptions"]]
+    if candidate["forbidden_violated"] or "contradicted" in items:
+        return "incorrect"
+    if all(x == "supported" for x in items) and not candidate["unsupported_claim"]:
+        return "correct"
+    return "partial"
+
+
 async def judge_one(
     chat: ChatModel, config: ModelConfig, text: str, case: dict[str, Any] | None = None
 ) -> dict[str, Any]:
@@ -126,6 +149,13 @@ async def judge_one(
     candidate = response.final_candidate or {}
     if case is not None and not valid_verdict(candidate, case):
         return {"judge_error": "schema_mismatch", "judged_at": judged_at, "judge_model": response.model_id}
+    if candidate.get("facts"):
+        # judge-v2: gold 사실이 있으면 verdict를 항목 판정에서 계산한다(이유와 판정값이 어긋나는 오판 방지).
+        candidate = {
+            **candidate,
+            "model_verdict": candidate["verdict"],
+            "verdict": derived_verdict(candidate),
+        }
     return {
         **candidate,
         "judge_model": response.model_id,

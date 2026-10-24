@@ -289,3 +289,20 @@ async def test_event_basis_on_general_rule_splits_instead_of_asking():
     )
     assert r.resolution == "resolved" and r.edition_split["event_type"] == "explicit_date"
     assert r.trace()["date_path"]["split"] == "split"
+
+
+def test_no_edition_note_when_the_user_date_falls_in_the_cited_edition():
+    """D-93: 사용자가 말한 날짜가 인용한 판본 구간 안이고 빠진 판본 구간에는 없으면 안내를 붙이지 않는다."""
+    run = SimpleNamespace(citations={"c1-1": _cite("2026-10-16")})
+    assert _edition_split_notes(run, [_split(E2, E3)], ["c1-1"], "답", [date(2026, 10, 21)]) == []
+    # 빠진 판본 구간의 날짜도 말했으면 그대로 안내한다
+    both = [date(2026, 10, 21), date(2026, 9, 2)]
+    assert len(_edition_split_notes(run, [_split(E2, E3)], ["c1-1"], "답", both)) == 1
+
+
+def test_no_edition_note_when_the_answer_already_names_the_boundary():
+    run = SimpleNamespace(citations={"c1-1": _cite("2026-10-16")})
+    answer = "2026년 10월 1일 이후 시작했다면 개정 기준, 그 전이면 종전 기준입니다."
+    assert _edition_split_notes(run, [_split(E2, E3)], ["c1-1"], answer) == []
+    # 가장 오래된 판본의 시작일만 말한 답은 경계 설명이 아니다
+    assert len(_edition_split_notes(run, [_split(E2, E3)], ["c1-1"], "2025년 1월 1일부터 시행")) == 1

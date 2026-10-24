@@ -1289,7 +1289,10 @@ def _server_outcome(run: _Run, final: FinalCandidate, citation_ids: list[str], t
         pending = [p for p in _pending_clarifications(run) if p not in final.answer]
         # D-67: 판본별로 함께 준 사건에서 일부 판본만 인용했으면,
         # 다른 판본이 적용될 수 있다고 서버가 덧붙인다.
-        pending += [n for n in _edition_split_notes(run, splits, citation_ids) if n not in final.answer]
+        # 판본별 결과가 있을 때만 사용자 날짜를 모은다(D-93)
+        user_dates = [d for d, _ in _deadline_bases(run)] if splits else []
+        notes = _edition_split_notes(run, splits, citation_ids, final.answer, user_dates)
+        pending += [n for n in notes if n not in final.answer]
         pending = list(dict.fromkeys(pending))  # 되묻기 문구가 D-39 문구와 같을 수 있다
         if pending:
             return Outcome.ANSWERED, "\n\n".join([final.answer, *pending])
@@ -1303,12 +1306,20 @@ def _server_outcome(run: _Run, final: FinalCandidate, citation_ids: list[str], t
         return Outcome.INSUFFICIENT_EVIDENCE, (unsupported or {}).get("safe_message") or _BUDGET_ABSTAIN
 
 
-def _edition_split_notes(run: _Run, splits: list[dict[str, Any]], citation_ids: list[str]) -> list[str]:
+def _edition_split_notes(
+    run: _Run,
+    splits: list[dict[str, Any]],
+    citation_ids: list[str],
+    answer: str = "",
+    user_dates: list[date] | tuple[date, ...] = (),
+) -> list[str]:
     """D-67: 판본별로 함께 준 사건 중, 규범 원문을 모든 판본에서 인용하지 않은 사건의 안내 문구.
 
     그 사건의 원문을 하나도 인용하지 않았으면 날짜 되묻기 문구, 일부 판본만 인용했으면 다른 판본 안내다.
 
     모델이 한 판본만 골라 답해도(날짜를 확정할 근거 없이) 사용자가 다른 판본의 적용 가능성을 알게 한다.
+    D-93: 일부 판본만 인용했어도 (1) 사용자가 말한 날짜(이번·이력 본인 메시지)가 인용한 판본 구간 안에 있고
+    빠진 판본 구간에는 없거나, (2) 답이 판본 경계 날짜를 이미 말했으면 안내를 붙이지 않는다.
     """
     notes: list[str] = []
     for split in splits:  # 같은 사건을 날짜로 다시 확인한 결과는 호출 쪽에서 이미 뺐다(_dated_contexts)
@@ -1330,6 +1341,8 @@ def _edition_split_notes(run: _Run, splits: list[dict[str, Any]], citation_ids: 
             # 그 사건의 날짜를 묻는다(D-39와 같은 문구).
             notes.append(split["clarification"]["prompt"])
             continue
+        if _edition_already_settled(editions, cited, answer, user_dates):
+            continue
         missing = [
             f"사건이 {e['effective_from']}부터 {e['effective_to']} 전까지이면 {e['version']} 판본이"
             if e["effective_to"]
@@ -1343,6 +1356,28 @@ def _edition_split_notes(run: _Run, splits: list[dict[str, Any]], citation_ids: 
             + " 적용됩니다. 날짜를 알려 주시면 그 판본으로 안내하겠습니다."
         )
     return list(dict.fromkeys(notes))  # 같은 사건을 날짜 없이 여러 번 검색해도 문구는 한 번
+
+
+def _in_edition(day: date, edition: dict[str, Any]) -> bool:
+    start = date.fromisoformat(edition["effective_from"])
+    end = date.fromisoformat(edition["effective_to"]) if edition["effective_to"] else None
+    return start <= day and (end is None or day < end)
+
+
+def _edition_already_settled(
+    editions: list[dict[str, Any]], cited: set, answer: str, user_dates: list[date] | tuple[date, ...]
+) -> bool:
+    """D-93: 일부 판본만 인용한 답에 다른 판본 안내가 필요 없는가(사용자 날짜·경계 설명)."""
+    used = [e for e in editions if e["as_of_date"] in cited]
+    other = [e for e in editions if e["as_of_date"] not in cited]
+    if user_dates and any(_in_edition(d, e) for d in user_dates for e in used):
+        if not any(_in_edition(d, e) for d in user_dates for e in other):
+            return True
+    boundaries = {e["effective_from"] for e in other} | {
+        e["effective_to"] for e in other if e["effective_to"]
+    }
+    boundaries -= {e["effective_from"] for e in editions[:1]}  # 가장 오래된 판본의 시작일은 경계가 아니다
+    return any(_date_pattern(iso).search(answer) for iso in boundaries)
 
 
 def _normative_gap_withhold(run: _Run, citation_ids: list[str]) -> str | None:

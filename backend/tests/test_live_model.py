@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from agent.app.main import CHAT_MAX_OUTPUT_TOKENS
 from agent.modules.agent_runtime.contracts import ConversationSnapshot, HistoryMessage, Outcome
 from agent.modules.agent_runtime.observer import InMemoryObserver
 from agent.modules.agent_runtime.prompt import PROMPT_VERSION
@@ -87,7 +88,9 @@ def _results_file() -> Path:
 
 async def _run(engine, settings, scenario: str, message: str, snapshot: ConversationSnapshot | None = None):
     clock = FixedClock()
-    model = ModelConfig(model=settings.chat_model, max_output_tokens=1024, config_version=PROMPT_VERSION)
+    model = ModelConfig(
+        model=settings.chat_model, max_output_tokens=CHAT_MAX_OUTPUT_TOKENS, config_version=PROMPT_VERSION
+    )
     raw = RawRecordingClient(settings.anthropic_api_key.get_secret_value())
     chat = AnthropicChatModel(api_key=None, client=raw)
     runtime = AgentRuntime(chat, ToolExecutor(TrainingService(engine), clock), clock, model)

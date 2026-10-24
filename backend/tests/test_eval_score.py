@@ -265,3 +265,20 @@ def test_inline_citation_markers_are_not_scored_as_numbers():
         case, result("raw", f"{GOOD} [c3-21]", ["p-old"], ["p-old"], ["p-old"]), PASSAGES, SOURCES
     )
     assert not scored["forbidden_number_hit"] and scored["rule_correct"]
+
+
+def test_judge_v2_derives_the_verdict_from_item_judgements():
+    """D-93: gold 사실이 있으면 verdict를 항목 판정에서 계산한다(이유와 판정값이 어긋나는 오판 방지)."""
+    from agent.app.eval_judge import derived_verdict
+
+    base = {"facts": ["supported", "supported"], "exceptions": [], "forbidden_violated": False}
+    assert derived_verdict({**base, "unsupported_claim": False}) == "correct"
+    assert derived_verdict({**base, "unsupported_claim": True}) == "partial"
+    assert (
+        derived_verdict({**base, "facts": ["supported", "missing"], "unsupported_claim": False}) == "partial"
+    )
+    assert (
+        derived_verdict({**base, "facts": ["contradicted", "supported"], "unsupported_claim": False})
+        == "incorrect"
+    )
+    assert derived_verdict({**base, "forbidden_violated": True, "unsupported_claim": False}) == "incorrect"

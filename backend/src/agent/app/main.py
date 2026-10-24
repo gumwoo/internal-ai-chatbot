@@ -39,6 +39,9 @@ from agent.shared.origin import OriginCheckMiddleware
 from agent.shared.request_id import RequestIdMiddleware
 from agent.shared.settings import REPO_ROOT, Settings
 
+# D-93: 대화 모델 출력 상한. 1024에서는 복수 문서·긴 체크리스트 답이 잘려 MODEL_OUTPUT_INVALID가 났다
+# (holdout7·8 실행 564번 중 13번, 보고서 9.22). 쓰는 만큼만 과금된다.
+CHAT_MAX_OUTPUT_TOKENS = 2048
 API_PREFIX = "/api/v1"
 INPUT_ROOT = REPO_ROOT / "data" / "raw" / "pdfs"
 logger = logging.getLogger(__name__)
@@ -90,7 +93,9 @@ def create_app(
         # 키가 없으면 모델 호출 시 MODEL_NOT_CONFIGURED로 실패한다(서버 시작은 막지 않는다).
         key = settings.anthropic_api_key.get_secret_value() if settings.anthropic_api_key else None
         chat = chat_model or AnthropicChatModel(api_key=key)
-        model = ModelConfig(model=settings.chat_model, max_output_tokens=1024, config_version=PROMPT_VERSION)
+        model = ModelConfig(
+            model=settings.chat_model, max_output_tokens=CHAT_MAX_OUTPUT_TOKENS, config_version=PROMPT_VERSION
+        )
         gemini_key = settings.gemini_api_key.get_secret_value() if settings.gemini_api_key else None
         embedder = embedding_model or GeminiEmbeddingModel(api_key=gemini_key)
         knowledge = KnowledgeService(
